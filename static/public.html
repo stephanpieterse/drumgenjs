@@ -1,0 +1,36 @@
+<html>
+<head>
+ <title>Accents Companion App</title>
+<link rel="stylesheet" href="https://drumgen.apollolms.co.za/static/page.css" type="text/css" />
+<link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body>
+<div class="centerme wide75">
+<div class="mainholder" style="text-align:center;">
+  <img class="loader-image" src="https://drumgen.apollolms.co.za/static/logo.png"></div>
+<br/>
+</div>
+
+<script type="text/javascript" src="/static/jquery.js"></script>
+
+To display a pattern every 30min on your page, simply add the following image tag:
+<br/>
+<textarea type="text">
+  <img alt="drumgen" src="https://drumgen.apollolms.co.za/public/image?seed=yoursitename" />
+</textarea>
+<br/>
+Similarly, you can use the following to get the corresponding audio:
+<textarea type="text">
+  <audio class="audiosrc" src='https://drumgen.apollolms.co.za/public/audio?seed=yoursitename' type="audio/ogg" preload="auto" controls> </audio>
+</textarea>
+<br/>
+<br/>
+  <img alt="drumgen" src="https://drumgen.apollolms.co.za/public/image?seed=yoursitename" />
+  <audio class="audiosrc" src='https://drumgen.apollolms.co.za/public/audio?seed=yoursitename' type="audio/ogg" preload="auto" controls> </audio>
+
+<br/>
+Query parameters:
+<br/>
+seed: A unique identifier for your website. Used to generate the same image for all visitors.
+</body>
+</html>

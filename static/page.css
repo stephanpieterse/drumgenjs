@@ -1,0 +1,49 @@
+body {
+  background-color: #ffffff;
+}
+
+.util-image {
+  width: 48px;
+  margin-left: auto;
+  margin-right: auto;
+	padding-left: 15px;
+	padding-right: 15px;
+}
+
+.download-image {
+  width: 48px;
+	padding-left: 15px;
+	padding-right: 15px;
+}
+
+div {
+  padding-left: 25px;
+  padding-right: 25px;
+  padding-top: 2px;
+  padding-bottom: 5px;
+}
+
+.pattern-image {
+  width: 100%;
+}
+
+.pattern-image-bottom {
+  width: 100%;
+}
+
+img {
+	margin-top: 2px;
+	margin-bottom: 2px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+.wide75 {
+  width: 75%;
+}
+
+.centerme {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}

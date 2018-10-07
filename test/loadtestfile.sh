@@ -1,0 +1,9 @@
+https://drumgen.apollolms.co.za/public/image?seed=testing1
+https://drumgen.apollolms.co.za/public/image?seed=testing2
+https://drumgen.apollolms.co.za/public/image?seed=diffseed
+https://drumgen.apollolms.co.za/public/image?seed=diffseedthanthat
+https://drumgen.apollolms.co.za/public/image
+https://drumgen.apollolms.co.za/image
+https://drumgen.apollolms.co.za/audio
+https://drumgen.apollolms.co.za/static/page.html
+https://drumgen.apollolms.co.za/static/donate.html
