@@ -52,7 +52,8 @@
   var cseed = "public";
   
   funcs.getSeed = function(){
-    var inst = parseInt(new Date().getTime() / 1000 / 6);
+    // new postfix every 7s
+    var inst = parseInt(new Date().getTime() / 1000 / 7);
     seedcount = (seedcount + 1) % 3;
     cseed = "x-dg-app-" + seedcount + inst;
   }
@@ -266,11 +267,11 @@ function preloadImages(ti) {
 
 
   var init = function(){
-  LS.clearCache();
-funcs.getSeed();
-              loader.show();
-              imgholder.hide();
-              mainsndholder.hide();
+          LS.clearCache();
+          funcs.getSeed();
+          loader.show();
+          imgholder.hide();
+          mainsndholder.hide();
           var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
           var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
 

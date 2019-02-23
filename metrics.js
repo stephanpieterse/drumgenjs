@@ -28,9 +28,10 @@ function path(id) {
 function seeds(id) {
    id = id || "";
    if(id.indexOf('x-dg-app') === 0){
-     id = "x-dg-app";
+     genericAdder("seeds", 'x-dg-app');
+   } else {
+     genericAdder("seeds", id);
    }
-   genericAdder("seeds", id);
 }
 
 function genericAdder(type, id){

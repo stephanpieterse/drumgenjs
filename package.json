@@ -1,11 +1,11 @@
 {
   "name": "musxml",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generates nice complex drum patterns",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "start": "nodejs --max_old_space_size=512 index.js"
+    "start": "nodejs --max_old_space_size=640 index.js"
   },
   "author": "stephan@apollolms.co.za",
   "license": "MIT",

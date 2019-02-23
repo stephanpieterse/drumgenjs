@@ -62,22 +62,22 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
             for (var tt = 0; tt < tupNum; tt++) {
                 switch (blocks[b][tt]) {
                     case "L":
-                        file += repnote + (noteDur) + '->-"L"' + space;
+                        file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
                         break;
                     case "l":
-                        file += repnote + (noteDur) + '-"L"' + space;
+                        file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
                         break;
                     case "R":
-                        file += repnote + (noteDur) + '->-"R"' + space;
+                        file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
                         break;
                     case "r":
-                        file += repnote + (noteDur) + '-"R"' + space;
+                        file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
                         break;
                     case "X":
-                        file += repnote + (noteDur) + "->" + space;
+                        file += repnote + (noteDur) + "->-\\omit\\fff" + space;
                         break;
                     case "x":
-                        file += repnote + (noteDur) + '' + space;
+                        file += repnote + (noteDur) + '-\\omit\\pp' + space;
                         break;
                     case "-":
                         file += "r" + (noteDur) + space;
@@ -136,10 +136,8 @@ var getLilypondHeader = function() {
     var head = "";
     head += "\\version \"2.18.2\" " + nl;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
-    // head += "\\include \"articulate.ly\"" + nl;
     head += defDrums;
     head += "\\score {" + nl;
-    // head += "\\articulate" + nl;
     return head;
 };
 
