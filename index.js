@@ -1,6 +1,8 @@
 /* global require */
 /* jslint strict:false */
 
+var startpath = '/opt/app';
+
 var express = require("express");
 var musxml = require("./main.js");
 var app = express();
@@ -186,6 +188,9 @@ app.use(function errorHandler(err, req, res, next) {
     return next(err);
 });
 
+app.use("/favicon.ico", function(req, res){
+	res.sendFile(startpath + "/static/favicon.ico");
+});
 app.use("/static", express.static("static"));
 
 app.disable('x-powered-by');

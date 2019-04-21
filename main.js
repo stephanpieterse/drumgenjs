@@ -431,7 +431,8 @@ var generatePNG = function(filename) {
 
         var genchild;
         q.push(function(cb) {
-            genchild = exec("cd " + dir_prefix + " && lilypond --png -dresolution=190 '" + filename + ".ly' ", function(error, stdout, stderr) {
+            //genchild = exec("cd " + dir_prefix + " && lilypond --png -dresolution=190 '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
+            genchild = exec("cd " + dir_prefix + " && ../lilyclient.sh --png '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
                 Log.trace('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
                 if (error !== null) {
@@ -600,9 +601,10 @@ var getImageData = function(res, pattern, eopts) {
         return;
     }
 
-    var mimg = gm(fullname + ".png").limit('memory', '48M');
-    mimg.crop(2048, 500, 0, 0)
-        .trim()
+    var mimg = gm(fullname + ".s.png").limit('memory', '48M');
+    //mimg.crop(2048, 500, 0, 0)
+    //    .trim()
+    mimg
         .toBuffer('PNG', function(err, buf) {
 
             if (err) {

@@ -1,6 +1,11 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
  <title>Accents Companion App</title>
+ <link rel="manifest" href="/static/manifest.json">
+ <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+ <meta name="theme-color" content="#ffffff" />
+ <meta name="description" content="A little app to generate patterns for you" />
 	<meta name="replaceme">
 <link rel="stylesheet" href="https://drumgen.apollolms.co.za/static/page.css" type="text/css" />
 <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
@@ -12,20 +17,34 @@
   <a class="about-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/about.png" alt="about" /></a>
   <a class="settings-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/settings.png" alt="settings" /></a>
 </div>
+<main>
 <div class="centerme wide75">
+<section>
 <div class="mainholder" style="text-align:center;">
-  <img class="loader-image" src="https://drumgen.apollolms.co.za/static/loader.gif"></div>
-  <img class="pattern-image" src="" />
+  <img class="loader-image" src="https://drumgen.apollolms.co.za/static/loader.gif" alt="loader"></div>
+  <img class="pattern-image" src="" alt="pattern image"/>
   <div class="mainsndholder">
     <audio class="audiosrc" src='' type="audio/ogg" preload="auto" controls> </audio>
   </div>
 <br/>
+</section>
 </div>
+</main>
+<noscript>
+	Unfortunately, this site requires javascript to run properly at this time!
+</noscript>
 
 <script type="text/javascript" src="/static/jquery.js"></script>
 <script type="text/javascript" src="/static/hammer.min.js"></script>
 
 <script type="text/javascript">
+if ('serviceWorker' in navigator) {
+
+  // register service worker
+  navigator.serviceWorker.register('/static/serviceworker.js');
+
+}
+
   var healthCheck = setInterval(function(){
     $.get("https://drumgen.apollolms.co.za/health").done(function(){
       $('.healthpanel').hide();
@@ -41,9 +60,6 @@
   $('.settings-image').click(function() {
       $('.settingspanel').toggle();
   });
-</script>
-
-<script type="text/javascript">
 
   var funcs = {};
 	var settings = {};
