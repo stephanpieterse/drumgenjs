@@ -1,0 +1,17 @@
+{
+  "name"              : "Accents CompanionA",
+  "short_name"        : "ACA",
+  "description"       : "A small app to generate accents and stickings",
+  "start_url"         : "/static/page.html",
+  "display"           : "standalone",
+  "orientation"       : "landscape",
+  "background_color"  : "#ffffff",
+  "theme_color"       : "#ffffff",
+  "icons": [
+    {
+      "src"           : "/static/icon.png",
+      "sizes"         : "512x512",
+      "type"          : "image/png"
+    }
+	]
+}
