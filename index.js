@@ -9,6 +9,7 @@ var app = express();
 var config = require("./config.js");
 var serverPort = config.server.port;
 var metrics = require('./metrics.js');
+var timers = require('./timers.js');
 
 var sanitize = require('./sanitize.js');
 
@@ -20,8 +21,20 @@ app.use(function metricTracker(req, res, next) {
     next();
 });
 
+app.use(function timingTracker(req, res, next) {
+		timers.start(req.path);
+		res.on("finish", function(){
+				timers.end(req.path);
+		});
+    next();
+});
+
 app.get("/metrics", function(req, res) {
     res.json(metrics.getMetrics());
+});
+
+app.get("/timers", function(req, res) {
+    res.json(timers.timers);
 });
 
 app.get("/", function(req, res) {

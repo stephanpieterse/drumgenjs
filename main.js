@@ -9,6 +9,7 @@ var util = require('./util.js');
 var cache = util.cache;
 var config = require('./config.js');
 
+var timers = require('./timers.js');
 var queue = require('queue');
 
 var q = new queue();
@@ -393,6 +394,7 @@ var getPage = function(req, res, pattern) {
 var generateLilypond = function(pattern, eopts) {
     return new Promise(function(resolve, reject) {
 
+			timers.start("gen-lily");
         var options = getDefaultOptions();
         var finalPattern = patternToLilypond(pattern, {
             tempo: options.tempo,
@@ -401,6 +403,7 @@ var generateLilypond = function(pattern, eopts) {
             noMetronome: eopts.noMetronome
         });
 
+			timers.end("gen-lily");
         var filenames_pre = exportBlocks(pattern);
         var fullname = dir_prefix + filenames_pre;
 
@@ -424,6 +427,7 @@ var generatePNG = function(filename) {
 
     return new Promise(function(resolve, reject) {
 
+				timers.start("gen-png");
         if (fs.existsSync(filename + ".png")) {
             resolve();
             return;
@@ -433,6 +437,7 @@ var generatePNG = function(filename) {
         q.push(function(cb) {
             //genchild = exec("cd " + dir_prefix + " && lilypond --png -dresolution=190 '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
             genchild = exec("cd " + dir_prefix + " && ../lilyclient.sh --png '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
+								timers.end("gen-png");
                 Log.trace('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
                 if (error !== null) {
@@ -458,8 +463,10 @@ var generateOGG = function(filename) {
             return;
         }
 
+				timers.start("gen-ogg");
         var audiochild;
-        audiochild = exec("timidity -EFreverb=0 -Ov " + filename + ".midi", function(error, stdout, stderr) {
+        audiochild = exec("timidity -EFreverb=0 --output-mono --output-24bit -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
+						timers.end("gen-ogg");
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (error !== null) {
@@ -486,11 +493,11 @@ var generateAllFiles = function(pattern, eopts) {
         var fullname = dir_prefix + filenames_pre;
         generateLilypond(pattern, eopts).then(function() {
             generatePNG(fullname).then(function() {
-                generateOGG(fullname).then(function() {
+           //     generateOGG(fullname).then(function() {
                     resolve();
-                }).catch(function(e) {
-                    reject(e);
-                });
+            //    }).catch(function(e) {
+              //      reject(e);
+            //    });
             }).catch(function(e) {
                 reject(e);
             });
@@ -518,7 +525,13 @@ var getAudio = function(res, pattern, eopts) {
 
     eopts = eopts || {};
     getOrMakeFile(res, pattern, eopts, function() {
+        var filenames_pre = exportBlocks(pattern);
+        var fullname = dir_prefix + filenames_pre;
+				generateOGG(fullname).then(function() {
         getAudioData(res, pattern, eopts);
+                }).catch(function(e) {
+									// whelp
+                });
     });
 
 };
@@ -528,6 +541,7 @@ var getAudioData = function(res, pattern, eopts) {
     var filenames_pre = exportBlocks(pattern);
 
     try {
+				timers.start("buf-ogg");
         fs.readFile(dir_prefix + filenames_pre + ".ogg", function(err, data) {
             if (err) {
                 Log.error(err);
@@ -538,6 +552,7 @@ var getAudioData = function(res, pattern, eopts) {
                 return;
             }
 
+				timers.end("buf-ogg");
             Log.debug(data);
 
             if (!data) {
@@ -579,33 +594,33 @@ var getImageData = function(res, pattern, eopts) {
     var filenames_pre = exportBlocks(pattern);
     var fullname = dir_prefix + filenames_pre;
 
-    var cacheName = "image" + fullname + "png";
-    var ck = cache.get(cacheName);
+   // var cacheName = "image" + fullname + "png";
+   // var ck = cache.get(cacheName);
 
 
-    if (ck) {
-        if (eopts.asBase64) {
-            var imageAsBase64 = "data:image/png;base64," + ck.toString("base64");
-            res.writeHead(200, {
-                'Content-Type': 'text/plain'
-            });
+   // if (ck) {
+   //     if (eopts.asBase64) {
+   //         var imageAsBase64 = "data:image/png;base64," + ck.toString("base64");
+   //         res.writeHead(200, {
+   //             'Content-Type': 'text/plain'
+   //         });
 
-            res.end(imageAsBase64);
-        } else {
-            res.writeHead(200, {
-                'Content-Type': 'image/png'
-            });
-            res.end(ck);
-        }
+   //         res.end(imageAsBase64);
+   //     } else {
+   //         res.writeHead(200, {
+   //             'Content-Type': 'image/png'
+   //         });
+   //         res.end(ck);
+   //     }
 
-        return;
-    }
+   //     return;
+   // }
 
-    var mimg = gm(fullname + ".s.png").limit('memory', '48M');
-    //mimg.crop(2048, 500, 0, 0)
-    //    .trim()
-    mimg
-        .toBuffer('PNG', function(err, buf) {
+		timers.start("buf-img");
+    //var mimg = gm(fullname + ".s.png").limit('memory', '48M');
+    //mimg
+    //    .toBuffer('PNG', function(err, buf) {
+    fs.readFile(fullname + ".s.png", function(err, buf) {
 
             if (err) {
                 Log.error(err);
@@ -614,7 +629,8 @@ var getImageData = function(res, pattern, eopts) {
                 return;
             }
 
-            cache.set(cacheName, buf);
+        		timers.end("buf-img");
+            //cache.set(cacheName, buf);
 
             if (eopts.asBase64) {
                 var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
