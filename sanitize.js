@@ -2,6 +2,8 @@
 /* jshint strict: false */
 
 var config = require('./config.js');
+var MAX_STRING_LENGTH = 150;
+var MAX_TUPLE_DIV = 17;
 
 function sanitizeTuples(tupQ){
   tupQ = tupQ || "";
@@ -9,8 +11,8 @@ function sanitizeTuples(tupQ){
   
   for (var t in tup) {
     try {
-      tup[t] = parseInt(tup[t]);
-      tup[t] = Math.abs(tup[t]) % 17;
+      tup[t] = (isNaN(tup[t]) || tup[t] === "" ) ? 2 : parseInt(tup[t]);
+      tup[t] = Math.abs(tup[t]) % MAX_TUPLE_DIV;
     } catch (e) {
       return false;
     }
@@ -19,6 +21,20 @@ function sanitizeTuples(tupQ){
   return tup;
 }
 
+function trimString(tstring){
+
+  if (!tstring){
+    return tstring;
+  }
+
+  tstring = tstring.substring(0, MAX_STRING_LENGTH);
+  tstring = tstring.trim();
+
+  return tstring;
+
+}
+
 module.exports = {
-  tuples: sanitizeTuples
+  tuples: sanitizeTuples,
+  trimString: trimString
 };

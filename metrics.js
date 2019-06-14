@@ -52,7 +52,7 @@ function genericAverage(type, id, amount){
 		save();
 }
 function save(){
-	savedcache.put(globalkey, metrics);
+	savedcache.put(globalkey, metrics, function(e,r){});
 }
 
 function getMetrics() {

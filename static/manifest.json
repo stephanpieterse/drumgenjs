@@ -1,5 +1,5 @@
 {
-  "name"              : "Accents CompanionA",
+  "name"              : "Accents Companion App",
   "short_name"        : "ACA",
   "description"       : "A small app to generate accents and stickings",
   "start_url"         : "/static/page.html",
@@ -8,10 +8,16 @@
   "background_color"  : "#ffffff",
   "theme_color"       : "#ffffff",
   "icons": [
-    {
-      "src"           : "/static/icon.png",
-      "sizes"         : "512x512",
-      "type"          : "image/png"
-    }
+        {
+            "src": "/static/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+
 	]
 }

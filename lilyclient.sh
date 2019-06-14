@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 # Compile command line arguments into a scheme expression to be passed to the 
 # server. The first item in the list is the client's working directory, followed
 # by the client's name (so getopt-long will be happy), and then the actual

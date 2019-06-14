@@ -1,7 +1,7 @@
 /* global Buffer, require, module, setInterval, clearInterval */
 /* jslint strict:false */
 
-var gm = require("gm");
+//var gm = require("gm");
 // var sys = require('util');
 var exec = require('child_process').exec;
 var fs = require('fs');
@@ -19,7 +19,7 @@ q.autostart = true;
 
 var Log = require('./logger.js');
 
-var dir_prefix = "/opt/app/tmpgen/";
+var dir_prefix = config.tmpdir;
 
 var impExpMap = {
     "[[": "s",
@@ -136,9 +136,13 @@ var genMetronomePart = function(patlen) {
 var getLilypondHeader = function() {
     var head = "";
     head += "\\version \"2.18.2\" " + nl;
+    // head += "#(ly:set-option 'backend 'eps)" + nl;
+    // head += "#(ly:set-option 'anti-alias-factor '7)" + nl;
+    head += "#(ly:set-option 'resolution '170)" + nl;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
     head += "\\score {" + nl;
+    //head += "\\repeat volta 4 ";
     return head;
 };
 
@@ -157,7 +161,7 @@ var patternToLilypond = function(blocks, options) {
     }
 
     // set defaults
-    options.tempo = options.tempo || 100;
+    options.tempo = options.tempo || getDefaultOptions({}).tempo;
     var patlen = blocks[0].length;
 
     var file = "";
@@ -178,6 +182,7 @@ var patternToLilypond = function(blocks, options) {
             file += "\\tempo 4 = " + options.tempo + nl;
         }
         file += "\\drummode {" + nl;
+        file += "\\repeat volta 4 ";
         file += genLilypondPart(blocks[block], mappings[block]);
         file += "}" + nl;
         file += "}" + nl;
@@ -374,21 +379,21 @@ var getDefaultOptions = function(options) {
     return options;
 };
 
-var getPage = function(req, res, pattern) {
-    var page = "<html><head><title>Pattern for you</title>";
-    page += "<style>";
-    page += ".mainHolder { text-align: center; }";
-    page += "audio { width: 100%; }";
-    page += "</style>";
-    page += "</head><body>";
-    page += "<div id='mainHolder'>";
-    page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(pattern) + "' />";
-    page += "<br/>";
-    page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
-    page += "</div>";
-    page += "</body></html>";
-    res.end(page);
-};
+//var getPage = function(req, res, pattern) {
+//    var page = "<html><head><title>Pattern for you</title>";
+//    page += "<style>";
+//    page += ".mainHolder { text-align: center; }";
+//    page += "audio { width: 100%; }";
+//    page += "</style>";
+//    page += "</head><body>";
+//    page += "<div id='mainHolder'>";
+//    page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(pattern) + "' />";
+//    page += "<br/>";
+//    page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
+//    page += "</div>";
+//    page += "</body></html>";
+//    res.end(page);
+//};
 
 
 var generateLilypond = function(pattern, eopts) {
@@ -435,8 +440,7 @@ var generatePNG = function(filename) {
 
         var genchild;
         q.push(function(cb) {
-            //genchild = exec("cd " + dir_prefix + " && lilypond --png -dresolution=190 '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
-            genchild = exec("cd " + dir_prefix + " && ../lilyclient.sh --png '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
+            genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
 								timers.end("gen-png");
                 Log.trace('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
@@ -465,7 +469,7 @@ var generateOGG = function(filename) {
 
 				timers.start("gen-ogg");
         var audiochild;
-        audiochild = exec("timidity -EFreverb=0 --output-mono --output-24bit -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
+        audiochild = exec("timidity -EFreverb=0 --output-mono -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
 						timers.end("gen-ogg");
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
@@ -530,7 +534,7 @@ var getAudio = function(res, pattern, eopts) {
 				generateOGG(fullname).then(function() {
         getAudioData(res, pattern, eopts);
                 }).catch(function(e) {
-									// whelp
+									Log.error(e);
                 });
     });
 
@@ -757,76 +761,76 @@ var convertMulti = function(req, res, num, patlen) {
     res.send(ret);
 };
 
-var getAccent = function(req, res) {
-    var mappings = ['-', 'r', 'R', 'l', 'L'];
+//var getAccent = function(req, res) {
+//    var mappings = ['-', 'r', 'R', 'l', 'L'];
+//
+//    var pattern = [];
+//    var sipattern = [];
+//    pattern[0] = makeCleanBlock(8);
+//    sipattern[0] = makeCleanBlock(8);
+//
+//    var barlen = getRandomInt(4, 8);
+//    var notetypes = mappings.length;
+//    var mxpat = Math.pow(notetypes, barlen);
+//    var randPat = getRandomInt(0, mxpat);
+//    var page = "<html><head><title>Random Accent</title>";
+//    page += "<style>";
+//    page += ".mainHolder { text-align: center; }";
+//    page += "audio { width: 100%; }";
+//    page += "</style>";
+//    page += "</head><body>";
+//    page += "<div id='mainHolder'>";
+//    var cpat = (randPat).toString(notetypes);
+//    cpat = lpad(cpat, barlen);
+//    pattern[0] = cpat.split("");
+//    for (var px in pattern[0]) {
+//        pattern[0][px] = mappings[pattern[0][px]];
+//    }
+//    sipattern[0] = pattern[0];
+//    page += "<img src='http://" + req.get('host') + "/image?nometro=true&map=sn&pat=" + exportBlocks(sipattern) + "' />";
+//    //page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
+//    page += "<br/>";
+//    page += "</div>";
+//    page += "</body></html>";
+//    res.end(page);
+//};
 
-    var pattern = [];
-    var sipattern = [];
-    pattern[0] = makeCleanBlock(8);
-    sipattern[0] = makeCleanBlock(8);
-
-    var barlen = getRandomInt(4, 8);
-    var notetypes = mappings.length;
-    var mxpat = Math.pow(notetypes, barlen);
-    var randPat = getRandomInt(0, mxpat);
-    var page = "<html><head><title>Random Accent</title>";
-    page += "<style>";
-    page += ".mainHolder { text-align: center; }";
-    page += "audio { width: 100%; }";
-    page += "</style>";
-    page += "</head><body>";
-    page += "<div id='mainHolder'>";
-    var cpat = (randPat).toString(notetypes);
-    cpat = lpad(cpat, barlen);
-    pattern[0] = cpat.split("");
-    for (var px in pattern[0]) {
-        pattern[0][px] = mappings[pattern[0][px]];
-    }
-    sipattern[0] = pattern[0];
-    page += "<img src='http://" + req.get('host') + "/image?nometro=true&map=sn&pat=" + exportBlocks(sipattern) + "' />";
-    //page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
-    page += "<br/>";
-    page += "</div>";
-    page += "</body></html>";
-    res.end(page);
-};
-
-var getAll8 = function(req, res) {
-
-    var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
-
-    var pattern = [];
-    var sipattern = [];
-    pattern[0] = makeCleanBlock(8);
-    sipattern[0] = makeCleanBlock(8);
-
-    var barlen = 3;
-    var notetypes = mappings.length;
-    var mxpat = Math.pow(notetypes, barlen);
-    var page = "<html><head><title>All 8</title>";
-    page += "<style>";
-    page += ".mainHolder { text-align: center; }";
-    page += "audio { width: 100%; }";
-    page += "</style>";
-    page += "</head><body>";
-    page += "<div id='mainHolder'>";
-    for (var mx = 0; mx < mxpat; mx++) {
-        var cpat = (mx).toString(notetypes);
-        cpat = lpad(cpat, barlen);
-        pattern[mx] = cpat.split("");
-        for (var px in pattern[mx]) {
-            pattern[mx][px] = mappings[pattern[mx][px]];
-        }
-        sipattern[0] = pattern[mx];
-        page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(sipattern) + "' />";
-    }
-
-    page += "<br/>";
-    page += "</div>";
-    page += "</body></html>";
-    res.end(page);
-
-};
+//var getAll8 = function(req, res) {
+//
+//    var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
+//
+//    var pattern = [];
+//    var sipattern = [];
+//    pattern[0] = makeCleanBlock(8);
+//    sipattern[0] = makeCleanBlock(8);
+//
+//    var barlen = 3;
+//    var notetypes = mappings.length;
+//    var mxpat = Math.pow(notetypes, barlen);
+//    var page = "<html><head><title>All 8</title>";
+//    page += "<style>";
+//    page += ".mainHolder { text-align: center; }";
+//    page += "audio { width: 100%; }";
+//    page += "</style>";
+//    page += "</head><body>";
+//    page += "<div id='mainHolder'>";
+//    for (var mx = 0; mx < mxpat; mx++) {
+//        var cpat = (mx).toString(notetypes);
+//        cpat = lpad(cpat, barlen);
+//        pattern[mx] = cpat.split("");
+//        for (var px in pattern[mx]) {
+//            pattern[mx][px] = mappings[pattern[mx][px]];
+//        }
+//        sipattern[0] = pattern[mx];
+//        page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(sipattern) + "' />";
+//    }
+//
+//    page += "<br/>";
+//    page += "</div>";
+//    page += "</body></html>";
+//    res.end(page);
+//
+//};
 
 module.exports = {
     importBlocks: importBlocks,
@@ -834,9 +838,9 @@ module.exports = {
     generateBlocks: generateBlocks,
     getImage: getImage,
     getAudio: getAudio,
-    getPage: getPage,
-    getAll8: getAll8,
-    getAccent: getAccent,
+//    getPage: getPage,
+//    getAll8: getAll8,
+//    getAccent: getAccent,
     getMappedTuple: getMappedTuple,
     convertNumToTuple: convertNumToTuple,
     convertNum: convertNum,

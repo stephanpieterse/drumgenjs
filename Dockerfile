@@ -1,22 +1,32 @@
 FROM ubuntu:18.04
 
-   #&& apt-get install -y lilypond npm nodejs timidity \
 RUN apt-get update && apt-get upgrade -y \
-   && apt-get install -y npm nodejs timidity \
-   && apt-get install -y imagemagick graphicsmagick fluid-soundfont-gm fluid-soundfont-gs ghostscript \
-   && apt-get install -y netcat
+   && apt-get install -y wget npm nodejs imagemagick graphicsmagick fluid-soundfont-gm fluid-soundfont-gs ghostscript netcat \
+   && apt-get install -y libogg0 libvorbisenc2 libogg-dev libvorbis-dev \
+   && apt-get autoremove \
+   && apt-get autoclean
 
-
-RUN apt-get install -y wget && wget http://lilypond.org/download/binaries/linux-64/lilypond-2.19.83-1.linux-64.sh \
+RUN wget http://lilypond.org/download/binaries/linux-64/lilypond-2.19.83-1.linux-64.sh \
     && bash lilypond-2.19.83-1.linux-64.sh --batch --prefix=/opt
+
+RUN wget "https://sourceforge.net/projects/timidity/files/TiMidity%2B%2B/TiMidity%2B%2B-2.15.0/TiMidity%2B%2B-2.15.0.tar.gz/download" \
+    && mv download download.tar.gz && tar -xvf download.tar.gz && cd TiMid* \
+    && bash autogen.sh && ./configure --enable-audio=vorbis && make && make install
+
+RUN sed -i 's|<policy domain="coder" rights="none" pattern="PS" />|<policy domain="coder" rights="read\|write" pattern="PS" />|g' /etc/ImageMagick-6/policy.xml
+
+RUN apt-get install -y gettext
+
 RUN cp -R /opt/lilypond/usr/share/* /usr/share/
 RUN cp -R /opt/lilypond/usr/bin/* /usr/bin/
 RUN cp -R /opt/lilypond/usr/etc/* /etc/
 RUN cp -R /opt/lilypond/usr/lib/* /lib/
 COPY ./docker_res/timidity.cfg /etc/timidity/timidity.cfg
+COPY ./docker_res/timidity.cfg /usr/local/share/timidity/timidity.cfg
 
 COPY ./ /opt/app/
 COPY ./docker_res/ /opt/res/
+RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
 #RUN cd /opt/app && npm install
 
 CMD ["bash", "/opt/app/startapp.sh"]

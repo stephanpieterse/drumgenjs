@@ -1,15 +1,16 @@
 /* jshint strict: false */
 // configuration
 const
-  version = '1.0.0',
+  version = '1.0.4-$DATE',
   CACHE = version + '::PWAsite',
-  offlineURL = '/offline/',
+  offlineURL = '/static/page.html',
   installFilesEssential = [
     '/',
     '/static/manifest.json',
     '/static/jquery.js',
     '/static/hammer.min.js',
     '/static/page.css',
+    '/static/android-chrome-512x512.png',
     '/static/loader.gif'
   ].concat(offlineURL),
   installFilesDesirable = [
@@ -83,6 +84,8 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   let url = event.request.url;
+
+  console.log("service worker : fetch : " + url);
 
   event.respondWith(
 

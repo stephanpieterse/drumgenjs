@@ -6,34 +6,57 @@
  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
  <meta name="theme-color" content="#ffffff" />
  <meta name="description" content="A little app to generate patterns for you" />
+ <meta name="msapplication-config" content="/static/browserconfig.xml"/>
 	<meta name="replaceme">
 
 
-
-
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
 <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 <meta name="msapplication-TileColor" content="#da532c">
-<meta name="theme-color" content="#ffffff">
-
-
 
 <link rel="stylesheet" href="https://drumgen.apollolms.co.za/static/page.css" type="text/css" />
 <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 <body>
 <div class="emptyimg" style="width:0px; height:0px"></div>
-<div class="centerme wide75" style="width: 250px; height: 52px;"> 
-  <!-- <a class="pattern-image-download" href="#" onclick="download();" ><img class="download-image" src="http://drumgen.apollolms.co.za/static/download.png" alt="download" /></a>  -->
-  <a class="about-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/about.png" alt="about" /></a>
+<div class="wide75" style="width: 250px; height: 52px;"> 
+  <!-- <a class="about-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/about.png" alt="about" /></a> -->
   <a class="settings-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/settings.png" alt="settings" /></a>
 </div>
 <main>
 <div class="centerme wide75">
+
 <section>
+<div class="settingspanel abs-panel" style="display:none">
+    Barlength:
+		<input name="barlength" type="number" value="4"/><br/>
+    
+    <div class="tuples_enabled">
+    Tuples:<br/>
+		<label><input name="etuple2" type="checkbox" value="2" checked="checked" />2 - Eights<br/></label>
+		<label><input name="etuple3" type="checkbox" value="3" checked="checked" />3 - Triplets<br/></label>
+		<label><input name="etuple4" type="checkbox" value="4" checked="checked" />4 - Sixteenths<br/></label>
+		<label><input name="etuple5" type="checkbox" value="5" />5 - Quintuplets<br/></label>
+		<label><input name="etuple6" type="checkbox" value="6" />6 - Sextuplets<br/></label>
+		<label><input name="etuple7" type="checkbox" value="7" />7 - Septuplets<br/></label>
+    </div>
+
+    <!-- Groove limbs:
+    <input name="groovelimbs" type="number" value="4"><br/>
+
+		<input name="pattype" type="radio" value="accent" checked="checked" />Accent<br/>
+		<input name="pattype" type="radio" value="groove"/>Groove<br/>
+    -->
+    <br/>
+	<br/>	
+	by Stephan Pieterse<br/>
+	drumgen@apollolms.co.za
+
+  <br/>
+  <a target="_system" href="https://drumgen.apollolms.co.za/static/donate.html">Donate</a>
+
+	</div>
+
 <div class="mainholder" style="text-align:center;">
   <img class="loader-image" src="https://drumgen.apollolms.co.za/static/loader.gif" alt="loader"></div>
   <img class="pattern-image" src="" alt="pattern image"/>
@@ -52,12 +75,11 @@
 <script type="text/javascript" src="/static/hammer.min.js"></script>
 
 <script type="text/javascript">
-if ('serviceWorker' in navigator) {
-
-  // register service worker
-  navigator.serviceWorker.register('/static/serviceworker.js');
-
-}
+  if ('serviceWorker' in navigator) {
+    // register service worker
+    navigator.serviceWorker.register('/static/serviceworker.js');
+  
+  }
 
   var healthCheck = setInterval(function(){
     $.get("https://drumgen.apollolms.co.za/health").done(function(){
@@ -70,9 +92,11 @@ if ('serviceWorker' in navigator) {
   // button clicks
   $('.about-image').click(function() {
       $('.aboutpanel').toggle();
+      $('.settingspanel').hide();
   });
   $('.settings-image').click(function() {
       $('.settingspanel').toggle();
+      $('.aboutpanel').hide();
   });
 
   var funcs = {};
@@ -82,9 +106,9 @@ if ('serviceWorker' in navigator) {
   var cseed = "public";
   
   funcs.getSeed = function(){
-    // new postfix every 7s
-    var inst = parseInt(new Date().getTime() / 1000 / 7);
-    seedcount = (seedcount + 1) % 4;
+    // new postfix every 4s
+    var inst = parseInt(new Date().getTime() / 1000 / 4);
+    seedcount = (seedcount + 1) % 5;
     cseed = "x-dg-app-" + inst + seedcount;
   }
 
@@ -93,7 +117,7 @@ if ('serviceWorker' in navigator) {
   var audiobaseurl = 'https://drumgen.apollolms.co.za/public/audio?app=true'; //asbase64=false';
   var imagebaseurl = 'https://drumgen.apollolms.co.za/public/image?app=true'; //asbase64=false';
 
-	settings.pattern_length = 8;
+	settings.pattern_length = 4;
 	settings.pattern_type = 'accent';
   settings.pattern_limbs = 4;
   settings.pattern_tuples = [2,3,4];
@@ -113,9 +137,7 @@ if ('serviceWorker' in navigator) {
       },
       clearCache: function() {
           for (var i = 0; i < window.localStorage.length; i++) {
-							console.log("key " + window.localStorage.key(i));
               if (window.localStorage.key(i).indexOf(settings.cache_prefix) === 0) {
-									console.log("clearing key");
                   LS.set(window.localStorage.key(i), []);
               }
           ;}
@@ -318,52 +340,32 @@ function preloadImages(ti) {
   
   var hammerOptions = {};
   var hammertime = new Hammer(imgholder[0], hammerOptions);
+  var hammerloadertime = new Hammer(loader[0], hammerOptions);
 
   hammertime.on('swipe', function(ev) {
       // loadNextImage(imgholder);
       init();
   });
 
+  hammerloadertime.on('swipe', function(ev) {
+      init();
+  });
   // STARTUP CODE SECTION
 
   init();
 
 </script>
 
-	<div class="settingspanel" style="display:none">
-    Barlength:
-		<input name="barlength" type="number" value="8"/><br/>
-    
-    <div class="tuples_enabled">
-    Tuples:<br/>
-		<input name="etuple2" type="checkbox" value="2" checked="checked" />2 - Eights<br/>
-		<input name="etuple3" type="checkbox" value="3" checked="checked" />3 - Triplets<br/>
-		<input name="etuple4" type="checkbox" value="4" checked="checked" />4 - Sixteenths<br/>
-		<input name="etuple5" type="checkbox" value="5" />5 - Quintuplets<br/>
-    </div>
 
-    <!-- Groove limbs:
-    <input name="groovelimbs" type="number" value="4"><br/>
-
-		<input name="pattype" type="radio" value="accent" checked="checked" />Accent<br/>
-		<input name="pattype" type="radio" value="groove"/>Groove<br/>
-    -->
-	</div>
-
-	<div class="aboutpanel" style="display:none">
-		
-	by Stephan Pieterse<br/>
-	drumgen@apollolms.co.za
-
-  <br/>
-  <!-- <a target="_system" href="https://drumgen.apollolms.co.za/static/donate.html">Donate</a> -->
-
-	</div>
 	<div class="healthpanel" style="display:none">
 		 We are having some trouble accessing the server, please wait a few minutes or try again later.
 	</div>
 
 <script type="text/javascript">
+
+  function callToChange(){
+    init();
+  }
 
 	var bl = $('[name="barlength"]');
   bl.change(function(){
@@ -371,7 +373,7 @@ function preloadImages(ti) {
 		bl.val(blval);
 		settings.pattern_length = blval;
 
-	//	funcs.preloadImages(1);
+    callToChange();    
 
   });
 
@@ -380,7 +382,7 @@ function preloadImages(ti) {
 		glval = gl.val() <= 0 ? 1 : gl.val() % 4;
 		gl.val(glval);
 		settings.pattern_limbs = glval;
-	//	funcs.preloadImages(1);
+    callToChange();    
   });
 
 	$('[name="pattype"]').click(function() {
@@ -395,6 +397,7 @@ function preloadImages(ti) {
 	        settings.pattern_tuples.push($(this).val());
 	    });
 	    console.log("tuple set is " + settings.pattern_tuples);
+      callToChange();    
 	});
 
 </script>

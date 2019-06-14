@@ -1,4 +1,4 @@
-/* global require */
+/* global require, module */
 /* jslint strict:false */
 
 var startpath = '/opt/app';
@@ -38,7 +38,7 @@ app.get("/timers", function(req, res) {
 });
 
 app.get("/", function(req, res) {
-    res.send("Hi.");
+   res.redirect("/static/page.html");
 });
 
 app.get("/health", function(req, res) {
@@ -59,39 +59,40 @@ var getOptsFromReq = function(req) {
         return {};
     }
     return {
-        map: req.query["map"],
-        noNames: req.query["noname"] || true,
-        noMetronome: req.query["nometro"] || true,
+        map: sanitize.trimString(req.query["map"]),
+        noNames: (req.query["noname"] === true),
+        noMetronome: (req.query["nometro"] === true),
         asBase64: (req.query["asbase64"] === 'true'),
         patlen: req.query["patlen"] || 8
     };
 };
 
-app.get("/image", function(req, res) {
-    var pat;
-    if (req.query["pat"]) {
-        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
-    } else {
-        pat = musxml.generateBlocks({});
-    }
-
-    musxml.getImage(res, pat, getOptsFromReq(req));
-});
-
-app.get("/audio", function(req, res) {
-    var pat;
-    if (req.query["pat"]) {
-        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
-    } else {
-        pat = musxml.generateBlocks({});
-    }
-
-    musxml.getAudio(res, pat, getOptsFromReq(req));
-});
+//app.get("/image", function(req, res) {
+//    var pat;
+//    if (req.query["pat"]) {
+//        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
+//    } else {
+//        pat = musxml.generateBlocks({});
+//    }
+//
+//    musxml.getImage(res, pat, getOptsFromReq(req));
+//});
+//
+//app.get("/audio", function(req, res) {
+//    var pat;
+//    if (req.query["pat"]) {
+//        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
+//    } else {
+//        pat = musxml.generateBlocks({});
+//    }
+//
+//    musxml.getAudio(res, pat, getOptsFromReq(req));
+//});
 
 function publicGetPat(req, res) {
 
     var seed = req.query['seed'] || "public";
+    seed = sanitize.trimString(seed);
 
     req.query["nometro"] = true;
     req.query["noname"] = true;
@@ -160,10 +161,10 @@ app.get("/public/image", function(req, res) {
 
 });
 
-app.get("/page", function(req, res) {
-    var pat = musxml.generateBlocks({});
-    musxml.getPage(req, res, pat);
-});
+//app.get("/page", function(req, res) {
+//    var pat = musxml.generateBlocks({});
+//    musxml.getPage(req, res, pat);
+//});
 
 app.get("/convertnum", function(req, res) {
     Log.debug("num = " + req.query['num']);
@@ -178,13 +179,13 @@ app.get("/convertmulti", function(req, res) {
     musxml.convertMulti(req, res, req.query['nums'], req.query['patlen']);
 });
 
-app.get("/accent", function(req, res) {
-    musxml.getAccent(req, res);
-});
+//app.get("/accent", function(req, res) {
+//    musxml.getAccent(req, res);
+//});
 
-app.get("/all8", function(req, res) {
-    musxml.getAll8(req, res);
-});
+//app.get("/all8", function(req, res) {
+//    musxml.getAll8(req, res);
+//});
 
 app.use(function errorHandler(err, req, res, next) {
 
@@ -207,7 +208,12 @@ app.use("/favicon.ico", function(req, res){
 app.use("/static", express.static("static"));
 
 app.disable('x-powered-by');
-app.listen(serverPort, function() {
+var this_server = app.listen(serverPort, function() {
     Log.info("Started on " + serverPort);
     Log.debug(musxml);
 });
+
+module.exports = {
+  app: app,
+  this_server: this_server
+};
