@@ -47,7 +47,7 @@ app.get("/health", function(req, res) {
 
 app.post("/remotelog", function(req, res) {
     Log.info({
-        //     data: JSON.stringify({}),
+        data: {},
         message: "remotelog"
     });
     res.status(201);
@@ -63,7 +63,7 @@ var getOptsFromReq = function(req) {
         noNames: (req.query["noname"] === true),
         noMetronome: (req.query["nometro"] === true),
         asBase64: (req.query["asbase64"] === 'true'),
-        patlen: req.query["patlen"] || 8
+        patlen: isNaN(req.query["patlen"]) ? 8 : req.query["patlen"]
     };
 };
 
@@ -205,6 +205,7 @@ app.use(function errorHandler(err, req, res, next) {
 app.use("/favicon.ico", function(req, res){
 	res.sendFile(startpath + "/static/favicon.ico");
 });
+
 app.use("/static", express.static("static"));
 
 app.disable('x-powered-by');

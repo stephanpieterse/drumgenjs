@@ -12,6 +12,7 @@ body {
 .settingspanel {
   padding: 15px;
   border: 1px solid #010101;
+  z-index: 100;
 }
 
 .donate-image {

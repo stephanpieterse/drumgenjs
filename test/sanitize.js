@@ -32,10 +32,11 @@ describe("Sanitization tests", function() {
       assert.equal(t1[i] <= 17, true, "Tuple was greater than permitted!");
     }
   
-    assert.deepEqual(sanitize.tuples(invalidTuplesString), [2,1], "String tuple failed!");
-    assert.deepEqual(sanitize.tuples(invalidTuplesFormat), [2,3,4,2], "Formatted tuples failed!");
+    assert.deepEqual(sanitize.tuples(invalidTuplesString), [1,1], "String tuple failed!");
+    assert.deepEqual(sanitize.tuples(invalidTuplesFormat), [2,3,4,1], "Formatted tuples failed!");
     
   });
+
 
 });
 

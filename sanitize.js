@@ -11,7 +11,7 @@ function sanitizeTuples(tupQ){
   
   for (var t in tup) {
     try {
-      tup[t] = (isNaN(tup[t]) || tup[t] === "" ) ? 2 : parseInt(tup[t]);
+      tup[t] = (isNaN(tup[t]) || tup[t] === "" ) ? 1 : parseInt(tup[t]);
       tup[t] = Math.abs(tup[t]) % MAX_TUPLE_DIV;
     } catch (e) {
       return false;

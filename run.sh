@@ -1,11 +1,12 @@
 #!/bin/bash
+source env-docker.sh
 NAME=drumgen
 bash cleartmpgen.sh
 docker build -t $NAME:latest .
 docker stop $NAME
 docker rm $NAME
 docker run --restart=always \
-   --cpu-shares=800 --memory=512mb --memory-swap=786mb -d \
+   $DOCKEROPTSFLAGS -d \
    -p 127.0.0.1:9051:5061 \
    -v `pwd`/cache/:/opt/app/cache/ \
    -v `pwd`/tmpgen/:/opt/app/tmpgen/ \

@@ -1,7 +1,6 @@
 /* global Buffer, require, module, setInterval, clearInterval */
 /* jslint strict:false */
 
-//var gm = require("gm");
 // var sys = require('util');
 var exec = require('child_process').exec;
 var fs = require('fs');
@@ -136,8 +135,6 @@ var genMetronomePart = function(patlen) {
 var getLilypondHeader = function() {
     var head = "";
     head += "\\version \"2.18.2\" " + nl;
-    // head += "#(ly:set-option 'backend 'eps)" + nl;
-    // head += "#(ly:set-option 'anti-alias-factor '7)" + nl;
     head += "#(ly:set-option 'resolution '170)" + nl;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
@@ -561,7 +558,7 @@ var getAudioData = function(res, pattern, eopts) {
 
             if (!data) {
                 res.status(404);
-                res.send("audio file not found!");
+                res.send("Audio file not found!");
             }
 
             if (eopts.asBase64) {
@@ -598,32 +595,7 @@ var getImageData = function(res, pattern, eopts) {
     var filenames_pre = exportBlocks(pattern);
     var fullname = dir_prefix + filenames_pre;
 
-   // var cacheName = "image" + fullname + "png";
-   // var ck = cache.get(cacheName);
-
-
-   // if (ck) {
-   //     if (eopts.asBase64) {
-   //         var imageAsBase64 = "data:image/png;base64," + ck.toString("base64");
-   //         res.writeHead(200, {
-   //             'Content-Type': 'text/plain'
-   //         });
-
-   //         res.end(imageAsBase64);
-   //     } else {
-   //         res.writeHead(200, {
-   //             'Content-Type': 'image/png'
-   //         });
-   //         res.end(ck);
-   //     }
-
-   //     return;
-   // }
-
 		timers.start("buf-img");
-    //var mimg = gm(fullname + ".s.png").limit('memory', '48M');
-    //mimg
-    //    .toBuffer('PNG', function(err, buf) {
     fs.readFile(fullname + ".s.png", function(err, buf) {
 
             if (err) {
@@ -634,7 +606,6 @@ var getImageData = function(res, pattern, eopts) {
             }
 
         		timers.end("buf-img");
-            //cache.set(cacheName, buf);
 
             if (eopts.asBase64) {
                 var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
