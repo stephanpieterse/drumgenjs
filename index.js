@@ -22,10 +22,11 @@ app.use(function metricTracker(req, res, next) {
 });
 
 app.use(function timingTracker(req, res, next) {
-		timers.start(req.path);
-		res.on("finish", function(){
-				timers.end(req.path);
-		});
+    timers.start(req.path);
+    res.on("finish", function() {
+        timers.end(req.path);
+        metrics.increment('http-status', res.statusCode);
+    });
     next();
 });
 
@@ -38,7 +39,7 @@ app.get("/timers", function(req, res) {
 });
 
 app.get("/", function(req, res) {
-   res.redirect("/static/page.html");
+    res.redirect("/static/page.html");
 });
 
 app.get("/health", function(req, res) {
@@ -63,7 +64,9 @@ var getOptsFromReq = function(req) {
         noNames: (req.query["noname"] === true),
         noMetronome: (req.query["nometro"] === true),
         asBase64: (req.query["asbase64"] === 'true'),
-        patlen: isNaN(req.query["patlen"]) ? 8 : req.query["patlen"]
+        patlen: isNaN(req.query["patlen"]) ? 8 : parseInt(req.query["patlen"]),
+        nested: (req.query["nested"] === 'true'),
+        tempo: isNaN(req.query["tempo"]) ? null : parseInt(req.query["tempo"])
     };
 };
 
@@ -118,7 +121,7 @@ function publicGetPat(req, res) {
     });
     for (var t in tupset) {
 
-        if (tupset[t] !== '1') {
+        if (tupset[t] !== '1' && tupset[t] !== 1) {
 
             var tnum = util.getOTP('tup' + t + seed);
             var mt = musxml.getMappedTuple(tupset[t], tnum);
@@ -139,9 +142,33 @@ function publicGetPat(req, res) {
     return pat;
 }
 
+app.get("/public/refresh/audio", function(req, res){
+
+    req.query["map"] = "sn";
+
+    Log.debug(JSON.stringify(req.headers));
+    var ppat = '';
+    try{
+      var patref = req.headers['x-drumgen-patref'] || req.query['patref'];
+      if(patref){
+        Log.debug("::::: going to import " + patref);
+        ppat = JSON.parse(musxml.importBlocks(patref));
+      } else {
+        throw "No pattern!";
+      }
+    } catch(e){
+      Log.error(e);
+      res.status(500);
+      res.send({reason:"Cannot detect a pattern to refresh"});
+      return;
+    }
+    musxml.getAudio(res, ppat, getOptsFromReq(req));
+
+});
+
 app.get("/public/audio", function(req, res) {
 
-    req.query["nometro"] = true;
+    //req.query["nometro"] = true;
     req.query["noname"] = true;
     req.query["map"] = "sn";
 
@@ -160,11 +187,6 @@ app.get("/public/image", function(req, res) {
     musxml.getImage(res, ppat, queryOpts);
 
 });
-
-//app.get("/page", function(req, res) {
-//    var pat = musxml.generateBlocks({});
-//    musxml.getPage(req, res, pat);
-//});
 
 app.get("/convertnum", function(req, res) {
     Log.debug("num = " + req.query['num']);
@@ -202,8 +224,8 @@ app.use(function errorHandler(err, req, res, next) {
     return next(err);
 });
 
-app.use("/favicon.ico", function(req, res){
-	res.sendFile(startpath + "/static/favicon.ico");
+app.use("/favicon.ico", function(req, res) {
+    res.sendFile(startpath + "/static/favicon.ico");
 });
 
 app.use("/static", express.static("static"));
@@ -215,6 +237,6 @@ var this_server = app.listen(serverPort, function() {
 });
 
 module.exports = {
-  app: app,
-  this_server: this_server
+    app: app,
+    this_server: this_server
 };

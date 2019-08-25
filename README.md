@@ -16,3 +16,5 @@ Proper accent support in MIDI is allegedly in the 2.20 stable branch.
 It would be possible to build it from source and try it out, but since
 this use case for it seems trivial it might be best to stick with the
 workaround until 2.20 makes it to release.
+
+ALWAYS JSON.parse the importBlocks!

@@ -5,7 +5,7 @@ module.exports = {
   },
   tmpdir: "/opt/app/tmpgen/",
   queue: {
-    timeout: 1000 * 30,
-    concurrency: 4
+    timeout: 1000 * 15,
+    concurrency: 2
   }
 };

@@ -12,7 +12,15 @@ body {
 .settingspanel {
   padding: 15px;
   border: 1px solid #010101;
-  z-index: 100;
+  z-index: 10;
+}
+
+.mainsndholder {
+  z-index: 0;
+}
+
+.audiosrc {
+  z-index: 0;
 }
 
 .donate-image {

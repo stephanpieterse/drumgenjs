@@ -1,4 +1,4 @@
-/* global Buffer, require, module, setInterval, clearInterval */
+/* global Buffer, require, module */
 /* jslint strict:false */
 
 // var sys = require('util');
@@ -9,14 +9,22 @@ var cache = util.cache;
 var config = require('./config.js');
 
 var timers = require('./timers.js');
+var metrics = require('./metrics.js');
 var queue = require('queue');
+
+var Log = require('./logger.js');
 
 var q = new queue();
 q.timeout = config.queue.timeout;
 q.concurrency = config.queue.concurrency;
 q.autostart = true;
-
-var Log = require('./logger.js');
+q.on('timeout', function(continuejob, job) {
+    metrics.increment('errors', 'q-timeouts');
+    Log.error({
+        job: job,
+        continuejob: continuejob
+    }, 'A q job timed out!');
+});
 
 var dir_prefix = config.tmpdir;
 
@@ -124,6 +132,7 @@ var genMetronomePart = function(patlen) {
     metro += "{" + "\n";
     metro += "\\time " + patlen + "/4" + nl;
     metro += "\\drummode {";
+    metro += "\\repeat volta 4 ";
     for (var w = 0; w < patlen; w++) {
         metro += "<< {wbl4 } >> ";
     }
@@ -134,37 +143,33 @@ var genMetronomePart = function(patlen) {
 
 var getLilypondHeader = function() {
     var head = "";
+    var paperString = "\\paper {" + nl +
+        " indent = 0\\mm" + nl +
+        " line-width = 110\\mm" + nl +
+        " oddHeaderMarkup = \"\"" + nl +
+        " evenHeaderMarkup = \"\"" + nl +
+        " oddFooterMarkup = \"\"" + nl +
+        " evenFooterMarkup = \"\"" + nl +
+        "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '170)" + nl;
+    head += "#(ly:set-option 'resolution '300)" + nl;
+    head += "#(ly:set-option 'pixmap-format 'pnggray)" + nl;
+    head += "#(ly:set-option 'backend 'eps)" + nl;
+    head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
+    head += "#(ly:set-option 'include-eps-fonts '#t)" + nl;
+    head += paperString;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
-    head += "\\score {" + nl;
     //head += "\\repeat volta 4 ";
     return head;
 };
 
-var patternToLilypond = function(blocks, options) {
-    options = getDefaultOptions(options);
+var genMusicBlockSection = function(blocks, options){
 
-    var mappings = ["hh", "sn", "bd", "hh"];
-
-    if (options.mappings && options.mappings[0]) {
-        mappings = options.mappings;
-    }
-
-    var staffnames = ["HiHat", "Snare", "Bass Drum", "HH Foot"];
-    if (options.noNames) {
-        staffnames = ["", "", "", ""];
-    }
-
-    // set defaults
-    options.tempo = options.tempo || getDefaultOptions({}).tempo;
+    var mappings = options.mappings;
+    var staffnames = options._staffnames;
     var patlen = blocks[0].length;
-
     var file = "";
-
-    file += getLilypondHeader();
-
     file += "<<" + nl;
 
     file += "<<" + nl;
@@ -191,20 +196,54 @@ var patternToLilypond = function(blocks, options) {
     }
 
     file += ">>" + nl;
+    return file;
+};
+
+var patternToLilypond = function(blocks, options) {
+    options = getDefaultOptions(options);
+
+    var mappings = ["hh", "sn", "bd", "hh"];
+    if (options.mappings && options.mappings[0]) {
+        mappings = options.mappings;
+    }
+    // I'm actually a bit confused about this line,
+    // but for now I think we need it.
+    options.mappings = mappings;
+
+    var staffnames = ["HiHat", "Snare", "Bass Drum", "HH Foot"];
+    if (options.noNames) {
+        staffnames = ["", "", "", ""];
+    }
+    options._staffnames = staffnames;
+
+    // set defaults
+   // options.tempo = options.tempo || getDefaultOptions(options).tempo;
+
+    var file = "";
+    file += getLilypondHeader();
+    file += "\\score {" + nl;
+    
+    file += genMusicBlockSection(blocks, options);
+
     file += "\\layout { }" + nl;
+    
+    file += "}";
+    file += "\\score {" + nl;
+    file += "\\unfoldRepeats " + nl;
+    file += genMusicBlockSection(blocks, options);
     file += "\\midi { }" + nl;
     file += "}";
     return file;
 };
 
-var getChoice = function(probable) {
-    var c = Math.random() * 100;
-    if (c > probable) {
-        return 0;
-    } else {
-        return 1;
-    }
-};
+//var getChoice = function(probable) {
+//    var c = Math.random() * 100;
+//    if (c > probable) {
+//        return 0;
+//    } else {
+//        return 1;
+//    }
+//};
 
 var makeCleanBlock = function(blocks) {
     var pat = [];
@@ -215,30 +254,30 @@ var makeCleanBlock = function(blocks) {
     return pat;
 };
 
-var addRandomNotes = function(block, prob) {
-    var pat = block;
-
-    for (var p = 0; p < pat.length; p++) {
-        if (getChoice(prob)) {
-            pat[p] = 'x';
-        } else {
-            pat[p] = '-';
-        }
-    }
-
-    return pat;
-};
+//var addRandomNotes = function(block, prob) {
+//    var pat = block;
+//
+//    for (var p = 0; p < pat.length; p++) {
+//        if (getChoice(prob)) {
+//            pat[p] = 'x';
+//        } else {
+//            pat[p] = '-';
+//        }
+//    }
+//
+//    return pat;
+//};
 
 var genericMapper = function(num, patlen, mappings) {
 
-    var cachedid = "genmapper" + JSON.stringify(arguments);
+    var cachedid = "genmapper-" + JSON.stringify(arguments);
     var cid = cache.get(cachedid);
 
     if (cid) {
         Log.debug({
             cacheitem: cid,
             id: cachedid
-        }, "returning map from cache");
+        }, "Returning map from cache");
         return cache.get(cachedid);
     }
 
@@ -264,7 +303,7 @@ var genericMapper = function(num, patlen, mappings) {
     Log.debug({
         id: cachedid,
         cacheitem: sipattern[0]
-    }, "setting item in cache");
+    }, "Setting item in cache");
     cache.set(cachedid, sipattern[0], 7200);
 
     return sipattern[0];
@@ -294,19 +333,19 @@ var getMappedTuple = function(tuple, num, mappings) {
 
 };
 
-var addTuplets = function(block, tuple, prob, tupprob) {
-    var pat = block;
-    var emptyTuple = [];
-    for (var t = 0; t < tuple; t++) {
-        emptyTuple[t] = "|";
-    }
-    for (var p = 0; p < pat.length; p++) {
-        if (getChoice(tupprob)) {
-            pat[p] = addRandomNotes(emptyTuple, prob);
-        }
-    }
-    return pat;
-};
+//var addTuplets = function(block, tuple, prob, tupprob) {
+//    var pat = block;
+//    var emptyTuple = [];
+//    for (var t = 0; t < tuple; t++) {
+//        emptyTuple[t] = "|";
+//    }
+//    for (var p = 0; p < pat.length; p++) {
+//        if (getChoice(tupprob)) {
+//            pat[p] = addRandomNotes(emptyTuple, prob);
+//        }
+//    }
+//    return pat;
+//};
 
 var importBlocks = function(patid) {
     var cpid = "patid" + patid;
@@ -368,45 +407,30 @@ function regexEscape(str) {
     return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
-var getDefaultOptions = function(options) {
-    options = options || {};
+var getDefaultOptions = function(eopts) {
+    var options = eopts || {};
     options.maxNotes = options.maxNotes || 8;
     options.minNotes = options.minNotes || 4;
-    options.tempo = options.tempo || 100;
+    options.tempo = isNaN(eopts.tempo) ? 100 : eopts.tempo;
     return options;
 };
-
-//var getPage = function(req, res, pattern) {
-//    var page = "<html><head><title>Pattern for you</title>";
-//    page += "<style>";
-//    page += ".mainHolder { text-align: center; }";
-//    page += "audio { width: 100%; }";
-//    page += "</style>";
-//    page += "</head><body>";
-//    page += "<div id='mainHolder'>";
-//    page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(pattern) + "' />";
-//    page += "<br/>";
-//    page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
-//    page += "</div>";
-//    page += "</body></html>";
-//    res.end(page);
-//};
 
 
 var generateLilypond = function(pattern, eopts) {
     return new Promise(function(resolve, reject) {
 
-			timers.start("gen-lily");
-        var options = getDefaultOptions();
+        timers.start("gen-lily");
+        var options = getDefaultOptions(eopts);
+        metrics.increment('generated', 'lilypond-files');
         var finalPattern = patternToLilypond(pattern, {
             tempo: options.tempo,
-            mappings: [eopts.map],
-            noNames: eopts.noNames,
-            noMetronome: eopts.noMetronome
+            mappings: [options.map],
+            noNames: options.noNames,
+            noMetronome: options.noMetronome
         });
 
-			timers.end("gen-lily");
-        var filenames_pre = exportBlocks(pattern);
+        timers.end("gen-lily");
+        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
         var fullname = dir_prefix + filenames_pre;
 
         if (fs.existsSync(fullname + ".ly")) {
@@ -429,16 +453,18 @@ var generatePNG = function(filename) {
 
     return new Promise(function(resolve, reject) {
 
-				timers.start("gen-png");
-        if (fs.existsSync(filename + ".png")) {
+        timers.start("gen-png");
+        if (fs.existsSync(filename + ".s.png")) {
             resolve();
             return;
         }
 
+        metrics.increment('generated', 'images');
         var genchild;
         q.push(function(cb) {
-            genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -crop 2048x500+0+0 -trim +repage " + filename + ".s.png", function(error, stdout, stderr) {
-								timers.end("gen-png");
+            //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
+            genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && cp " + filename + ".png " + filename + ".s.png", function(error, stdout, stderr) {
+                timers.end("gen-png");
                 Log.trace('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
                 if (error !== null) {
@@ -464,18 +490,22 @@ var generateOGG = function(filename) {
             return;
         }
 
-				timers.start("gen-ogg");
-        var audiochild;
-        audiochild = exec("timidity -EFreverb=0 --output-mono -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
-						timers.end("gen-ogg");
-            Log.debug('stdout: ' + stdout);
-            Log.debug('stderr: ' + stderr);
-            if (error !== null) {
-                Log.error('exec error: ' + error);
-                reject(error);
-                return;
-            }
-            resolve();
+        timers.start("gen-ogg");
+        metrics.increment('generated', 'audio');
+        q.push(function(cb) {
+            var audiochild;
+            audiochild = exec("timidity --preserve-silence -EFreverb=0 --output-mono -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
+                timers.end("gen-ogg");
+                Log.debug('stdout: ' + stdout);
+                Log.debug('stderr: ' + stderr);
+                if (error !== null) {
+                    Log.error('exec error: ' + error);
+                    reject(error);
+                    return;
+                }
+                resolve();
+                cb();
+            });
         });
     });
 };
@@ -490,15 +520,11 @@ var generateAllFiles = function(pattern, eopts) {
     }
 
     var prom = new Promise(function(resolve, reject) {
-        var filenames_pre = exportBlocks(pattern);
+        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
         var fullname = dir_prefix + filenames_pre;
         generateLilypond(pattern, eopts).then(function() {
             generatePNG(fullname).then(function() {
-           //     generateOGG(fullname).then(function() {
-                    resolve();
-            //    }).catch(function(e) {
-              //      reject(e);
-            //    });
+                resolve();
             }).catch(function(e) {
                 reject(e);
             });
@@ -526,23 +552,23 @@ var getAudio = function(res, pattern, eopts) {
 
     eopts = eopts || {};
     getOrMakeFile(res, pattern, eopts, function() {
-        var filenames_pre = exportBlocks(pattern);
+        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
         var fullname = dir_prefix + filenames_pre;
-				generateOGG(fullname).then(function() {
-        getAudioData(res, pattern, eopts);
-                }).catch(function(e) {
-									Log.error(e);
-                });
+        generateOGG(fullname).then(function() {
+            getAudioData(res, pattern, eopts);
+        }).catch(function(e) {
+            Log.error(e);
+        });
     });
 
 };
 
 var getAudioData = function(res, pattern, eopts) {
 
-    var filenames_pre = exportBlocks(pattern);
+    var filenames_pre = exportBlocks(pattern) + '-'+ eopts.tempo;
 
     try {
-				timers.start("buf-ogg");
+        timers.start("buf-ogg");
         fs.readFile(dir_prefix + filenames_pre + ".ogg", function(err, data) {
             if (err) {
                 Log.error(err);
@@ -553,7 +579,7 @@ var getAudioData = function(res, pattern, eopts) {
                 return;
             }
 
-				timers.end("buf-ogg");
+            timers.end("buf-ogg");
             Log.debug(data);
 
             if (!data) {
@@ -592,82 +618,81 @@ var getImage = function(res, pattern, eopts) {
 
 var getImageData = function(res, pattern, eopts) {
 
-    var filenames_pre = exportBlocks(pattern);
+    var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
     var fullname = dir_prefix + filenames_pre;
 
-		timers.start("buf-img");
+    timers.start("buf-img");
     fs.readFile(fullname + ".s.png", function(err, buf) {
 
-            if (err) {
-                Log.error(err);
-                res.status(500);
-                res.send("image generation error: " + err);
-                return;
-            }
+        if (err) {
+            Log.error(err);
+            res.status(500);
+            res.send("image generation error: " + err);
+            return;
+        }
 
-        		timers.end("buf-img");
+        timers.end("buf-img");
 
-            if (eopts.asBase64) {
-                var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
-                res.writeHead(200, {
-                    'Content-Type': 'text/plain'
-                });
-
-                res.end(imageAsBase64);
-            } else {
-                res.writeHead(200, {
-                    'Content-Type': 'image/png'
-                });
-                res.end(buf);
-            }
-        });
+        if (eopts.asBase64) {
+            var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
+            res.writeHead(200, {
+                'Content-Type': 'text/plain'
+            });
+            res.end(imageAsBase64);
+        } else {
+            res.writeHead(200, {
+                'Content-Type': 'image/png'
+            });
+            res.end(buf);
+        }
+    });
 
     return;
 
 };
 
-function getRandomInt(min, max) {
-    min = min || 0;
-    max = max || 1;
-    return parseInt((Math.random() * (max - min)) + min);
-}
+//function getRandomInt(min, max) {
+//    min = min || 0;
+//    max = max || 1;
+//    return parseInt((Math.random() * (max - min)) + min);
+//}
 
-var generateBlocks = function(options) {
-    options = getDefaultOptions(options);
-
-    var blocks = parseInt((Math.random() * (options.maxNotes - options.minNotes + 1)) + options.minNotes);
-
-    var pattern = [];
-    pattern[0] = makeCleanBlock(blocks);
-    pattern[1] = makeCleanBlock(blocks);
-    pattern[2] = makeCleanBlock(blocks);
-    pattern[3] = makeCleanBlock(blocks);
-
-    pattern[0] = addRandomNotes(pattern[0], 60);
-
-    pattern[0] = addTuplets(pattern[0], 3, 60, 15);
-    pattern[0] = addTuplets(pattern[0], 5, 60, 5);
-    pattern[0] = addTuplets(pattern[0], 7, 60, 25);
-    pattern[0] = addTuplets(pattern[0], 2, 75, 75);
-
-    pattern[1] = addRandomNotes(pattern[1], 60);
-    pattern[1] = addTuplets(pattern[1], 3, 60, 15);
-
-    pattern[2] = addRandomNotes(pattern[2], 60);
-    pattern[2] = addTuplets(pattern[2], 3, 60, 75);
-    pattern[2] = addTuplets(pattern[2], 4, 60, 75);
-
-    pattern[3] = addRandomNotes(pattern[3], 60);
-    pattern[3] = addTuplets(pattern[3], 4, 60, 75);
-
-    var outFile = patternToLilypond(pattern, {
-        tempo: options.tempo
-    });
-
-    Log.trace(outFile);
-
-    return pattern;
-};
+//var generateBlocks = function(options) {
+//    options = getDefaultOptions(options);
+//
+//    var blocks = parseInt((Math.random() * (options.maxNotes - options.minNotes + 1)) + options.minNotes);
+//
+//    var pattern = [];
+//    pattern[0] = makeCleanBlock(blocks);
+//    pattern[1] = makeCleanBlock(blocks);
+//    pattern[2] = makeCleanBlock(blocks);
+//    pattern[3] = makeCleanBlock(blocks);
+//
+//    pattern[0] = addRandomNotes(pattern[0], 60);
+//
+//    pattern[0] = addTuplets(pattern[0], 3, 60, 15);
+//    pattern[0] = addTuplets(pattern[0], 5, 60, 5);
+//    pattern[0] = addTuplets(pattern[0], 7, 60, 25);
+//    pattern[0] = addTuplets(pattern[0], 2, 75, 75);
+//
+//    pattern[1] = addRandomNotes(pattern[1], 60);
+//    pattern[1] = addTuplets(pattern[1], 3, 60, 15);
+//
+//    pattern[2] = addRandomNotes(pattern[2], 60);
+//    pattern[2] = addTuplets(pattern[2], 3, 60, 75);
+//    pattern[2] = addTuplets(pattern[2], 4, 60, 75);
+//
+//    pattern[3] = addRandomNotes(pattern[3], 60);
+//    pattern[3] = addTuplets(pattern[3], 4, 60, 75);
+//
+//    var outFile = patternToLilypond(pattern, {
+//        tempo: options.tempo
+//    });
+//
+//    Log.trace(outFile);
+//
+//    return pattern;
+//};
 
 var lpad = function(value, padding) {
     var zeroes = "0";
@@ -694,6 +719,7 @@ var convertNum = function(req, res, num, patlen, tuples) {
     if (tuples) {
         var tupMap = tuples.split(",");
 
+        console.log(tupMap);
         // TODO
     }
     res.send(simpleBlocks);
@@ -806,15 +832,16 @@ var convertMulti = function(req, res, num, patlen) {
 module.exports = {
     importBlocks: importBlocks,
     exportBlocks: exportBlocks,
-    generateBlocks: generateBlocks,
+    //    generateBlocks: generateBlocks,
     getImage: getImage,
     getAudio: getAudio,
-//    getPage: getPage,
-//    getAll8: getAll8,
-//    getAccent: getAccent,
+    //    getPage: getPage,
+    //    getAll8: getAll8,
+    //    getAccent: getAccent,
     getMappedTuple: getMappedTuple,
     convertNumToTuple: convertNumToTuple,
     convertNum: convertNum,
     convertNumSimple: convertNumSimple,
     convertMulti: convertMulti,
+    lpad: lpad,
 };

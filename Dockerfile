@@ -21,11 +21,18 @@ RUN cp -R /opt/lilypond/usr/share/* /usr/share/
 RUN cp -R /opt/lilypond/usr/bin/* /usr/bin/
 RUN cp -R /opt/lilypond/usr/etc/* /etc/
 RUN cp -R /opt/lilypond/usr/lib/* /lib/
+
+RUN sed -i '/-dBATCH/a "-dNumRenderingThreads=1"' /usr/share/lilypond/current/scm/ps-to-png.scm
+RUN sed -i '/-dBATCH/a "-dUseCropBox"' /usr/share/lilypond/current/scm/ps-to-png.scm
+RUN sed -i 's/AlphaBits=4/AlphaBits=4/g' /usr/share/lilypond/current/scm/ps-to-png.scm
+RUN sed -i 's/-r1200/-r600/g' /usr/share/lilypond/current/scm/backend-library.scm
+
 COPY ./docker_res/timidity.cfg /etc/timidity/timidity.cfg
 COPY ./docker_res/timidity.cfg /usr/local/share/timidity/timidity.cfg
 
 COPY ./ /opt/app/
 COPY ./docker_res/ /opt/res/
+RUN mkdir -p /opt/app/tmpgen
 RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
 #RUN cd /opt/app && npm install
 

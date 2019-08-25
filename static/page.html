@@ -39,14 +39,16 @@
 		<label><input name="etuple5" type="checkbox" value="5" />5 - Quintuplets<br/></label>
 		<label><input name="etuple6" type="checkbox" value="6" />6 - Sextuplets<br/></label>
 		<label><input name="etuple7" type="checkbox" value="7" />7 - Septuplets<br/></label>
+		<label><input name="etuple9" type="checkbox" value="9" />9 - Nontuplets<br/></label>
     </div>
 
-    <!-- Groove limbs:
-    <input name="groovelimbs" type="number" value="4"><br/>
+    <div class="extra_settings">
+		  <input name="tempo" type="number" value="100"/><br/>
+		  <label><input name="metronome_on" type="checkbox" value="1" />Metronome in audio<br/></label>
+		  <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
+		  <label><input name="loop_audio" type="checkbox" value="loop_audio" />Loop Audio<br/></label>
+    </div>
 
-		<input name="pattype" type="radio" value="accent" checked="checked" />Accent<br/>
-		<input name="pattype" type="radio" value="groove"/>Groove<br/>
-    -->
     <br/>
 	<br/>	
 	by Stephan Pieterse<br/>
@@ -78,7 +80,6 @@
   if ('serviceWorker' in navigator) {
     // register service worker
     navigator.serviceWorker.register('/static/serviceworker.js');
-  
   }
 
   var healthCheck = setInterval(function(){
@@ -115,6 +116,7 @@
   funcs.getSeed();
 
   var audiobaseurl = 'https://drumgen.apollolms.co.za/public/audio?app=true'; //asbase64=false';
+  var audiorefreshurl = 'https://drumgen.apollolms.co.za/public/refresh/audio?app=true'; //asbase64=false';
   var imagebaseurl = 'https://drumgen.apollolms.co.za/public/image?app=true'; //asbase64=false';
 
 	settings.pattern_length = 4;
@@ -123,6 +125,10 @@
   settings.pattern_tuples = [2,3,4];
 	settings.cache_name = "dg-images";
 	settings.cache_prefix = "dg";
+  settings.metronome_on = false;
+  settings.nested_tuples = false;
+  settings.loop_audio = false;
+  settings.tempo = 100;
 
   funcs.getCurCache = function(){
     return settings.cache_name + settings.pattern_type + settings.pattern_length + settings.pattern_limbs;
@@ -164,50 +170,55 @@ $.ajaxSetup({
     }
 });
 
-function preloadImages(ti) {
-      var totalImages = ti || 5;
-      var maxImages = 50;
-      var curCache = funcs.getCurCache();
-      var imgArr = LS.get(curCache) || [];
-
-      if (imgArr.length >= maxImages) {
-          return false;
-      }
-
-      for (var i = 0; i < totalImages; i++) {
-          funcs.getSeed();
-					funcs.loadImage[settings.pattern_type]($('.emptyimg'), function(newimg, newsnd){
-              
-                  var proms = [];
-                  var imgprom = $.get(newimg + '&asbase64=true');
-                  var sndprom = $.get(newsnd + '&asbase64=true'); 
-                  proms.push(sndprom);
-                  proms.push(imgprom);
-
-                  var allprom = Promise.all(proms);
-
-                  console.log({msg:"preloading", snd: newsnd, img: newimg});
-                  allprom.then(function(values) {
-                      console.log({msg: "preloading done"});
-                      var imgArr = LS.get(curCache) || [];
-                      nobj = {};
-                      nobj.sound = values[0];
-                      nobj.image = values[1];
-                      imgArr.push(nobj);
-                      LS.set(curCache, imgArr);
-                  }).catch(function(error){
-								  		console.error(error);
-                  });
-          });
-      }
-  }
-
-	funcs.preloadImages = preloadImages;
+//function preloadImages(ti) {
+//      var totalImages = ti || 5;
+//      var maxImages = 50;
+//      var curCache = funcs.getCurCache();
+//      var imgArr = LS.get(curCache) || [];
+//
+//      if (imgArr.length >= maxImages) {
+//          return false;
+//      }
+//
+//      for (var i = 0; i < totalImages; i++) {
+//          funcs.getSeed();
+//					funcs.loadImage[settings.pattern_type]($('.emptyimg'), function(newimg, newsnd){
+//              
+//                  var proms = [];
+//                  var imgprom = $.get(newimg + '&asbase64=true');
+//                  var sndprom = $.get(newsnd + '&asbase64=true'); 
+//                  proms.push(sndprom);
+//                  proms.push(imgprom);
+//
+//                  var allprom = Promise.all(proms);
+//
+//                  console.log({msg:"preloading", snd: newsnd, img: newimg});
+//                  allprom.then(function(values) {
+//                      console.log({msg: "preloading done"});
+//                      var imgArr = LS.get(curCache) || [];
+//                      nobj = {};
+//                      nobj.sound = values[0];
+//                      nobj.image = values[1];
+//                      imgArr.push(nobj);
+//                      LS.set(curCache, imgArr);
+//                  }).catch(function(error){
+//								  		console.error(error);
+//                  });
+//          });
+//      }
+//  }
+//
+//	funcs.preloadImages = preloadImages;
 
   function setSound(sndhref, element){
     element.remove();
-    var sndsrc = '<audio class="audiosrc" src="{SRCVAL}" type="audio/ogg"  preload="auto" controls> </audio>';
+    var sndsrc = '<audio class="audiosrc" src="{SRCVAL}" {LOOP} type="audio/ogg"  preload="auto" controls> Your browser does not support the audio element tag. </audio>';
     sndsrc = sndsrc.replace('{SRCVAL}', sndhref);
+    if(settings.loop_audio){
+      sndsrc = sndsrc.replace('{LOOP}', "loop");
+    } else {
+      sndsrc = sndsrc.replace('{LOOP}', "");
+    }
     $('.mainsndholder').append(sndsrc);
   }
 
@@ -223,68 +234,44 @@ function preloadImages(ti) {
 
   }
 
-  funcs.getRandom = function(){
-      var min = 1;
-      var max = Math.pow(5, settings.pattern_length);
-      var randNum = parseInt((Math.random() * (max - min)) + min);
-      return randNum;
-  };
+ // funcs.getRandom = function(){
+ //     var min = 1;
+ //     var max = Math.pow(5, settings.pattern_length);
+ //     var randNum = parseInt((Math.random() * (max - min)) + min);
+ //     return randNum;
+ // };
 
 	funcs.loadImage = {};
 
-	// funcs.loadImage['groove'] = function(element, cb){
-  //     var randString = "";
-  //     for (var j = 0; j < settings.pattern_limbs; j++ ){
-  //       randString += funcs.getRandom();
-  //       randString += ",";
-  //     }
-  //     randString = randString.slice(0, -1);
-  //     loader.show();
-  //     element.hide();
-  //     $.get('https://drumgen.apollolms.co.za/convertmulti?nums=' + randString).done(function(data) {
-  //         var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-  //         var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
+//	funcs.loadImage['accent'] = function(element, cb){
+//      var randNum = funcs.getRandom();
+//
+//      loader.show();
+//      element.hide();
+//
+//      $.get('https://drumgen.apollolms.co.za/convertnum?num=' + randNum + '').done(function(data) {
+//          funcs.getSeed();
+//          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
+//          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&metro=' + settings.metronome_on;
+//
+//          element.on("load", function() {
+//              loader.hide();
+//              element.show();
+//          });
+//
+//          element.attr("src", newimg);
+//
+//          if(cb){
+//						cb(newimg, newsnd);
+//					}
+//      })
+//	}
 
-  //         element.attr("src", newimg);
-  //         element.on("load", function() {
-  //             loader.hide();
-  //             element.show();
-  //         });
-  //         if(cb){
-	// 					cb(newimg, newsnd);
-	// 				}
-  //      })
-	// }
-
-	funcs.loadImage['accent'] = function(element, cb){
-      var randNum = funcs.getRandom();
-
-      loader.show();
-      element.hide();
-
-      $.get('https://drumgen.apollolms.co.za/convertnum?num=' + randNum + '').done(function(data) {
-          funcs.getSeed();
-          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-
-          element.on("load", function() {
-              loader.hide();
-              element.show();
-          });
-
-          element.attr("src", newimg);
-
-          if(cb){
-						cb(newimg, newsnd);
-					}
-      })
-	}
-
-  function loadNewImage(element) {
-		funcs.loadImage[settings.pattern_type](element, function(){
-      console.log(arguments);
-    });
-  }
+ // function loadNewImage(element) {
+ // 	funcs.loadImage[settings.pattern_type](element, function(){
+ //     console.log(arguments);
+ //   });
+ // }
 
   var loader = $('.loader-image');
   var imgholder = $('.pattern-image');
@@ -292,40 +279,40 @@ function preloadImages(ti) {
   var mainsndholder = $('.mainsndholder');
  
   loader.hide();
-  var loadNextImage = function(element) {
-  
-      var curCache = funcs.getCurCache();
-      var nextImages = LS.get(curCache);
-
-      if (nextImages && nextImages.length) {
-				console.log("getting image from cache");
-          var patObj = nextImages.shift();
-          var nextImage = patObj.image;
-          var nextSound = patObj.sound;
-          LS.set(curCache, nextImages);
-          if (nextImage) {
-              setImage(nextImage, element);
-              setSound(nextSound, sndholder);
-              funcs.preloadImages(1);
-          } else {
-              loadNewImage(element);
-              funcs.preloadImages(1);
-          }
-      } else {
-          loadNewImage(element);
-          funcs.preloadImages(1);
-      }
-  }
-
+//  var loadNextImage = function(element) {
+//  
+//      var curCache = funcs.getCurCache();
+//      var nextImages = LS.get(curCache);
+//
+//      if (nextImages && nextImages.length) {
+//				console.log("getting image from cache");
+//          var patObj = nextImages.shift();
+//          var nextImage = patObj.image;
+//          var nextSound = patObj.sound;
+//          LS.set(curCache, nextImages);
+//          if (nextImage) {
+//              setImage(nextImage, element);
+//              setSound(nextSound, sndholder);
+//              funcs.preloadImages(1);
+//          } else {
+//              loadNewImage(element);
+//              funcs.preloadImages(1);
+//          }
+//      } else {
+//          loadNewImage(element);
+//          funcs.preloadImages(1);
+//      }
+//  }
+//
 
   var init = function(){
-          LS.clearCache();
+          //LS.clearCache();
           funcs.getSeed();
           loader.show();
           imgholder.hide();
           mainsndholder.hide();
-          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
+          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples;
+          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on;
 
           imgholder.on("load", function() {
               loader.hide();
@@ -344,11 +331,13 @@ function preloadImages(ti) {
 
   hammertime.on('swipe', function(ev) {
       // loadNextImage(imgholder);
-      init();
+      //init();
+      callToChange();
   });
 
   hammerloadertime.on('swipe', function(ev) {
-      init();
+      //init();
+      callToChange();
   });
   // STARTUP CODE SECTION
 
@@ -367,6 +356,31 @@ function preloadImages(ti) {
     init();
   }
 
+
+  function callToRefresh(){
+  
+          funcs.getSeed();
+          loader.show();
+          //imgholder.hide();
+          mainsndholder.hide();
+          //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
+          var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+
+          //imgholder.on("load", function() {
+          //    loader.hide();
+          //    imgholder.show();
+          //    mainsndholder.show();
+          //});
+
+          //imgholder.attr("src", newimg);
+          sndholder.attr("src", newsnd);
+          sndholder.on("canplay", function(){
+            mainsndholder.show();
+            loader.hide();
+          });
+
+  }
+
 	var bl = $('[name="barlength"]');
   bl.change(function(){
 		blval = bl.val() <= 0 ? 1 : bl.val() % 16;
@@ -374,6 +388,16 @@ function preloadImages(ti) {
 		settings.pattern_length = blval;
 
     callToChange();    
+
+  });
+
+	var temposel = $('[name="tempo"]');
+  temposel.change(function(){
+		temposelval = temposel.val() <= 0 ? 34 : temposel.val() % 320;
+		temposel.val(temposelval);
+		settings.tempo = temposelval;
+
+    callToRefresh();    
 
   });
 
@@ -399,6 +423,27 @@ function preloadImages(ti) {
 	    console.log("tuple set is " + settings.pattern_tuples);
       callToChange();    
 	});
+
+  $('[name="metronome_on"]').click(function(){
+	    settings.metronome_on = ($('[name="metronome_on"]:checked').val()) ? true : false;
+      callToRefresh();
+  });
+
+  $('[name="nested_tuples"]').click(function(){
+	    settings.nested_tuples = ($('[name="nested_tuples"]:checked').val()) ? true : false;
+      callToChange();
+  });
+
+  $('[name="loop_audio"]').click(function(){
+	    settings.loop_audio = ($('[name="loop_audio"]:checked').val()) ? true : false;
+      var sndholder = $('.audiosrc');
+      if(settings.loop_audio){
+        sndholder.attr("loop", "true");
+      } else {
+        sndholder.removeAttr("loop");
+      }
+      //callToRefresh();
+  });
 
 </script>
 <div class="beforeend"></div>

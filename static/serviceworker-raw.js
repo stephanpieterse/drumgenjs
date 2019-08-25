@@ -1,7 +1,7 @@
-/* jshint strict: false */
+/* jshint strict: false, esversion:6*/
 // configuration
 const
-  version = '1.0.4-$DATE',
+  version = '1.0.5-$DATE',
   CACHE = version + '::PWAsite',
   offlineURL = '/static/page.html',
   installFilesEssential = [
@@ -19,6 +19,8 @@ const
     '/static/settings.png'
   ];
 
+const PATTERN_HEADER_NAME = "x-drumgen-patref";
+let last_pattern = "";
 // install static assets
 function installStaticFiles() {
 
@@ -64,6 +66,18 @@ function clearOldCaches() {
 
 }
 
+function formatHeaders(headersObject) {
+    var headers = [];
+    for (var pair of headersObject.entries()) {
+        headers.push({
+            name: pair[0],
+            value: pair[1]
+        });
+    }
+
+    return headers;
+}
+
 // application activated
 self.addEventListener('activate', event => {
 
@@ -77,6 +91,7 @@ self.addEventListener('activate', event => {
 
 });
 
+
 // application fetch network data
 self.addEventListener('fetch', event => {
 
@@ -86,6 +101,7 @@ self.addEventListener('fetch', event => {
   let url = event.request.url;
 
   console.log("service worker : fetch : " + url);
+
 
   event.respondWith(
 
@@ -101,12 +117,40 @@ self.addEventListener('fetch', event => {
               return response;
             }
 
+            if (url.indexOf('refresh') !== -1){
+                console.log("Found a refresh request, should add a new header");
+                
+                var reqUrl = url + "&patref=" + last_pattern;
+                console.log("set requrl ::" + reqUrl);
+                try {
+                var refreshRequest = new Request(reqUrl, {
+                  headers: {
+                    PATTERN_HEADER_NAME: last_pattern
+                  }
+                });
+                console.log(refreshRequest);
+                return fetch(refreshRequest);
+              } catch(e){
+                console.log("whut :: " + e);
+              }
+            }
+
             // make network request
             return fetch(event.request)
               .then(newreq => {
 
                 console.log('network fetch: ' + url);
                 if (newreq.ok) cache.put(event.request, newreq.clone());
+                if (newreq.headers){
+                  let allHeaders = formatHeaders(newreq.headers);
+                  for (let ah in allHeaders){
+                    if(allHeaders[ah].name == PATTERN_HEADER_NAME){
+                      last_pattern = allHeaders[ah].value;
+                      console.log("MOST RECEENT PATTNERN WAS  " + last_pattern);
+                    }
+                  }
+                  console.log(allHeaders);
+                }
                 return newreq;
 
               })

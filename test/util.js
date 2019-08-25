@@ -9,8 +9,7 @@ describe("Util tests - OTP", function() {
         if (util.getOTP) {
             assert(true, true);
         } else {
-
-            assert(true, false);
+            assert(true, false, "No OTP function was found!");
         }
     });
 
@@ -30,7 +29,7 @@ describe("Util tests - cache", function() {
         if (util.cache) {
             assert(true, true);
         } else {
-            assert(true, false);
+            assert(true, false, "Did not export a cache!");
         }
     });
 
