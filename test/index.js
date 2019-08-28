@@ -54,8 +54,8 @@ describe("Server tests", function(){
   });
 
   it("Should have a working image route", function(done){
-  this.timeout(5000);
-  this.slow(3000);
+  this.timeout(2000);
+  this.slow(1000);
      chai.request(server)
       .get('/public/image')
       .end(function (err, res) {
@@ -66,7 +66,7 @@ describe("Server tests", function(){
   });
 
   it("Should have a working audio route", function(done){
-  this.timeout(5000);
+  this.timeout(3000);
   this.slow(2000);
      chai.request(server)
       .get('/public/audio')
@@ -77,9 +77,21 @@ describe("Server tests", function(){
       }); 
   });
 
+  it("Should have a working audio route with metronome", function(done){
+  this.timeout(3000);
+  this.slow(2000);
+     chai.request(server)
+      .get('/public/audio?seed=anuncachedone&nometro=false')
+      .end(function (err, res) {
+        expect(res).to.have.property('status');
+        res.should.have.status(200);
+        done();
+      }); 
+  });
+
   it("Should have a pattern header present on image", function(done){
-  this.timeout(5000);
-  this.slow(3000);
+  this.timeout(2000);
+  this.slow(1000);
      chai.request(server)
       .get('/public/image')
       .end(function (err, res) {

@@ -38,9 +38,11 @@ function perfReporter(data) {
 }
 
 describe("Performance Test", function() {
+
     after(function() {
         indexjs.this_server.close();
     });
+
     it("performance testing /health", function(done) {
         var noRequestPerHour = 5000;
         var avgRequestTime = 50;
@@ -90,7 +92,7 @@ describe("Performance Test", function() {
 
         var options = {
             "url": 'http://localhost:' + config.server.port + '/public/image',
-            "maxSeconds": 15,
+            "maxSeconds": 10,
             "concurrency": 9,
             "statusCallback": statusCallback
         };
@@ -120,10 +122,10 @@ describe("Performance Test", function() {
         });
     });
 
-    it("performance testing /public/image uniques", function(done) {
+    it("performance testing /public/image uniques - singles test", function(done) {
 
         var noRequestPerHour = 3000;
-        var avgRequestTime = 5000;
+        var avgRequestTime = 500;
 
         var basePath = 'http://localhost:' + config.server.port + '/public/image';
 
@@ -137,8 +139,55 @@ describe("Performance Test", function() {
 
         var options = {
             "url": basePath,
-            "maxSeconds": 60,
-            "concurrency": 5,
+            "maxSeconds": 15,
+            "concurrency": 1,
+            "statusCallback": statusCallback,
+            "requestGenerator": uniqSeedRequestGenerator
+        };
+
+        var gLatency;
+
+        function statusCallback(error, result, latency) {
+            gLatency = latency;
+        }
+
+        var operation = loadtest.loadTest(options, function(error) {
+            if (error) {
+                console.error('Got an error: %s', error);
+            } else if (operation.running === false) {
+                var data = {};
+                data.gLatency = gLatency;
+                data.noRequestPerHour = noRequestPerHour;
+                data.avgRequestTime = avgRequestTime;
+                perfReporter(data);
+                gLatency.totalErrors.should.equal(0);
+                (gLatency.rps * 3600).should.be.greaterThan(noRequestPerHour);
+                (gLatency.meanLatencyMs).should.be.below(avgRequestTime);
+
+                done();
+            }
+        });
+    });
+
+    it("performance testing /public/image uniques - multiples test", function(done) {
+
+        var noRequestPerHour = 10000;
+        var avgRequestTime = 2500;
+
+        var basePath = 'http://localhost:' + config.server.port + '/public/image';
+
+        var uniqSeedRequestGenerator = function(params, options, client, callback) {
+            var newOpts = url.parse(basePath + "?seed=" + randomString());
+            return client(newOpts, callback);
+        };
+
+        this.timeout(1000 * 60 * 2);
+        this.slow(1000 * 60 * 2);
+
+        var options = {
+            "url": basePath,
+            "maxSeconds": 30,
+            "concurrency": 6,
             "statusCallback": statusCallback,
             "requestGenerator": uniqSeedRequestGenerator
         };

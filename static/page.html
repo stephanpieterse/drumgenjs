@@ -20,7 +20,6 @@
 <body>
 <div class="emptyimg" style="width:0px; height:0px"></div>
 <div class="wide75" style="width: 250px; height: 52px;"> 
-  <!-- <a class="about-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/about.png" alt="about" /></a> -->
   <a class="settings-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/settings.png" alt="settings" /></a>
 </div>
 <main>
@@ -43,7 +42,7 @@
     </div>
 
     <div class="extra_settings">
-		  <input name="tempo" type="number" value="100"/><br/>
+		  <label>Tempo:<input name="tempo" type="number" value="100"/><br/></label>
 		  <label><input name="metronome_on" type="checkbox" value="1" />Metronome in audio<br/></label>
 		  <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
 		  <label><input name="loop_audio" type="checkbox" value="loop_audio" />Loop Audio<br/></label>
@@ -123,16 +122,16 @@
 	settings.pattern_type = 'accent';
   settings.pattern_limbs = 4;
   settings.pattern_tuples = [2,3,4];
-	settings.cache_name = "dg-images";
+	//settings.cache_name = "dg-images";
 	settings.cache_prefix = "dg";
   settings.metronome_on = false;
   settings.nested_tuples = false;
   settings.loop_audio = false;
   settings.tempo = 100;
 
-  funcs.getCurCache = function(){
-    return settings.cache_name + settings.pattern_type + settings.pattern_length + settings.pattern_limbs;
-  }
+ // funcs.getCurCache = function(){
+ //   return settings.cache_name + settings.pattern_type + settings.pattern_length + settings.pattern_limbs;
+ // }
 
   var LS = {
       get: function(a) {
@@ -208,7 +207,6 @@ $.ajaxSetup({
 //      }
 //  }
 //
-//	funcs.preloadImages = preloadImages;
 
   function setSound(sndhref, element){
     element.remove();
@@ -252,7 +250,7 @@ $.ajaxSetup({
 //      $.get('https://drumgen.apollolms.co.za/convertnum?num=' + randNum + '').done(function(data) {
 //          funcs.getSeed();
 //          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-//          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&metro=' + settings.metronome_on;
+//          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on;
 //
 //          element.on("load", function() {
 //              loader.hide();
@@ -311,8 +309,8 @@ $.ajaxSetup({
           loader.show();
           imgholder.hide();
           mainsndholder.hide();
-          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples;
-          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on;
+          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
 
           imgholder.on("load", function() {
               loader.hide();
@@ -356,7 +354,6 @@ $.ajaxSetup({
     init();
   }
 
-
   function callToRefresh(){
   
           funcs.getSeed();
@@ -365,12 +362,6 @@ $.ajaxSetup({
           mainsndholder.hide();
           //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
           var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
-
-          //imgholder.on("load", function() {
-          //    loader.hide();
-          //    imgholder.show();
-          //    mainsndholder.show();
-          //});
 
           //imgholder.attr("src", newimg);
           sndholder.attr("src", newsnd);

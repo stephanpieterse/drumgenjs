@@ -59,27 +59,29 @@ var getOptsFromReq = function(req) {
     if (!req.query) {
         return {};
     }
+    // !!! future
+    /// ("" + req.opts['a']).toLowerCase() === 'true'
     return {
-        map: sanitize.trimString(req.query["map"]),
-        noNames: (req.query["noname"] === true),
-        noMetronome: (req.query["nometro"] === true),
+        noNames: (req.query["noname"] === true || req.query["noname"] === 'true'),
+        noMetronome: (req.query["nometro"] === true || req.query["nometro"] === 'true'),
         asBase64: (req.query["asbase64"] === 'true'),
         patlen: isNaN(req.query["patlen"]) ? 8 : parseInt(req.query["patlen"]),
         nested: (req.query["nested"] === 'true'),
-        tempo: isNaN(req.query["tempo"]) ? null : parseInt(req.query["tempo"])
+        tempo: isNaN(req.query["tempo"]) ? null : parseInt(req.query["tempo"]),
+        map: req.query["map"] || []
     };
 };
 
-//app.get("/image", function(req, res) {
-//    var pat;
-//    if (req.query["pat"]) {
-//        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
-//    } else {
-//        pat = musxml.generateBlocks({});
-//    }
-//
-//    musxml.getImage(res, pat, getOptsFromReq(req));
-//});
+app.get("/image", function(req, res) {
+    var pat;
+    if (req.query["pat"]) {
+        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
+    } else {
+        pat = musxml.generateBlocks({});
+    }
+
+    musxml.getImage(res, pat, getOptsFromReq(req));
+});
 //
 //app.get("/audio", function(req, res) {
 //    var pat;
@@ -97,8 +99,8 @@ function publicGetPat(req, res) {
     var seed = req.query['seed'] || "public";
     seed = sanitize.trimString(seed);
 
-    req.query["nometro"] = true;
-    req.query["noname"] = true;
+    req.query["nometro"] = 'true';
+    req.query["noname"] = 'true';
     req.query["map"] = "sn";
     var queryOpts = getOptsFromReq(req);
     var patlen = queryOpts.patlen || 8;
@@ -142,25 +144,27 @@ function publicGetPat(req, res) {
     return pat;
 }
 
-app.get("/public/refresh/audio", function(req, res){
+app.get("/public/refresh/audio", function(req, res) {
 
     req.query["map"] = "sn";
 
     Log.debug(JSON.stringify(req.headers));
     var ppat = '';
-    try{
-      var patref = req.headers['x-drumgen-patref'] || req.query['patref'];
-      if(patref){
-        Log.debug("::::: going to import " + patref);
-        ppat = JSON.parse(musxml.importBlocks(patref));
-      } else {
-        throw "No pattern!";
-      }
-    } catch(e){
-      Log.error(e);
-      res.status(500);
-      res.send({reason:"Cannot detect a pattern to refresh"});
-      return;
+    try {
+        var patref = req.headers['x-drumgen-patref'] || req.query['patref'];
+        if (patref) {
+            Log.debug("going to import for refresh :: " + patref);
+            ppat = JSON.parse(musxml.importBlocks(patref));
+        } else {
+            throw "No pattern!";
+        }
+    } catch (e) {
+        Log.error(e);
+        res.status(500);
+        res.send({
+            reason: "Cannot detect a pattern to refresh"
+        });
+        return;
     }
     musxml.getAudio(res, ppat, getOptsFromReq(req));
 
@@ -169,7 +173,7 @@ app.get("/public/refresh/audio", function(req, res){
 app.get("/public/audio", function(req, res) {
 
     //req.query["nometro"] = true;
-    req.query["noname"] = true;
+    req.query["noname"] = 'true';
     req.query["map"] = "sn";
 
     var ppat = publicGetPat(req, res);
@@ -179,7 +183,7 @@ app.get("/public/audio", function(req, res) {
 app.get("/public/image", function(req, res) {
 
     req.query["nometro"] = true;
-    req.query["noname"] = true;
+    req.query["noname"] = 'true';
     req.query["map"] = "sn";
     var queryOpts = getOptsFromReq(req);
 
@@ -201,13 +205,11 @@ app.get("/convertmulti", function(req, res) {
     musxml.convertMulti(req, res, req.query['nums'], req.query['patlen']);
 });
 
-//app.get("/accent", function(req, res) {
-//    musxml.getAccent(req, res);
-//});
 
-//app.get("/all8", function(req, res) {
-//    musxml.getAll8(req, res);
-//});
+app.get("/all8/:patlen", function(req, res) {
+    var patlen = req.params['patlen'] || 4;
+    musxml.getAll8(req, res);
+});
 
 app.use(function errorHandler(err, req, res, next) {
 

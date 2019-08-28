@@ -4,7 +4,10 @@
 var crypto = require("crypto");
 var Log = require("./logger.js");
 var NodeCache = require('node-cache');
-var cache = new NodeCache({stdTTL:120, checkperiod: 10});
+var cache = new NodeCache({
+    stdTTL: 120,
+    checkperiod: 10
+});
 
 
 var TOTP = function() {
@@ -18,7 +21,7 @@ var TOTP = function() {
     };
 
     var leftpad = function(s, l, p) {
-        if(l + 1 >= s.length) {
+        if (l + 1 >= s.length) {
             s = Array(l + 1 - s.length).join(p) + s;
         }
         return s;
@@ -29,21 +32,21 @@ var TOTP = function() {
         var bits = "";
         var hex = "";
         var i;
-        for(i = 0; i < base32.length; i++) {
+        for (i = 0; i < base32.length; i++) {
             var val = base32chars.indexOf(base32.charAt(i).toUpperCase());
             bits += leftpad(val.toString(2), 5, '0');
         }
-        for(i = 0; i + 4 <= bits.length; i+=4) {
+        for (i = 0; i + 4 <= bits.length; i += 4) {
             var chunk = bits.substr(i, 4);
-            hex = hex + parseInt(chunk, 2).toString(16) ;
+            hex = hex + parseInt(chunk, 2).toString(16);
         }
         return hex;
     };
 
     this.getOTP = function(secret) {
 
-        if (cache.get(secret)){
-          return cache.get(secret);
+        if (cache.get(secret)) {
+            return cache.get(secret);
         }
 
         try {
@@ -57,7 +60,7 @@ var TOTP = function() {
             epoch = epoch + secOffset;
 
             var time = leftpad(dec2hex(Math.floor(epoch / validSecs)), 16, "0");
-        
+
             var hmacsha1 = crypto.createHmac('sha1', base32tohex(secret));
             var htime = time.toString("hex");
             Log.debug(htime);
@@ -88,7 +91,7 @@ var totpObj = new TOTP();
 
 module.exports = {
 
-	getOTP: totpObj.getOTP,
-  cache: cache,
+    getOTP: totpObj.getOTP,
+    cache: cache,
 
 };

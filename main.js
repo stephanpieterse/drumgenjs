@@ -125,17 +125,25 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
     return file;
 };
 
-var genMetronomePart = function(patlen) {
+var genMetronomePart = function(patlen, eopts) {
     var metro = "";
+    //if(eopts._isMidiSection){
+    //  metro += "\\unfoldRepeats " + nl;
+    //}
     metro += "\\new DrumStaff" + "\n";
     metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " }" + "\n";
     metro += "{" + "\n";
     metro += "\\time " + patlen + "/4" + nl;
-    metro += "\\drummode {";
-    metro += "\\repeat volta 4 ";
-    for (var w = 0; w < patlen; w++) {
-        metro += "<< {wbl4 } >> ";
+    metro += "\\drummode {" + nl;
+    metro += "\\repeat volta 4 << {";
+    for(var w = 0; w < patlen; w++){
+      metro += " wbl4 ";
     }
+    metro += " } >>" + nl;
+    //metro += "\\repeat volta 4 ";
+    //for (var w = 0; w < patlen; w++) {
+    //    metro += "<< {wbl4 } >> ";
+    //}
     metro += "}" + nl;
     metro += "}" + nl;
     return metro;
@@ -160,11 +168,11 @@ var getLilypondHeader = function() {
     head += paperString;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
-    //head += "\\repeat volta 4 ";
+    // head += "\\repeat volta 4 ";
     return head;
 };
 
-var genMusicBlockSection = function(blocks, options){
+var genMusicBlockSection = function(blocks, options) {
 
     var mappings = options.mappings;
     var staffnames = options._staffnames;
@@ -192,7 +200,7 @@ var genMusicBlockSection = function(blocks, options){
     file += ">>" + nl;
 
     if (!options.noMetronome) {
-        file += genMetronomePart(patlen);
+        file += genMetronomePart(patlen, options);
     }
 
     file += ">>" + nl;
@@ -202,13 +210,14 @@ var genMusicBlockSection = function(blocks, options){
 var patternToLilypond = function(blocks, options) {
     options = getDefaultOptions(options);
 
-    var mappings = ["hh", "sn", "bd", "hh"];
-    if (options.mappings && options.mappings[0]) {
-        mappings = options.mappings;
-    }
-    // I'm actually a bit confused about this line,
-    // but for now I think we need it.
-    options.mappings = mappings;
+    //var mappings = options.mappings || ["hh", "sn", "bd", "hh"];
+    //var mappings = ["hh", "sn", "bd", "hh"];
+    //if (options.mappings && options.mappings[0]) {
+    //    mappings = options.mappings;
+    //}
+    //// I'm actually a bit confused about this line,
+    //// but for now I think we need it.
+    //options.mappings = mappings;
 
     var staffnames = ["HiHat", "Snare", "Bass Drum", "HH Foot"];
     if (options.noNames) {
@@ -216,18 +225,19 @@ var patternToLilypond = function(blocks, options) {
     }
     options._staffnames = staffnames;
 
-    // set defaults
-   // options.tempo = options.tempo || getDefaultOptions(options).tempo;
-
     var file = "";
     file += getLilypondHeader();
     file += "\\score {" + nl;
-    
+
+    options._isMidiSection = false;
     file += genMusicBlockSection(blocks, options);
 
     file += "\\layout { }" + nl;
-    
-    file += "}";
+
+    file += "}" + nl;
+
+
+    options._isMidiSection = true;
     file += "\\score {" + nl;
     file += "\\unfoldRepeats " + nl;
     file += genMusicBlockSection(blocks, options);
@@ -235,15 +245,6 @@ var patternToLilypond = function(blocks, options) {
     file += "}";
     return file;
 };
-
-//var getChoice = function(probable) {
-//    var c = Math.random() * 100;
-//    if (c > probable) {
-//        return 0;
-//    } else {
-//        return 1;
-//    }
-//};
 
 var makeCleanBlock = function(blocks) {
     var pat = [];
@@ -411,34 +412,36 @@ var getDefaultOptions = function(eopts) {
     var options = eopts || {};
     options.maxNotes = options.maxNotes || 8;
     options.minNotes = options.minNotes || 4;
-    options.tempo = isNaN(eopts.tempo) ? 100 : eopts.tempo;
+    options.tempo = isNaN(parseInt(eopts.tempo)) ? 100 : parseInt(eopts.tempo);
     return options;
 };
 
 
 var generateLilypond = function(pattern, eopts) {
     return new Promise(function(resolve, reject) {
+        eopts = getDefaultOptions(eopts);
+        eopts = generateFilename(pattern, eopts);
+
+        eopts.mappings = (eopts.map ? [eopts.map] : "sn");
 
         timers.start("gen-lily");
-        var options = getDefaultOptions(eopts);
         metrics.increment('generated', 'lilypond-files');
-        var finalPattern = patternToLilypond(pattern, {
-            tempo: options.tempo,
-            mappings: [options.map],
-            noNames: options.noNames,
-            noMetronome: options.noMetronome
-        });
+        var finalPattern = patternToLilypond(pattern, eopts);
+       // var finalPattern = patternToLilypond(pattern, {
+       //     tempo: eopts.tempo,
+       //     mappings: eopts.mappings,
+       //     noNames: eopts.noNames,
+       //     noMetronome: eopts.noMetronome
+       // });
 
         timers.end("gen-lily");
-        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
-        var fullname = dir_prefix + filenames_pre;
 
-        if (fs.existsSync(fullname + ".ly")) {
+        if (fs.existsSync(eopts._fullname + ".ly")) {
             resolve();
             return;
         }
 
-        fs.writeFile(fullname + ".ly", finalPattern, function(error) {
+        fs.writeFile(eopts._fullname + ".ly", finalPattern, function(error) {
             if (error) {
                 Log.error(error);
                 reject(error);
@@ -453,19 +456,19 @@ var generatePNG = function(filename) {
 
     return new Promise(function(resolve, reject) {
 
-        timers.start("gen-png");
-        if (fs.existsSync(filename + ".s.png")) {
+        if (fs.existsSync(filename + ".png")) {
             resolve();
             return;
         }
 
+        timers.start("gen-png");
         metrics.increment('generated', 'images');
         var genchild;
         q.push(function(cb) {
             //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
-            genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && cp " + filename + ".png " + filename + ".s.png", function(error, stdout, stderr) {
+            genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
                 timers.end("gen-png");
-                Log.trace('stdout: ' + stdout);
+                Log.debug('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
                 if (error !== null) {
                     Log.error('exec error: ' + error);
@@ -477,7 +480,6 @@ var generatePNG = function(filename) {
                 cb();
             });
         });
-
 
     });
 };
@@ -494,7 +496,7 @@ var generateOGG = function(filename) {
         metrics.increment('generated', 'audio');
         q.push(function(cb) {
             var audiochild;
-            audiochild = exec("timidity --preserve-silence -EFreverb=0 --output-mono -A120 -Ov " + filename + ".midi", function(error, stdout, stderr) {
+            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OvM1 " + filename + ".midi", function(error, stdout, stderr) {
                 timers.end("gen-ogg");
                 Log.debug('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
@@ -512,6 +514,8 @@ var generateOGG = function(filename) {
 
 var generateAllFiles = function(pattern, eopts) {
 
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
     var cacheName = "cache-gen-prom-" + pattern + JSON.stringify(eopts);
     var cachedItem = cache.get(cacheName);
 
@@ -520,10 +524,8 @@ var generateAllFiles = function(pattern, eopts) {
     }
 
     var prom = new Promise(function(resolve, reject) {
-        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
-        var fullname = dir_prefix + filenames_pre;
         generateLilypond(pattern, eopts).then(function() {
-            generatePNG(fullname).then(function() {
+            generatePNG(eopts._fullname).then(function() {
                 resolve();
             }).catch(function(e) {
                 reject(e);
@@ -535,6 +537,25 @@ var generateAllFiles = function(pattern, eopts) {
 
     cache.set(cacheName, prom, 30);
     return prom;
+};
+
+var generateFilename = function(pattern, eopts) {
+
+    if (eopts._fullname) {
+        return eopts;
+    }
+
+    var filenames_pre = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro') + '-' + eopts.tempo;
+    var filenames_pre_notempo = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
+    var fullname = dir_prefix + filenames_pre;
+    var fullname_notempo = dir_prefix + filenames_pre_notempo;
+    eopts._fullname = fullname;
+    eopts._fullname_notempo = fullname_notempo;
+    eopts._filenames_pre = filenames_pre;
+    eopts._filenames_pre_notempo = filenames_pre_notempo;
+    eopts._pattern = pattern;
+
+    return eopts;
 };
 
 var getOrMakeFile = function(res, pattern, eopts, cb) {
@@ -550,26 +571,22 @@ var getOrMakeFile = function(res, pattern, eopts, cb) {
 
 var getAudio = function(res, pattern, eopts) {
 
-    eopts = eopts || {};
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
-        var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
-        var fullname = dir_prefix + filenames_pre;
-        generateOGG(fullname).then(function() {
+        generateOGG(eopts._fullname).then(function() {
             getAudioData(res, pattern, eopts);
         }).catch(function(e) {
             Log.error(e);
         });
     });
-
 };
 
 var getAudioData = function(res, pattern, eopts) {
 
-    var filenames_pre = exportBlocks(pattern) + '-'+ eopts.tempo;
-
     try {
         timers.start("buf-ogg");
-        fs.readFile(dir_prefix + filenames_pre + ".ogg", function(err, data) {
+        fs.readFile(eopts._fullname + ".ogg", function(err, data) {
             if (err) {
                 Log.error(err);
                 res.status(500);
@@ -610,7 +627,8 @@ var getAudioData = function(res, pattern, eopts) {
 
 var getImage = function(res, pattern, eopts) {
 
-    eopts = eopts || {};
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
         getImageData(res, pattern, eopts);
     });
@@ -618,11 +636,8 @@ var getImage = function(res, pattern, eopts) {
 
 var getImageData = function(res, pattern, eopts) {
 
-    var filenames_pre = exportBlocks(pattern) + '-' + eopts.tempo;
-    var fullname = dir_prefix + filenames_pre;
-
     timers.start("buf-img");
-    fs.readFile(fullname + ".s.png", function(err, buf) {
+    fs.readFile(eopts._fullname + ".png", function(err, buf) {
 
         if (err) {
             Log.error(err);
@@ -758,76 +773,50 @@ var convertMulti = function(req, res, num, patlen) {
     res.send(ret);
 };
 
-//var getAccent = function(req, res) {
-//    var mappings = ['-', 'r', 'R', 'l', 'L'];
-//
-//    var pattern = [];
-//    var sipattern = [];
-//    pattern[0] = makeCleanBlock(8);
-//    sipattern[0] = makeCleanBlock(8);
-//
-//    var barlen = getRandomInt(4, 8);
-//    var notetypes = mappings.length;
-//    var mxpat = Math.pow(notetypes, barlen);
-//    var randPat = getRandomInt(0, mxpat);
-//    var page = "<html><head><title>Random Accent</title>";
-//    page += "<style>";
-//    page += ".mainHolder { text-align: center; }";
-//    page += "audio { width: 100%; }";
-//    page += "</style>";
-//    page += "</head><body>";
-//    page += "<div id='mainHolder'>";
-//    var cpat = (randPat).toString(notetypes);
-//    cpat = lpad(cpat, barlen);
-//    pattern[0] = cpat.split("");
-//    for (var px in pattern[0]) {
-//        pattern[0][px] = mappings[pattern[0][px]];
-//    }
-//    sipattern[0] = pattern[0];
-//    page += "<img src='http://" + req.get('host') + "/image?nometro=true&map=sn&pat=" + exportBlocks(sipattern) + "' />";
-//    //page += "<audio controls><source src='http://" + req.get('host') + "/audio?pat=" + exportBlocks(pattern) + "' type='audio/ogg'> </audio>";
-//    page += "<br/>";
-//    page += "</div>";
-//    page += "</body></html>";
-//    res.end(page);
-//};
 
-//var getAll8 = function(req, res) {
-//
-//    var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
-//
-//    var pattern = [];
-//    var sipattern = [];
-//    pattern[0] = makeCleanBlock(8);
-//    sipattern[0] = makeCleanBlock(8);
-//
-//    var barlen = 3;
-//    var notetypes = mappings.length;
-//    var mxpat = Math.pow(notetypes, barlen);
-//    var page = "<html><head><title>All 8</title>";
-//    page += "<style>";
-//    page += ".mainHolder { text-align: center; }";
-//    page += "audio { width: 100%; }";
-//    page += "</style>";
-//    page += "</head><body>";
-//    page += "<div id='mainHolder'>";
-//    for (var mx = 0; mx < mxpat; mx++) {
-//        var cpat = (mx).toString(notetypes);
-//        cpat = lpad(cpat, barlen);
-//        pattern[mx] = cpat.split("");
-//        for (var px in pattern[mx]) {
-//            pattern[mx][px] = mappings[pattern[mx][px]];
-//        }
-//        sipattern[0] = pattern[mx];
-//        page += "<img src='http://" + req.get('host') + "/image?pat=" + exportBlocks(sipattern) + "' />";
-//    }
-//
-//    page += "<br/>";
-//    page += "</div>";
-//    page += "</body></html>";
-//    res.end(page);
-//
-//};
+var all8Cache = {};
+var getAll8 = function(req, res) {
+    var patlen = req.params['patlen'] || 4;
+		patlen = isNaN(patlen) ? 4 : patlen;
+		patlen = Math.abs(patlen % 10);
+    var barlen = patlen;
+
+    if (all8Cache['permsheet' + barlen]) {
+        res.end(all8Cache['permsheet' + barlen]);
+        return;
+    }
+
+    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
+    //var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
+    var mappings = ['r', 'R', 'l', 'L'];
+
+    var pattern = [];
+    var sipattern = [];
+    pattern[0] = makeCleanBlock(8);
+    sipattern[0] = makeCleanBlock(8);
+
+    var notetypes = mappings.length;
+    var mxpat = Math.pow(notetypes, barlen);
+    var page = "";
+		
+		var pageHost = 'https://drumgen.apollolms.co.za'; // req.get('host');
+
+    for (var mx = 0; mx < mxpat; mx++) {
+        var cpat = (mx).toString(notetypes);
+        cpat = lpad(cpat, barlen);
+        pattern[mx] = cpat.split("");
+        for (var px in pattern[mx]) {
+            pattern[mx][px] = mappings[pattern[mx][px]];
+        }
+        sipattern[0] = pattern[mx];
+        page += "<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl;
+    }
+
+    pagebody = pagebody.replace("{{MAINHOLDER_DATA}}", page);
+    all8Cache['permsheet' + barlen] = pagebody;
+    res.end(pagebody);
+
+};
 
 module.exports = {
     importBlocks: importBlocks,
@@ -836,8 +825,7 @@ module.exports = {
     getImage: getImage,
     getAudio: getAudio,
     //    getPage: getPage,
-    //    getAll8: getAll8,
-    //    getAccent: getAccent,
+    getAll8: getAll8,
     getMappedTuple: getMappedTuple,
     convertNumToTuple: convertNumToTuple,
     convertNum: convertNum,
