@@ -128,7 +128,7 @@ self.addEventListener('fetch', event => {
                     PATTERN_HEADER_NAME: last_pattern
                   }
                 });
-                console.log(refreshRequest);
+                // console.log(refreshRequest);
                 return fetch(refreshRequest);
               } catch(e){
                 console.log("whut :: " + e);

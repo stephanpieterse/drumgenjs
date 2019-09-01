@@ -89,6 +89,18 @@ describe("Server tests", function(){
       }); 
   });
 
+  it("Should have a working worksheet page", function(done){
+  this.timeout(3000);
+  this.slow(2000);
+     chai.request(server)
+      .get('/worksheet/2')
+      .end(function (err, res) {
+        expect(res).to.have.property('status');
+        res.should.have.status(200);
+        done();
+      }); 
+  });
+
   it("Should have a pattern header present on image", function(done){
   this.timeout(2000);
   this.slow(1000);

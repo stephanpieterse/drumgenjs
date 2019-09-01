@@ -1,4 +1,4 @@
-/* global Buffer, require, module */
+/* global Buffer, require, module, setInterval, clearInterval */
 /* jslint strict:false */
 
 // var sys = require('util');
@@ -56,7 +56,6 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
 
     file += "{";
     for (var b = 0; b < blocks.length; b++) {
-        //if (blocks[b] instanceof Array) {
         if (Array.isArray(blocks[b])) {
             var noteDur = "" + noteBase;
             var tupNum = blocks[b].length;
@@ -127,17 +126,14 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
 
 var genMetronomePart = function(patlen, eopts) {
     var metro = "";
-    //if(eopts._isMidiSection){
-    //  metro += "\\unfoldRepeats " + nl;
-    //}
     metro += "\\new DrumStaff" + "\n";
     metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " }" + "\n";
     metro += "{" + "\n";
     metro += "\\time " + patlen + "/4" + nl;
     metro += "\\drummode {" + nl;
     metro += "\\repeat volta 4 << {";
-    for(var w = 0; w < patlen; w++){
-      metro += " wbl4 ";
+    for (var w = 0; w < patlen; w++) {
+        metro += " wbl4 ";
     }
     metro += " } >>" + nl;
     //metro += "\\repeat volta 4 ";
@@ -168,7 +164,6 @@ var getLilypondHeader = function() {
     head += paperString;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
-    // head += "\\repeat volta 4 ";
     return head;
 };
 
@@ -409,7 +404,7 @@ function regexEscape(str) {
 }
 
 var getDefaultOptions = function(eopts) {
-    var options = eopts || {};
+    var options = JSON.parse(JSON.stringify(eopts)) || {};
     options.maxNotes = options.maxNotes || 8;
     options.minNotes = options.minNotes || 4;
     options.tempo = isNaN(parseInt(eopts.tempo)) ? 100 : parseInt(eopts.tempo);
@@ -427,12 +422,12 @@ var generateLilypond = function(pattern, eopts) {
         timers.start("gen-lily");
         metrics.increment('generated', 'lilypond-files');
         var finalPattern = patternToLilypond(pattern, eopts);
-       // var finalPattern = patternToLilypond(pattern, {
-       //     tempo: eopts.tempo,
-       //     mappings: eopts.mappings,
-       //     noNames: eopts.noNames,
-       //     noMetronome: eopts.noMetronome
-       // });
+        // var finalPattern = patternToLilypond(pattern, {
+        //     tempo: eopts.tempo,
+        //     mappings: eopts.mappings,
+        //     noNames: eopts.noNames,
+        //     noMetronome: eopts.noMetronome
+        // });
 
         timers.end("gen-lily");
 
@@ -541,9 +536,9 @@ var generateAllFiles = function(pattern, eopts) {
 
 var generateFilename = function(pattern, eopts) {
 
-    if (eopts._fullname) {
-        return eopts;
-    }
+    //if (eopts._fullname) {
+    //    return eopts;
+    //}
 
     var filenames_pre = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro') + '-' + eopts.tempo;
     var filenames_pre_notempo = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
@@ -559,6 +554,8 @@ var generateFilename = function(pattern, eopts) {
 };
 
 var getOrMakeFile = function(res, pattern, eopts, cb) {
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
     generateAllFiles(pattern, eopts).then(function() {
         cb();
     }).catch(function(e) {
@@ -666,11 +663,6 @@ var getImageData = function(res, pattern, eopts) {
 
 };
 
-//function getRandomInt(min, max) {
-//    min = min || 0;
-//    max = max || 1;
-//    return parseInt((Math.random() * (max - min)) + min);
-//}
 
 //var generateBlocks = function(options) {
 //    options = getDefaultOptions(options);
@@ -773,22 +765,26 @@ var convertMulti = function(req, res, num, patlen) {
     res.send(ret);
 };
 
-
-var all8Cache = {};
 var getAll8 = function(req, res) {
     var patlen = req.params['patlen'] || 4;
-		patlen = isNaN(patlen) ? 4 : patlen;
-		patlen = Math.abs(patlen % 10);
+		var pagenum = req.query['page'] || 1;
+		pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
+		pagenum = Math.abs(pagenum);
+    patlen = isNaN(patlen) ? 4 : patlen;
+    patlen = Math.abs(patlen % 17);
     var barlen = patlen;
 
-    if (all8Cache['permsheet' + barlen]) {
-        res.end(all8Cache['permsheet' + barlen]);
-        return;
-    }
-
     var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
-    //var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
     var mappings = ['r', 'R', 'l', 'L'];
+		var pageLinkAdd = "";
+    if (req.query['blanks']) {
+        mappings = mappings.concat(['x', 'X']);
+				pageLinkAdd += "&blanks=true";
+    }
+    if (req.query["rests"]) {
+        mappings.push("-");
+				pageLinkAdd += "&rests=true";
+    }
 
     var pattern = [];
     var sipattern = [];
@@ -796,27 +792,136 @@ var getAll8 = function(req, res) {
     sipattern[0] = makeCleanBlock(8);
 
     var notetypes = mappings.length;
-    var mxpat = Math.pow(notetypes, barlen);
-    var page = "";
+    var maxPatterns = Math.pow(notetypes, barlen);
+    var maxPages = Math.ceil(Math.pow(notetypes, barlen) / config.worksheet.pageItems);
+		if(pagenum > maxPages){
+			pagenum = 1;
+		}
+		var mxpat = pagenum * config.worksheet.pageItems;
+		if (mxpat > maxPatterns){
+			mxpat = maxPatterns;
+		}
+
+    var pageHost = config.server.fullhost;
+
+    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
+    var pageStart = pageSplits[0];
+    var pageEnd = pageSplits[1];
+
+    res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'Transfer-Encoding'
+    });
 		
-		var pageHost = 'https://drumgen.apollolms.co.za'; // req.get('host');
+		var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum - 1) + pageLinkAdd;
+		var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
+		var footerData = "Page " + pagenum + " of " + maxPages;
+		pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
+		pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
+		pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
 
-    for (var mx = 0; mx < mxpat; mx++) {
-        var cpat = (mx).toString(notetypes);
-        cpat = lpad(cpat, barlen);
-        pattern[mx] = cpat.split("");
-        for (var px in pattern[mx]) {
-            pattern[mx][px] = mappings[pattern[mx][px]];
+    res.write(pageStart);
+    var written = (pagenum - 1) * config.worksheet.pageItems;
+
+    var bufferWriteInterval = setInterval(function() {
+        if (written < mxpat) {
+            var mx = written;
+            var cpat = (mx).toString(notetypes);
+            cpat = lpad(cpat, barlen);
+            pattern[mx] = cpat.split("");
+            for (var px in pattern[mx]) {
+                pattern[mx][px] = mappings[pattern[mx][px]];
+            }
+            sipattern[0] = pattern[mx];
+            res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl);
+            res.flush();
+            written += 1;
+        } else {
+            res.write(pageEnd);
+            res.end();
+            clearInterval(bufferWriteInterval);
         }
-        sipattern[0] = pattern[mx];
-        page += "<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl;
-    }
-
-    pagebody = pagebody.replace("{{MAINHOLDER_DATA}}", page);
-    all8Cache['permsheet' + barlen] = pagebody;
-    res.end(pagebody);
+    }, 30);
 
 };
+////var all8Cache = {};
+//var getAll8old = function(req, res) {
+//    var patlen = req.params['patlen'] || 4;
+//    patlen = isNaN(patlen) ? 4 : patlen;
+//    patlen = Math.abs(patlen % 10);
+//    var barlen = patlen;
+//
+//    //if (all8Cache['permsheet' + barlen]) {
+//    //    res.end(all8Cache['permsheet' + barlen]);
+//    //    return;
+//    //}
+//
+//    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
+//    //var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
+//    var mappings = [];
+//    if (req.query['feets']) {
+//        mappings = ['r', 'R', 'l', 'L', 'f', 'F', 'h', 'H'];
+//    } else {
+//        mappings = ['r', 'R', 'l', 'L'];
+//    }
+//    if (req.query["rest"]) {
+//        mappings.push("-");
+//    }
+//
+//    var pattern = [];
+//    var sipattern = [];
+//    pattern[0] = makeCleanBlock(8);
+//    sipattern[0] = makeCleanBlock(8);
+//
+//    var notetypes = mappings.length;
+//    var mxpat = Math.pow(notetypes, barlen);
+//    //var page = "";
+//
+//    var pageHost = 'https://drumgen.apollolms.co.za'; // req.get('host');
+//
+//    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
+//    var pageStart = pageSplits[0];
+//    var pageEnd = pageSplits[1];
+//
+//    res.writeHead(200, {
+//        'Content-Type': 'text/html; charset=utf-8',
+//        'Transfer-Encoding': 'chunked',
+//        'Connection': 'Transfer-Encoding'
+//    });
+//
+//    res.write(pageStart);
+//    var written = 0;
+//    for (var mxo = 0; mxo < mxpat; mxo++) {
+//        (function(mx) {
+//            setTimeout(function() {
+//                var cpat = (mx).toString(notetypes);
+//                cpat = lpad(cpat, barlen);
+//                pattern[mx] = cpat.split("");
+//                for (var px in pattern[mx]) {
+//                    pattern[mx][px] = mappings[pattern[mx][px]];
+//                }
+//                sipattern[0] = pattern[mx];
+//                //page += "<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl;
+//                res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl);
+//                res.flush();
+//                written += 1;
+//            }, 50);
+//        })(mxo);
+//    }
+//
+//    //pagebody = pagebody.replace("{{MAINHOLDER_DATA}}", page);
+//    //   all8Cache['permsheet' + barlen] = pagebody;
+//    var endInterval = setInterval(function() {
+//        if (written >= mxpat - 1) {
+//            res.write(pageEnd);
+//            res.end();
+//            clearInterval(endInterval);
+//        }
+//    }, 150);
+//    //res.end(pagebody);
+//
+//};
 
 module.exports = {
     importBlocks: importBlocks,

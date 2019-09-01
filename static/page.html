@@ -7,11 +7,8 @@
  <meta name="theme-color" content="#ffffff" />
  <meta name="description" content="A little app to generate patterns for you" />
  <meta name="msapplication-config" content="/static/browserconfig.xml"/>
-	<meta name="replaceme">
-
-
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+<link rel="mask-icon" href="/static/safari-pinned-tab.svg" color="#5bbad5">
 <meta name="msapplication-TileColor" content="#da532c">
 
 <link rel="stylesheet" href="https://drumgen.apollolms.co.za/static/page.css" type="text/css" />
@@ -32,13 +29,16 @@
     
     <div class="tuples_enabled">
     Tuples:<br/>
-		<label><input name="etuple2" type="checkbox" value="2" checked="checked" />2 - Eights<br/></label>
-		<label><input name="etuple3" type="checkbox" value="3" checked="checked" />3 - Triplets<br/></label>
-		<label><input name="etuple4" type="checkbox" value="4" checked="checked" />4 - Sixteenths<br/></label>
-		<label><input name="etuple5" type="checkbox" value="5" />5 - Quintuplets<br/></label>
-		<label><input name="etuple6" type="checkbox" value="6" />6 - Sextuplets<br/></label>
-		<label><input name="etuple7" type="checkbox" value="7" />7 - Septuplets<br/></label>
-		<label><input name="etuple9" type="checkbox" value="9" />9 - Nontuplets<br/></label>
+		<label><input name="etuple2" type="checkbox" value="2" checked="checked" />2 - Eights</label>
+		<label><input name="etuple3" type="checkbox" value="3" checked="checked" />3 - Triplets</label>
+    <br/>
+		<label><input name="etuple4" type="checkbox" value="4" checked="checked" />4 - Sixteenths</label>
+		<label><input name="etuple5" type="checkbox" value="5" />5 - Quintuplets</label>
+    <br/>
+		<label><input name="etuple6" type="checkbox" value="6" />6 - Sextuplets</label>
+		<label><input name="etuple7" type="checkbox" value="7" />7 - Septuplets</label>
+    <br/>
+		<label><input name="etuple9" type="checkbox" value="9" />9 - Nontuplets</label>
     </div>
 
     <div class="extra_settings">
@@ -77,7 +77,6 @@
 
 <script type="text/javascript">
   if ('serviceWorker' in navigator) {
-    // register service worker
     navigator.serviceWorker.register('/static/serviceworker.js');
   }
 
@@ -89,14 +88,8 @@
     });
   }, 1000 * 30);
 
-  // button clicks
-  $('.about-image').click(function() {
-      $('.aboutpanel').toggle();
-      $('.settingspanel').hide();
-  });
   $('.settings-image').click(function() {
       $('.settingspanel').toggle();
-      $('.aboutpanel').hide();
   });
 
   var funcs = {};
@@ -106,8 +99,8 @@
   var cseed = "public";
   
   funcs.getSeed = function(){
-    // new postfix every 4s
-    var inst = parseInt(new Date().getTime() / 1000 / 4);
+    // new postfix every 3s
+    var inst = parseInt(new Date().getTime() / 1000 / 3);
     seedcount = (seedcount + 1) % 5;
     cseed = "x-dg-app-" + inst + seedcount;
   }
@@ -115,6 +108,7 @@
   funcs.getSeed();
 
   var audiobaseurl = 'https://drumgen.apollolms.co.za/public/audio?app=true'; //asbase64=false';
+  var hburlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}';
   var audiorefreshurl = 'https://drumgen.apollolms.co.za/public/refresh/audio?app=true'; //asbase64=false';
   var imagebaseurl = 'https://drumgen.apollolms.co.za/public/image?app=true'; //asbase64=false';
 
@@ -122,16 +116,10 @@
 	settings.pattern_type = 'accent';
   settings.pattern_limbs = 4;
   settings.pattern_tuples = [2,3,4];
-	//settings.cache_name = "dg-images";
-	settings.cache_prefix = "dg";
   settings.metronome_on = false;
   settings.nested_tuples = false;
   settings.loop_audio = false;
   settings.tempo = 100;
-
- // funcs.getCurCache = function(){
- //   return settings.cache_name + settings.pattern_type + settings.pattern_length + settings.pattern_limbs;
- // }
 
   var LS = {
       get: function(a) {
@@ -139,86 +127,39 @@
       },
       set: function(a, b) {
           window.localStorage.setItem(a, JSON.stringify(b));
-      },
-      clearCache: function() {
-          for (var i = 0; i < window.localStorage.length; i++) {
-              if (window.localStorage.key(i).indexOf(settings.cache_prefix) === 0) {
-                  LS.set(window.localStorage.key(i), []);
-              }
-          ;}
       }
-
   };
 
-var getId = function() {
-    var idheader = 'x-drumgen-id';
-    var cid = LS.get(idheader);
-    if (cid) {
-        return cid;
-    }
-    var ncid = '_' + Math.random().toString(36).substr(2, 9);
-    LS.set(idheader, ncid);
-    return ncid;
-};
-
-var ID = getId();
-
-$.ajaxSetup({
-    headers: {
-        "x-drumgen-id": ID
-    }
-});
-
-//function preloadImages(ti) {
-//      var totalImages = ti || 5;
-//      var maxImages = 50;
-//      var curCache = funcs.getCurCache();
-//      var imgArr = LS.get(curCache) || [];
-//
-//      if (imgArr.length >= maxImages) {
-//          return false;
-//      }
-//
-//      for (var i = 0; i < totalImages; i++) {
-//          funcs.getSeed();
-//					funcs.loadImage[settings.pattern_type]($('.emptyimg'), function(newimg, newsnd){
-//              
-//                  var proms = [];
-//                  var imgprom = $.get(newimg + '&asbase64=true');
-//                  var sndprom = $.get(newsnd + '&asbase64=true'); 
-//                  proms.push(sndprom);
-//                  proms.push(imgprom);
-//
-//                  var allprom = Promise.all(proms);
-//
-//                  console.log({msg:"preloading", snd: newsnd, img: newimg});
-//                  allprom.then(function(values) {
-//                      console.log({msg: "preloading done"});
-//                      var imgArr = LS.get(curCache) || [];
-//                      nobj = {};
-//                      nobj.sound = values[0];
-//                      nobj.image = values[1];
-//                      imgArr.push(nobj);
-//                      LS.set(curCache, imgArr);
-//                  }).catch(function(error){
-//								  		console.error(error);
-//                  });
-//          });
-//      }
-//  }
-//
-
-  function setSound(sndhref, element){
-    element.remove();
-    var sndsrc = '<audio class="audiosrc" src="{SRCVAL}" {LOOP} type="audio/ogg"  preload="auto" controls> Your browser does not support the audio element tag. </audio>';
-    sndsrc = sndsrc.replace('{SRCVAL}', sndhref);
-    if(settings.loop_audio){
-      sndsrc = sndsrc.replace('{LOOP}', "loop");
-    } else {
-      sndsrc = sndsrc.replace('{LOOP}', "");
-    }
-    $('.mainsndholder').append(sndsrc);
-  }
+  var getId = function() {
+      var idheader = 'x-drumgen-id';
+      var cid = LS.get(idheader);
+      if (cid) {
+          return cid;
+      }
+      var ncid = '_' + Math.random().toString(36).substr(2, 9);
+      LS.set(idheader, ncid);
+      return ncid;
+  };
+  
+  var ID = getId();
+  
+  $.ajaxSetup({
+      headers: {
+          "x-drumgen-id": ID
+      }
+  });
+  
+  //function setSound(sndhref, element){
+  //  element.remove();
+  //  var sndsrc = '<audio class="audiosrc" src="{SRCVAL}" {LOOP} type="audio/ogg"  preload="auto" controls> Your browser does not support the audio element tag. </audio>';
+  //  sndsrc = sndsrc.replace('{SRCVAL}', sndhref);
+  //  if(settings.loop_audio){
+  //    sndsrc = sndsrc.replace('{LOOP}', "loop");
+  //  } else {
+  //    sndsrc = sndsrc.replace('{LOOP}', "");
+  //  }
+  //  $('.mainsndholder').append(sndsrc);
+  //}
 
   function setImage(imghref, element) {
 
@@ -232,85 +173,32 @@ $.ajaxSetup({
 
   }
 
- // funcs.getRandom = function(){
- //     var min = 1;
- //     var max = Math.pow(5, settings.pattern_length);
- //     var randNum = parseInt((Math.random() * (max - min)) + min);
- //     return randNum;
- // };
-
-	funcs.loadImage = {};
-
-//	funcs.loadImage['accent'] = function(element, cb){
-//      var randNum = funcs.getRandom();
-//
-//      loader.show();
-//      element.hide();
-//
-//      $.get('https://drumgen.apollolms.co.za/convertnum?num=' + randNum + '').done(function(data) {
-//          funcs.getSeed();
-//          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-//          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on;
-//
-//          element.on("load", function() {
-//              loader.hide();
-//              element.show();
-//          });
-//
-//          element.attr("src", newimg);
-//
-//          if(cb){
-//						cb(newimg, newsnd);
-//					}
-//      })
-//	}
-
- // function loadNewImage(element) {
- // 	funcs.loadImage[settings.pattern_type](element, function(){
- //     console.log(arguments);
- //   });
- // }
-
   var loader = $('.loader-image');
   var imgholder = $('.pattern-image');
   var sndholder = $('.audiosrc');
   var mainsndholder = $('.mainsndholder');
  
   loader.hide();
-//  var loadNextImage = function(element) {
-//  
-//      var curCache = funcs.getCurCache();
-//      var nextImages = LS.get(curCache);
-//
-//      if (nextImages && nextImages.length) {
-//				console.log("getting image from cache");
-//          var patObj = nextImages.shift();
-//          var nextImage = patObj.image;
-//          var nextSound = patObj.sound;
-//          LS.set(curCache, nextImages);
-//          if (nextImage) {
-//              setImage(nextImage, element);
-//              setSound(nextSound, sndholder);
-//              funcs.preloadImages(1);
-//          } else {
-//              loadNewImage(element);
-//              funcs.preloadImages(1);
-//          }
-//      } else {
-//          loadNewImage(element);
-//          funcs.preloadImages(1);
-//      }
-//  }
-//
+
+  function buildTemplateUrl(base){
+    return base.replace("{{SEED}}", cseed)
+               .replace("{{PATLEN}}", settings.pattern_length)
+               .replace("{{TUPLES}}", settings.pattern_tuples)
+               .replace("{{NESTED}}", settings.nested_tuples)
+               .replace("{{NOMETRO}}", !settings.metronome_on)
+               .replace("{{TEMPO}}", settings.tempo);
+  }
 
   var init = function(){
-          //LS.clearCache();
           funcs.getSeed();
           loader.show();
           imgholder.hide();
           mainsndholder.hide();
-          var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
-          var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+          //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+          var newimg = buildTemplateUrl(imagebaseurl + hburlext);
+
+          var newsnd = buildTemplateUrl(audiobaseurl + hburlext);
+       //   var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
 
           imgholder.on("load", function() {
               loader.hide();
@@ -321,28 +209,23 @@ $.ajaxSetup({
           imgholder.attr("src", newimg);
           sndholder.attr("src", newsnd);
 
-}
+  }
   
   var hammerOptions = {};
   var hammertime = new Hammer(imgholder[0], hammerOptions);
   var hammerloadertime = new Hammer(loader[0], hammerOptions);
 
   hammertime.on('swipe', function(ev) {
-      // loadNextImage(imgholder);
-      //init();
       callToChange();
   });
 
   hammerloadertime.on('swipe', function(ev) {
-      //init();
       callToChange();
   });
-  // STARTUP CODE SECTION
 
   init();
 
 </script>
-
 
 	<div class="healthpanel" style="display:none">
 		 We are having some trouble accessing the server, please wait a few minutes or try again later.
@@ -358,12 +241,10 @@ $.ajaxSetup({
   
           funcs.getSeed();
           loader.show();
-          //imgholder.hide();
           mainsndholder.hide();
-          //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples;
-          var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+          //var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
+          var newsnd = buildTemplateUrl(audiobaseurl + hburlext);
 
-          //imgholder.attr("src", newimg);
           sndholder.attr("src", newsnd);
           sndholder.on("canplay", function(){
             mainsndholder.show();
@@ -400,11 +281,11 @@ $.ajaxSetup({
     callToChange();    
   });
 
-	$('[name="pattype"]').click(function() {
-	    var type = $('[name="pattype"]:checked').val().toLowerCase();
-	    settings.pattern_type = type;
-	    console.log("pattype is " + type);
-	});
+	//$('[name="pattype"]').click(function() {
+	//    var type = $('[name="pattype"]:checked').val().toLowerCase();
+	//    settings.pattern_type = type;
+	//    console.log("pattype is " + type);
+	//});
 
 	$('[name^="etuple"]').click(function() {
 	    settings.pattern_tuples = [];
@@ -433,10 +314,7 @@ $.ajaxSetup({
       } else {
         sndholder.removeAttr("loop");
       }
-      //callToRefresh();
   });
-
 </script>
-<div class="beforeend"></div>
 </body>
 </html>

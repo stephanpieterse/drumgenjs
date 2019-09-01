@@ -65,9 +65,9 @@ var getOptsFromReq = function(req) {
         noNames: (req.query["noname"] === true || req.query["noname"] === 'true'),
         noMetronome: (req.query["nometro"] === true || req.query["nometro"] === 'true'),
         asBase64: (req.query["asbase64"] === 'true'),
-        patlen: isNaN(req.query["patlen"]) ? 8 : parseInt(req.query["patlen"]),
+        patlen: isNaN(parseInt(req.query["patlen"])) ? 8 : parseInt(req.query["patlen"]),
         nested: (req.query["nested"] === 'true'),
-        tempo: isNaN(req.query["tempo"]) ? null : parseInt(req.query["tempo"]),
+        tempo: isNaN(parseInt(req.query["tempo"])) ? null : parseInt(req.query["tempo"]),
         map: req.query["map"] || []
     };
 };
@@ -99,7 +99,7 @@ function publicGetPat(req, res) {
     var seed = req.query['seed'] || "public";
     seed = sanitize.trimString(seed);
 
-    req.query["nometro"] = 'true';
+    //req.query["nometro"] = 'true';
     req.query["noname"] = 'true';
     req.query["map"] = "sn";
     var queryOpts = getOptsFromReq(req);
@@ -172,12 +172,12 @@ app.get("/public/refresh/audio", function(req, res) {
 
 app.get("/public/audio", function(req, res) {
 
-    //req.query["nometro"] = true;
     req.query["noname"] = 'true';
     req.query["map"] = "sn";
 
     var ppat = publicGetPat(req, res);
-    musxml.getAudio(res, ppat, getOptsFromReq(req));
+    var opts = getOptsFromReq(req);
+    musxml.getAudio(res, ppat, opts);
 });
 
 app.get("/public/image", function(req, res) {
@@ -206,7 +206,7 @@ app.get("/convertmulti", function(req, res) {
 });
 
 
-app.get("/all8/:patlen", function(req, res) {
+app.get("/worksheet/:patlen", function(req, res) {
     var patlen = req.params['patlen'] || 4;
     musxml.getAll8(req, res);
 });
