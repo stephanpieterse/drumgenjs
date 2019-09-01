@@ -1,7 +1,6 @@
 #!/bin/bash
 source env-docker.sh
 NAME=drumgen
-bash cleartmpgen.sh
 docker build -t $NAME:latest .
 docker stop $NAME
 docker rm $NAME
