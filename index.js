@@ -10,11 +10,16 @@ var config = require("./config.js");
 var serverPort = config.server.port;
 var metrics = require('./metrics.js');
 var timers = require('./timers.js');
+var cleanup = require('./cleanup.js');
 
 var sanitize = require('./sanitize.js');
 
 var Log = require('./logger.js');
 var util = require('./util.js');
+
+cleanup.start(function() {
+    Log.debug("Callback for cleanup script ran");
+});
 
 app.use(function metricTracker(req, res, next) {
     metrics.reqObjScraper(req);
@@ -207,7 +212,7 @@ app.get("/convertmulti", function(req, res) {
 
 
 app.get("/worksheet/:patlen", function(req, res) {
-    var patlen = req.params['patlen'] || 4;
+    // var patlen = req.params['patlen'] || 4;
     musxml.getAll8(req, res);
 });
 

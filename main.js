@@ -136,10 +136,6 @@ var genMetronomePart = function(patlen, eopts) {
         metro += " wbl4 ";
     }
     metro += " } >>" + nl;
-    //metro += "\\repeat volta 4 ";
-    //for (var w = 0; w < patlen; w++) {
-    //    metro += "<< {wbl4 } >> ";
-    //}
     metro += "}" + nl;
     metro += "}" + nl;
     return metro;
@@ -222,6 +218,10 @@ var patternToLilypond = function(blocks, options) {
 
     var file = "";
     file += getLilypondHeader();
+    // some metadata for our cleaning scripts
+    file += nl;
+    file += "% gendate:" + parseInt(Date.now() / 1000) + nl;
+    file += "% filename:" + options._fullname + nl;
     file += "\\score {" + nl;
 
     options._isMidiSection = false;
@@ -249,20 +249,6 @@ var makeCleanBlock = function(blocks) {
 
     return pat;
 };
-
-//var addRandomNotes = function(block, prob) {
-//    var pat = block;
-//
-//    for (var p = 0; p < pat.length; p++) {
-//        if (getChoice(prob)) {
-//            pat[p] = 'x';
-//        } else {
-//            pat[p] = '-';
-//        }
-//    }
-//
-//    return pat;
-//};
 
 var genericMapper = function(num, patlen, mappings) {
 
@@ -328,20 +314,6 @@ var getMappedTuple = function(tuple, num, mappings) {
     return genericMapper(num, patlen, mappings);
 
 };
-
-//var addTuplets = function(block, tuple, prob, tupprob) {
-//    var pat = block;
-//    var emptyTuple = [];
-//    for (var t = 0; t < tuple; t++) {
-//        emptyTuple[t] = "|";
-//    }
-//    for (var p = 0; p < pat.length; p++) {
-//        if (getChoice(tupprob)) {
-//            pat[p] = addRandomNotes(emptyTuple, prob);
-//        }
-//    }
-//    return pat;
-//};
 
 var importBlocks = function(patid) {
     var cpid = "patid" + patid;
@@ -664,43 +636,6 @@ var getImageData = function(res, pattern, eopts) {
 };
 
 
-//var generateBlocks = function(options) {
-//    options = getDefaultOptions(options);
-//
-//    var blocks = parseInt((Math.random() * (options.maxNotes - options.minNotes + 1)) + options.minNotes);
-//
-//    var pattern = [];
-//    pattern[0] = makeCleanBlock(blocks);
-//    pattern[1] = makeCleanBlock(blocks);
-//    pattern[2] = makeCleanBlock(blocks);
-//    pattern[3] = makeCleanBlock(blocks);
-//
-//    pattern[0] = addRandomNotes(pattern[0], 60);
-//
-//    pattern[0] = addTuplets(pattern[0], 3, 60, 15);
-//    pattern[0] = addTuplets(pattern[0], 5, 60, 5);
-//    pattern[0] = addTuplets(pattern[0], 7, 60, 25);
-//    pattern[0] = addTuplets(pattern[0], 2, 75, 75);
-//
-//    pattern[1] = addRandomNotes(pattern[1], 60);
-//    pattern[1] = addTuplets(pattern[1], 3, 60, 15);
-//
-//    pattern[2] = addRandomNotes(pattern[2], 60);
-//    pattern[2] = addTuplets(pattern[2], 3, 60, 75);
-//    pattern[2] = addTuplets(pattern[2], 4, 60, 75);
-//
-//    pattern[3] = addRandomNotes(pattern[3], 60);
-//    pattern[3] = addTuplets(pattern[3], 4, 60, 75);
-//
-//    var outFile = patternToLilypond(pattern, {
-//        tempo: options.tempo
-//    });
-//
-//    Log.trace(outFile);
-//
-//    return pattern;
-//};
-
 var lpad = function(value, padding) {
     var zeroes = "0";
 
@@ -767,23 +702,23 @@ var convertMulti = function(req, res, num, patlen) {
 
 var getAll8 = function(req, res) {
     var patlen = req.params['patlen'] || 4;
-		var pagenum = req.query['page'] || 1;
-		pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
-		pagenum = Math.abs(pagenum);
+    var pagenum = req.query['page'] || 1;
+    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
+    pagenum = Math.abs(pagenum);
     patlen = isNaN(patlen) ? 4 : patlen;
     patlen = Math.abs(patlen % 17);
     var barlen = patlen;
 
     var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
     var mappings = ['r', 'R', 'l', 'L'];
-		var pageLinkAdd = "";
+    var pageLinkAdd = "";
     if (req.query['blanks']) {
         mappings = mappings.concat(['x', 'X']);
-				pageLinkAdd += "&blanks=true";
+        pageLinkAdd += "&blanks=true";
     }
     if (req.query["rests"]) {
         mappings.push("-");
-				pageLinkAdd += "&rests=true";
+        pageLinkAdd += "&rests=true";
     }
 
     var pattern = [];
@@ -794,13 +729,13 @@ var getAll8 = function(req, res) {
     var notetypes = mappings.length;
     var maxPatterns = Math.pow(notetypes, barlen);
     var maxPages = Math.ceil(Math.pow(notetypes, barlen) / config.worksheet.pageItems);
-		if(pagenum > maxPages){
-			pagenum = 1;
-		}
-		var mxpat = pagenum * config.worksheet.pageItems;
-		if (mxpat > maxPatterns){
-			mxpat = maxPatterns;
-		}
+    if (pagenum > maxPages) {
+        pagenum = 1;
+    }
+    var mxpat = pagenum * config.worksheet.pageItems;
+    if (mxpat > maxPatterns) {
+        mxpat = maxPatterns;
+    }
 
     var pageHost = config.server.fullhost;
 
@@ -813,15 +748,16 @@ var getAll8 = function(req, res) {
         'Transfer-Encoding': 'chunked',
         'Connection': 'Transfer-Encoding'
     });
-		
-		var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum - 1) + pageLinkAdd;
-		var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
-		var footerData = "Page " + pagenum + " of " + maxPages;
-		pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
-		pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
-		pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
+
+    var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum - 1) + pageLinkAdd;
+    var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
+    var footerData = "Page " + pagenum + " of " + maxPages;
+    pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
+    pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
+    pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
 
     res.write(pageStart);
+		res.flushHeaders();
     var written = (pagenum - 1) * config.worksheet.pageItems;
 
     var bufferWriteInterval = setInterval(function() {
@@ -835,7 +771,7 @@ var getAll8 = function(req, res) {
             }
             sipattern[0] = pattern[mx];
             res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl);
-            res.flush();
+            //res.flush();
             written += 1;
         } else {
             res.write(pageEnd);
@@ -845,91 +781,11 @@ var getAll8 = function(req, res) {
     }, 30);
 
 };
-////var all8Cache = {};
-//var getAll8old = function(req, res) {
-//    var patlen = req.params['patlen'] || 4;
-//    patlen = isNaN(patlen) ? 4 : patlen;
-//    patlen = Math.abs(patlen % 10);
-//    var barlen = patlen;
-//
-//    //if (all8Cache['permsheet' + barlen]) {
-//    //    res.end(all8Cache['permsheet' + barlen]);
-//    //    return;
-//    //}
-//
-//    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
-//    //var mappings = ['-', 'x', 'X', 'r', 'R', 'l', 'L'];
-//    var mappings = [];
-//    if (req.query['feets']) {
-//        mappings = ['r', 'R', 'l', 'L', 'f', 'F', 'h', 'H'];
-//    } else {
-//        mappings = ['r', 'R', 'l', 'L'];
-//    }
-//    if (req.query["rest"]) {
-//        mappings.push("-");
-//    }
-//
-//    var pattern = [];
-//    var sipattern = [];
-//    pattern[0] = makeCleanBlock(8);
-//    sipattern[0] = makeCleanBlock(8);
-//
-//    var notetypes = mappings.length;
-//    var mxpat = Math.pow(notetypes, barlen);
-//    //var page = "";
-//
-//    var pageHost = 'https://drumgen.apollolms.co.za'; // req.get('host');
-//
-//    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
-//    var pageStart = pageSplits[0];
-//    var pageEnd = pageSplits[1];
-//
-//    res.writeHead(200, {
-//        'Content-Type': 'text/html; charset=utf-8',
-//        'Transfer-Encoding': 'chunked',
-//        'Connection': 'Transfer-Encoding'
-//    });
-//
-//    res.write(pageStart);
-//    var written = 0;
-//    for (var mxo = 0; mxo < mxpat; mxo++) {
-//        (function(mx) {
-//            setTimeout(function() {
-//                var cpat = (mx).toString(notetypes);
-//                cpat = lpad(cpat, barlen);
-//                pattern[mx] = cpat.split("");
-//                for (var px in pattern[mx]) {
-//                    pattern[mx][px] = mappings[pattern[mx][px]];
-//                }
-//                sipattern[0] = pattern[mx];
-//                //page += "<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl;
-//                res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl);
-//                res.flush();
-//                written += 1;
-//            }, 50);
-//        })(mxo);
-//    }
-//
-//    //pagebody = pagebody.replace("{{MAINHOLDER_DATA}}", page);
-//    //   all8Cache['permsheet' + barlen] = pagebody;
-//    var endInterval = setInterval(function() {
-//        if (written >= mxpat - 1) {
-//            res.write(pageEnd);
-//            res.end();
-//            clearInterval(endInterval);
-//        }
-//    }, 150);
-//    //res.end(pagebody);
-//
-//};
-
 module.exports = {
     importBlocks: importBlocks,
     exportBlocks: exportBlocks,
-    //    generateBlocks: generateBlocks,
     getImage: getImage,
     getAudio: getAudio,
-    //    getPage: getPage,
     getAll8: getAll8,
     getMappedTuple: getMappedTuple,
     convertNumToTuple: convertNumToTuple,

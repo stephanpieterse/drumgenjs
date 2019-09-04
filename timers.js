@@ -2,6 +2,7 @@
 /* jshint strict:false */
 
 var timers = {};
+
 function timer(name) {
     timers[name + '_start'] = process.hrtime();
 }
@@ -9,9 +10,9 @@ function timer(name) {
 function timerEnd(name) {
     if (!timers[name + '_start']) return undefined;
     var realtime = process.hrtime(timers[name + '_start']);
-		var ts = realtime[0] * 1000;
-		var tms = realtime[1] / 1000000;
-		var time = ts + tms;
+    var ts = realtime[0] * 1000;
+    var tms = realtime[1] / 1000000;
+    var time = ts + tms;
     var amount = timers[name + '_amount'] = timers[name + '_amount'] ? timers[name + '_amount'] + 1 : 1;
     //var sum = timers[name + '_sum'] = timers[name + '_sum'] ? timers[name + '_sum'] + time : time;
     timers[name + '_avg'] = ((timers[name + '_avg'] || 0) + time) / 2;
@@ -20,7 +21,7 @@ function timerEnd(name) {
 }
 
 module.exports = {
-	timers: timers,
-	start: timer,
-	end: timerEnd
+    timers: timers,
+    start: timer,
+    end: timerEnd
 };

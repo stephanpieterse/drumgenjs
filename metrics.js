@@ -46,14 +46,6 @@ function genericAdder(type, id) {
     save();
 }
 
-//function genericAverage(type, id, amount){
-//    var t = metrics[type] || {};
-//    t[id] = t[id] || {};
-//    t[id].hits = t[id].hits || 0;
-//    t[id].hits =( t[id].hits + amount) / 2;
-//    metrics[type] = t;
-//		save();
-//}
 function save() {
     savedcache.put(globalkey, metrics, function(e, r) {});
 }
