@@ -4,6 +4,7 @@
 var config = require("./config.js");
 var fs = require('fs');
 var Log = require('./logger.js');
+var execSync = require('child_process').execSync;
 
 var cleanInterval;
 
@@ -35,6 +36,21 @@ function shouldDeleteFile(filename) {
 
 }
 
+function isFsOverLimit() {
+    try {
+        var dudata = execSync("du -s " + config.tmpdir);
+        var dirsize = dudata.toString().split(' ');
+        if (dirsize[0] > config.tmpSizeLimit) {
+            return true;
+        }
+    } catch (e) {
+        Log.error(e);
+        Log.debug("Could not determine folder size");
+        return false;
+    }
+    return false;
+}
+
 function deleteFiles(filelist, filenamepre) {
     for (var f in filelist) {
         if ((config.tmpdir + filelist[f]).indexOf(filenamepre) === 0) {
@@ -48,6 +64,40 @@ function deleteFiles(filelist, filenamepre) {
     }
 }
 
+function doCleanupDirSize() {
+    if (isFsOverLimit()) {
+        Log.debug("FS over limit, doing extreme clean");
+        var oldtime = config.tmpMaxAge;
+        config.tmpMaxAge = config.tmpSizeOverMaxAge;
+        doCleanupNormal();
+        config.tmpMaxAge = oldtime;
+    } else {
+        Log.debug("Directory size was still under configured limit, skipping extreme clean");
+    }
+}
+
+function doCleanupNormal() {
+    try {
+        fs.readdir(config.tmpdir, function(err, files) {
+            files.forEach(function(file) {
+                if (file.indexOf(".ly") > 1) {
+                    var fullname = config.tmpdir + file;
+                    if (shouldDeleteFile(fullname)) {
+                        Log.info("Deleting file " + fullname + " which is older than maxage");
+                        var filenoext = fullname.substr(0, fullname.indexOf(".ly"));
+                        deleteFiles(files, filenoext);
+                    }
+                }
+            });
+        });
+    } catch (e) {
+        Log.error(e);
+    }
+
+
+
+}
+
 function startCleanup(cb) {
     intervalCallbacks.push(cb);
     if (cleanInterval) {
@@ -56,22 +106,24 @@ function startCleanup(cb) {
     }
     cleanInterval = setInterval(function() {
 
-        try {
-            fs.readdir(config.tmpdir, function(err, files) {
-                files.forEach(function(file) {
-                    if (file.indexOf(".ly") > 1) {
-                        var fullname = config.tmpdir + file;
-                        if (shouldDeleteFile(fullname)) {
-                            Log.info("Deleting file " + fullname + " which is older than maxage");
-                            var filenoext = fullname.substr(0, fullname.indexOf(".ly"));
-                            deleteFiles(files, filenoext);
-                        }
-                    }
-                });
-            });
-        } catch (e) {
-            Log.error(e);
-        }
+        doCleanupNormal();
+        doCleanupDirSize();
+        // try {
+        //     fs.readdir(config.tmpdir, function(err, files) {
+        //         files.forEach(function(file) {
+        //             if (file.indexOf(".ly") > 1) {
+        //                 var fullname = config.tmpdir + file;
+        //                 if (shouldDeleteFile(fullname)) {
+        //                     Log.info("Deleting file " + fullname + " which is older than maxage");
+        //                     var filenoext = fullname.substr(0, fullname.indexOf(".ly"));
+        //                     deleteFiles(files, filenoext);
+        //                 }
+        //             }
+        //         });
+        //     });
+        // } catch (e) {
+        //     Log.error(e);
+        // }
 
         for (var acb in intervalCallbacks) {
             if (intervalCallbacks[acb] && typeof intervalCallbacks[acb] === 'function') {

@@ -68,6 +68,7 @@ var getOptsFromReq = function(req) {
     /// ("" + req.opts['a']).toLowerCase() === 'true'
     return {
         noNames: (req.query["noname"] === true || req.query["noname"] === 'true'),
+        noRests: (req.query["norests"] === true || req.query["norests"] === 'true'),
         noMetronome: (req.query["nometro"] === true || req.query["nometro"] === 'true'),
         asBase64: (req.query["asbase64"] === 'true'),
         patlen: isNaN(parseInt(req.query["patlen"])) ? 8 : parseInt(req.query["patlen"]),
@@ -115,7 +116,11 @@ function publicGetPat(req, res) {
     var num = util.getOTP('base' + seed);
     var tupnum = util.getOTP('tups' + seed);
 
-    var pat = musxml.convertNumSimple(num, patlen);
+    var mappings = ['-', 'r', 'R', 'l', 'L'];
+  if (queryOpts.noRests) {
+      mappings.shift();
+    }
+    var pat = musxml.convertNumSimple(num, patlen, mappings);
     pat = JSON.parse(musxml.importBlocks(pat));
 
     Log.debug({
@@ -131,7 +136,7 @@ function publicGetPat(req, res) {
         if (tupset[t] !== '1' && tupset[t] !== 1) {
 
             var tnum = util.getOTP('tup' + t + seed);
-            var mt = musxml.getMappedTuple(tupset[t], tnum);
+            var mt = musxml.getMappedTuple(tupset[t], tnum, mappings);
             Log.debug({
                 mappedTuple: mt,
                 tnum: tnum

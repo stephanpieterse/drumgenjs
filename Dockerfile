@@ -2,7 +2,7 @@ FROM ubuntu:18.04
 
 RUN apt-get update && apt-get upgrade -y \
    && apt-get install -y wget npm nodejs imagemagick graphicsmagick fluid-soundfont-gm fluid-soundfont-gs ghostscript netcat \
-   && apt-get install -y libogg0 libvorbisenc2 libogg-dev libvorbis-dev \
+   && apt-get install -y libogg0 libvorbisenc2 libogg-dev libvorbis-dev gettext lltag\
    && apt-get autoremove \
    && apt-get autoclean
 
@@ -14,8 +14,6 @@ RUN wget "https://sourceforge.net/projects/timidity/files/TiMidity%2B%2B/TiMidit
     && bash autogen.sh && ./configure --enable-audio=vorbis && make && make install
 
 RUN sed -i 's|<policy domain="coder" rights="none" pattern="PS" />|<policy domain="coder" rights="read\|write" pattern="PS" />|g' /etc/ImageMagick-6/policy.xml
-
-RUN apt-get install -y gettext
 
 RUN cp -R /opt/lilypond/usr/share/* /usr/share/
 RUN cp -R /opt/lilypond/usr/bin/* /usr/bin/
@@ -32,7 +30,7 @@ COPY ./docker_res/timidity.cfg /usr/local/share/timidity/timidity.cfg
 
 COPY ./ /opt/app/
 COPY ./docker_res/ /opt/res/
-RUN mkdir -p /opt/app/tmpgen
+RUN mkdir -p /opt/app/tmpgen && chmod 0777 /opt/app/tmpgen
 RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
 #RUN cd /opt/app && npm install
 

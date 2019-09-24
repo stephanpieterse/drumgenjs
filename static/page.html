@@ -11,21 +11,26 @@
 <link rel="mask-icon" href="/static/safari-pinned-tab.svg" color="#5bbad5">
 <meta name="msapplication-TileColor" content="#da532c">
 
-<link rel="stylesheet" href="https://drumgen.apollolms.co.za/static/page.css" type="text/css" />
+<link rel="stylesheet" href="/static/page.css" type="text/css" />
 <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 <body>
 <div class="emptyimg" style="width:0px; height:0px"></div>
 <div class="wide75" style="width: 250px; height: 52px;"> 
-  <a class="settings-image" href="#" ><img class="util-image" src="https://drumgen.apollolms.co.za/static/settings.png" alt="settings" /></a>
+  <a class="settings-image" href="#" ><img class="util-image" src="/static/settings.png" alt="settings" /></a>
+  <a class="reload-image" href="#" ><img class="util-image" src="/static/reload.png" alt="reload" /></a>
 </div>
 <main>
 <div class="centerme wide75">
 
 <section>
 <div class="settingspanel abs-panel" style="display:none">
+    <a class="settings-image" href="#" ><img class="small-util-image" src="/static/settings.png" alt="settings" /></a>
     Barlength:
-		<input name="barlength" type="number" value="4"/><br/>
+    <input type="button" value="-" class="minusbtn" field="barlength" />
+		<input name="barlength" type="number" value="4"/>
+    <input type="button" value="+" class="plusbtn" field="barlength" />
+		<br/>
     
     <div class="tuples_enabled">
     Tuples:<br/>
@@ -42,8 +47,12 @@
     </div>
 
     <div class="extra_settings">
-		  <label>Tempo:<input name="tempo" type="number" value="100"/><br/></label>
+      <input type="button" value="-" class="minusbtn" field="tempo" />
+		  <label>Tempo:<input name="tempo" type="number" value="100"/></label>
+      <input type="button" value="+" class="plusbtn" field="tempo" />
+			<br/>
 		  <label><input name="metronome_on" type="checkbox" value="1" />Metronome in audio<br/></label>
+		  <label><input name="rests_on" type="checkbox" value="1" checked="checked" />Rests in pattern<br/></label>
 		  <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
 		  <label><input name="loop_audio" type="checkbox" value="loop_audio" />Loop Audio<br/></label>
     </div>
@@ -52,14 +61,12 @@
 	<br/>	
 	by Stephan Pieterse<br/>
 	drumgen@apollolms.co.za
-
   <br/>
-  <a target="_system" href="https://drumgen.apollolms.co.za/static/donate.html">Donate</a>
-
+  <!-- <a target="_system" href="/static/donate.html">Donate</a> -->
 	</div>
 
 <div class="mainholder" style="text-align:center;">
-  <img class="loader-image" src="https://drumgen.apollolms.co.za/static/loader.gif" alt="loader"></div>
+  <img class="loader-image" src="/static/loader.gif" alt="loader"></div>
   <img class="pattern-image" src="" alt="pattern image"/>
   <div class="mainsndholder">
     <audio class="audiosrc" src='' type="audio/ogg" preload="auto" controls> </audio>
@@ -81,7 +88,7 @@
   }
 
   var healthCheck = setInterval(function(){
-    $.get("https://drumgen.apollolms.co.za/health").done(function(){
+    $.get("/health").done(function(){
       $('.healthpanel').hide();
     }).catch(function(){ 
       $('.healthpanel').show();
@@ -90,6 +97,10 @@
 
   $('.settings-image').click(function() {
       $('.settingspanel').toggle();
+  });
+
+  $('.reload-image').click(function() {
+    callToChange();
   });
 
   var funcs = {};
@@ -107,16 +118,18 @@
 
   funcs.getSeed();
 
-  var audiobaseurl = 'https://drumgen.apollolms.co.za/public/audio?app=true'; //asbase64=false';
-  var hburlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}';
-  var audiorefreshurl = 'https://drumgen.apollolms.co.za/public/refresh/audio?app=true'; //asbase64=false';
-  var imagebaseurl = 'https://drumgen.apollolms.co.za/public/image?app=true'; //asbase64=false';
+  var hosturl = '';
+  var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
+  var hburlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
+  var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
+  var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
 
 	settings.pattern_length = 4;
 	settings.pattern_type = 'accent';
   settings.pattern_limbs = 4;
   settings.pattern_tuples = [2,3,4];
   settings.metronome_on = false;
+  settings.rests_on = true;
   settings.nested_tuples = false;
   settings.loop_audio = false;
   settings.tempo = 100;
@@ -148,18 +161,6 @@
           "x-drumgen-id": ID
       }
   });
-  
-  //function setSound(sndhref, element){
-  //  element.remove();
-  //  var sndsrc = '<audio class="audiosrc" src="{SRCVAL}" {LOOP} type="audio/ogg"  preload="auto" controls> Your browser does not support the audio element tag. </audio>';
-  //  sndsrc = sndsrc.replace('{SRCVAL}', sndhref);
-  //  if(settings.loop_audio){
-  //    sndsrc = sndsrc.replace('{LOOP}', "loop");
-  //  } else {
-  //    sndsrc = sndsrc.replace('{LOOP}', "");
-  //  }
-  //  $('.mainsndholder').append(sndsrc);
-  //}
 
   function setImage(imghref, element) {
 
@@ -186,6 +187,7 @@
                .replace("{{TUPLES}}", settings.pattern_tuples)
                .replace("{{NESTED}}", settings.nested_tuples)
                .replace("{{NOMETRO}}", !settings.metronome_on)
+               .replace("{{NORESTS}}", !settings.rests_on)
                .replace("{{TEMPO}}", settings.tempo);
   }
 
@@ -296,6 +298,11 @@
       callToChange();    
 	});
 
+  $('[name="rests_on"]').click(function(){
+	    settings.rests_on = ($('[name="rests_on"]:checked').val()) ? true : false;
+      callToChange();
+  });
+
   $('[name="metronome_on"]').click(function(){
 	    settings.metronome_on = ($('[name="metronome_on"]:checked').val()) ? true : false;
       callToRefresh();
@@ -314,6 +321,25 @@
       } else {
         sndholder.removeAttr("loop");
       }
+  });
+
+
+  $('.plusbtn').click(function(ev){
+    ev.preventDefault();
+    var field = $(this).attr('field');
+    var curval = parseInt($('input[name=' + field + ']').val());
+    var newval = isNaN(curval) ? 0 : curval + 1;
+    $('input[name=' + field + ']').val(newval);
+    $('input[name=' + field + ']').change();
+  });
+
+  $('.minusbtn').click(function(ev){
+    ev.preventDefault();
+    var field = $(this).attr('field');
+    var curval = parseInt($('input[name=' + field + ']').val());
+    var newval = (isNaN(curval) || curval <= 0) ? 0 : curval - 1;
+    $('input[name=' + field + ']').val(newval);
+    $('input[name=' + field + ']').change();
   });
 </script>
 </body>

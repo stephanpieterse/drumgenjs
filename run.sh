@@ -6,7 +6,8 @@ docker stop $NAME
 docker rm $NAME
 docker run --restart=always \
    $DOCKEROPTSFLAGS -d \
-   -p 127.0.0.1:9051:5061 \
-   -v `pwd`/cache/:/opt/app/cache/ \
     --name $NAME $NAME
+#   -p 127.0.0.1:9051:5061 \
+#   -p 172.17.0.1:9051:5061 \
    #-v `pwd`/tmpgen/:/opt/app/tmpgen/ \
+   # -v `pwd`/cache/:/opt/app/cache/ \

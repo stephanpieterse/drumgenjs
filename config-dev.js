@@ -2,7 +2,7 @@
 module.exports = {
     server: {
         port: 5061,
-        fullhost: "https://drumgen.apollolms.co.za"
+        fullhost: "https://drumgen-dev.apollolms.co.za"
     },
     tmpdir: "/opt/app/tmpgen/",
     tmpCleanupInterval: ( 5 * 60 * 1000), // 5 minutes
