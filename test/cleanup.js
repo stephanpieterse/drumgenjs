@@ -7,6 +7,7 @@ config.tmpdir = "/tmp/";
 config.tmpCleanupInterval = 2000;
 config.tmpMaxAge = 60;
 var cleanup = require("../cleanup.js");
+cleanup.stopReporting();
 var fs = require('fs');
 var assert = require('assert');
 

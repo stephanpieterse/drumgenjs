@@ -37,6 +37,12 @@ describe("Sanitization tests", function() {
     
   });
 
+  it("Should have a function removing non alphanumeric characters", function(){
+    var badString = '<form action="" method="GET" id="form" onsubmit="return jsValidationAndSanitization()">';
+    var goodString = 'form action methodGET idform onsubmitreturn jsValidationAndSanitization';
+
+    assert.equal(goodString, sanitize.cleanNonAlphaNum(badString));
+  });
 
 });
 

@@ -2,7 +2,9 @@
 set -xe
 cd /opt/app/
 
-lilypond lilypondserver.ly &
+
+# lilypond lilypondserver.ly &
+bash startlilyserverhealth.sh &
 
 if [ "$TEST" == "true" ];
 then

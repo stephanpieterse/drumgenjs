@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "start": "nodejs --max_old_space_size=256 index.js"
+    "start": "nodejs --max_old_space_size=384 index.js"
   },
   "author": "stephan@apollolms.co.za",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "midi-file": "^1.1.1",
     "node-cache": "^4.2.0",
     "persistent-cache": "^1.1.1",
+    "prom-client": "^11.5.3",
     "queue": "^4.5.1",
     "terminal-image": "^0.2.0"
   },

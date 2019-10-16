@@ -11,6 +11,7 @@ var config = require('./config.js');
 var timers = require('./timers.js');
 var metrics = require('./metrics.js');
 var queue = require('queue');
+var miditools = require('./miditools.js');
 
 var Log = require('./logger.js');
 
@@ -48,11 +49,105 @@ var impExpMap = {
 
 var nl = "\n";
 
+var genLilyTupleMapper = function(blocks, repnote, noteBase) {
+    var file = "";
+    var normDiv = [2, 4, 8, 16];
+
+    for (var b = 0; b < blocks.length; b++) {
+        if (Array.isArray(blocks[b])) {
+            var noteDur = "" + noteBase;
+            var tupNum = blocks[b].length;
+            if (normDiv.indexOf(tupNum) !== -1) {
+                noteDur = "" + (tupNum * noteBase);
+            } else {
+                file += "\\tuplet " + tupNum + "/2 " + "\n";
+                noteDur = "" + (noteDur * 2);
+            }
+            file += "{ " + nl;
+
+            //file += genLilyTupleMapper(blocks[b], repnote, noteBase);
+            file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
+
+            //for (var tt = 0; tt < tupNum; tt++) {
+            //    switch (blocks[b][tt]) {
+            //        case "L":
+            //            file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
+            //            break;
+            //        case "l":
+            //            file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
+            //            break;
+            //        case "R":
+            //            file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
+            //            break;
+            //        case "r":
+            //            file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
+            //            break;
+            //        case "X":
+            //            file += repnote + (noteDur) + "->-\\omit\\fff" + space;
+            //            break;
+            //        case "x":
+            //            file += repnote + (noteDur) + '-\\omit\\pp' + space;
+            //            break;
+            //        case "-":
+            //            file += "r" + (noteDur) + space;
+            //            break;
+            //    }
+            //}
+
+            file += "} " + "\n";
+        } else {
+            file += genLilySingleMapper(blocks[b], repnote, noteBase);
+        }
+    }
+    return file;
+
+};
+
+var genLilySingleMapper = function(blockb, repnote, noteBase) {
+    var file = "";
+    var space = " ";
+    switch (blockb) {
+        case "L":
+            //file += repnote + noteBase + '->-"L"' + space;
+            file += repnote + (noteBase) + '->-"L"-\\omit\\fff' + space;
+            break;
+        case "l":
+            //file += repnote + noteBase + '-"L"' + space;
+            file += repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
+            break;
+        case "R":
+            //file += repnote + noteBase + '->-"R"' + space;
+            file += repnote + (noteBase) + '->-"R"-\\omit\\fff' + space;
+            break;
+        case "r":
+            //file += repnote + noteBase + '-"R"' + space;
+            file += repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
+            break;
+        case "X":
+            //file += repnote + noteBase + "->" + space;
+            file += repnote + (noteBase) + "->-\\omit\\fff" + space;
+            break;
+        case "x":
+            //file += repnote + noteBase + space;
+            file += repnote + (noteBase) + '-\\omit\\pp' + space;
+            break;
+        case "-":
+            file += "r" + noteBase + space;
+            break;
+    }
+
+    return file;
+};
+
 var genLilypondPart = function(blocks, repnote, noteBase) {
     var file = "";
     var normDiv = [2, 4, 8, 16];
     var space = " ";
     noteBase = noteBase || 4;
+
+    // for nested and nice stuff, we need to
+    // split the arr and normal mapping into
+    // two functions so we can recurse
 
     file += "{";
     for (var b = 0; b < blocks.length; b++) {
@@ -66,65 +161,68 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
                 noteDur = "" + (noteDur * 2);
             }
             file += "{ " + nl;
-            for (var tt = 0; tt < tupNum; tt++) {
-                switch (blocks[b][tt]) {
-                    case "L":
-                        file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
-                        break;
-                    case "l":
-                        file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
-                        break;
-                    case "R":
-                        file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
-                        break;
-                    case "r":
-                        file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
-                        break;
-                    case "X":
-                        file += repnote + (noteDur) + "->-\\omit\\fff" + space;
-                        break;
-                    case "x":
-                        file += repnote + (noteDur) + '-\\omit\\pp' + space;
-                        break;
-                    case "-":
-                        file += "r" + (noteDur) + space;
-                        break;
-                }
-            }
-
+            file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
+            //            for (var tt = 0; tt < tupNum; tt++) {
+            //                switch (blocks[b][tt]) {
+            //                    case "L":
+            //                        file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
+            //                        break;
+            //                    case "l":
+            //                        file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
+            //                        break;
+            //                    case "R":
+            //                        file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
+            //                        break;
+            //                    case "r":
+            //                        file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
+            //                        break;
+            //                    case "X":
+            //                        file += repnote + (noteDur) + "->-\\omit\\fff" + space;
+            //                        break;
+            //                    case "x":
+            //                        file += repnote + (noteDur) + '-\\omit\\pp' + space;
+            //                        break;
+            //                    case "-":
+            //                        file += "r" + (noteDur) + space;
+            //                        break;
+            //                }
+            //            }
+            //
             file += "} " + "\n";
 
         } else {
-            switch (blocks[b]) {
-                case "L":
-                    file += repnote + noteBase + '->-"L"' + space;
-                    break;
-                case "l":
-                    file += repnote + noteBase + '-"L"' + space;
-                    break;
-                case "R":
-                    file += repnote + noteBase + '->-"R"' + space;
-                    break;
-                case "r":
-                    file += repnote + noteBase + '-"R"' + space;
-                    break;
-                case "X":
-                    file += repnote + noteBase + "->" + space;
-                    break;
-                case "x":
-                    file += repnote + noteBase + space;
-                    break;
-                case "-":
-                    file += "r" + noteBase + space;
-                    break;
-            }
+            file += genLilySingleMapper(blocks[b], repnote, noteBase);
+            //switch (blocks[b]) {
+            //    case "L":
+            //        file += repnote + noteBase + '->-"L"' + space;
+            //        break;
+            //    case "l":
+            //        file += repnote + noteBase + '-"L"' + space;
+            //        break;
+            //    case "R":
+            //        file += repnote + noteBase + '->-"R"' + space;
+            //        break;
+            //    case "r":
+            //        file += repnote + noteBase + '-"R"' + space;
+            //        break;
+            //    case "X":
+            //        file += repnote + noteBase + "->" + space;
+            //        break;
+            //    case "x":
+            //        file += repnote + noteBase + space;
+            //        break;
+            //    case "-":
+            //        file += "r" + noteBase + space;
+            //        break;
+            //}
         }
     }
     file += " }";
     return file;
 };
 
-var genMetronomePart = function(patlen, eopts) {
+// var genMetronomePart = function(patlen, eopts) {
+var genMetronomePart = function(patlen) {
     var metro = "";
     metro += "\\new DrumStaff" + "\n";
     metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " }" + "\n";
@@ -152,7 +250,7 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '300)" + nl;
+    head += "#(ly:set-option 'resolution '400)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pnggray)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
@@ -394,21 +492,14 @@ var generateLilypond = function(pattern, eopts) {
         timers.start("gen-lily");
         metrics.increment('generated', 'lilypond-files');
         var finalPattern = patternToLilypond(pattern, eopts);
-        // var finalPattern = patternToLilypond(pattern, {
-        //     tempo: eopts.tempo,
-        //     mappings: eopts.mappings,
-        //     noNames: eopts.noNames,
-        //     noMetronome: eopts.noMetronome
-        // });
-
         timers.end("gen-lily");
 
-        if (fs.existsSync(eopts._fullname + ".ly")) {
+        if (fs.existsSync(eopts._fullname_notempo + ".ly")) {
             resolve();
             return;
         }
 
-        fs.writeFile(eopts._fullname + ".ly", finalPattern, function(error) {
+        fs.writeFile(eopts._fullname_notempo + ".ly", finalPattern, function(error) {
             if (error) {
                 Log.error(error);
                 reject(error);
@@ -421,9 +512,12 @@ var generateLilypond = function(pattern, eopts) {
 
 var tagPNG = function(filename) {
     return new Promise(function(resolve, reject) {
-		    // exiftool is nicer but damn slow
+		    timers.start('tag-png');
+        var tagchild;
+        // exiftool is nicer but damn slow
         // var tagchild = exec('exiftool -author=DrumGen -comment="Generated for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
-        var tagchild = exec('mogrify -comment "Generated by DrumGen for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
+        tagchild = exec('mogrify -comment "Generated by DrumGen for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
+						timers.end('tag-png');
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (err) {
@@ -468,13 +562,15 @@ var generatePNG = function(filename) {
                 });
             });
         });
-
     });
 };
 
 var tagOGG = function(filename) {
     return new Promise(function(resolve, reject) {
-        var tagchild = exec('lltag --yes --ogg -a "DrumGen" -d `date` -t "' + filename + '" -c "Generated for your practicing enjoyment" ' + filename + '.ogg', function(err, stdout, stderr) {
+        var tagchild;
+				timers.start('tag-ogg');
+        tagchild = exec('lltag --yes --ogg -a "DrumGen" -d `date` -t "' + filename + '" -c "Generated for your practicing enjoyment" ' + filename + '.ogg', function(err, stdout, stderr) {
+				    timers.end('tag-ogg');
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (err) {
@@ -498,7 +594,8 @@ var generateOGG = function(filename) {
         metrics.increment('generated', 'audio');
         q.push(function(cb) {
             var audiochild;
-            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OvM1 " + filename + ".midi", function(error, stdout, stderr) {
+            // audiochild = exec("/usr/bin/time timidity --preserve-silence -EFreverb=0 -A120 -OvM1 " + filename + ".midi", function(error, stdout, stderr) {
+            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi && oggenc -q 9 " + filename + ".wav", function(error, stdout, stderr) {
                 timers.end("gen-ogg");
                 Log.debug('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
@@ -532,7 +629,8 @@ var generateAllFiles = function(pattern, eopts) {
 
     var prom = new Promise(function(resolve, reject) {
         generateLilypond(pattern, eopts).then(function() {
-            generatePNG(eopts._fullname).then(function() {
+            //generatePNG(eopts._fullname).then(function() {
+            generatePNG(eopts._fullname_notempo).then(function() {
                 resolve();
             }).catch(function(e) {
                 reject(e);
@@ -583,6 +681,7 @@ var getAudio = function(res, pattern, eopts) {
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
+        miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
         generateOGG(eopts._fullname).then(function() {
             getAudioData(res, pattern, eopts);
         }).catch(function(e) {
@@ -646,7 +745,7 @@ var getImage = function(res, pattern, eopts) {
 var getImageData = function(res, pattern, eopts) {
 
     timers.start("buf-img");
-    fs.readFile(eopts._fullname + ".png", function(err, buf) {
+    fs.readFile(eopts._fullname_notempo + ".png", function(err, buf) {
 
         if (err) {
             Log.error(err);
@@ -779,7 +878,8 @@ var getAll8 = function(req, res) {
         mxpat = maxPatterns;
     }
 
-    var pageHost = config.server.fullhost;
+    //var pageHost = config.server.fullhost;
+    var pageHost = "";
 
     var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
     var pageStart = pageSplits[0];
@@ -817,7 +917,7 @@ var getAll8 = function(req, res) {
                 pattern[mx][px] = mappings[pattern[mx][px]];
             }
             sipattern[0] = pattern[mx];
-            res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' /></div>" + nl);
+            res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' alt='Pattern " + exportBlocks(sipattern) + "' /></div>" + nl);
             //res.flush();
             written += 1;
         } else {
@@ -825,7 +925,7 @@ var getAll8 = function(req, res) {
             res.end();
             clearInterval(bufferWriteInterval);
         }
-    }, 30);
+    }, 10);
 };
 
 module.exports = {

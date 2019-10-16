@@ -216,4 +216,103 @@ describe("Performance Test", function() {
         });
     });
 
+    it("performance testing /public/audio uniques - singles test", function(done) {
+
+        var noRequestPerHour = 3000;
+        var avgRequestTime = 900;
+
+        var basePath = 'http://localhost:' + config.server.port + '/public/audio';
+
+        var uniqSeedRequestGenerator = function(params, options, client, callback) {
+            var newOpts = url.parse(basePath + "?seed=" + randomString());
+            return client(newOpts, callback);
+        };
+
+        this.timeout(1000 * 60 * 2);
+        this.slow(1000 * 60 * 2);
+
+        var options = {
+            "url": basePath,
+            "maxSeconds": 15,
+            "concurrency": 1,
+            "statusCallback": statusCallback,
+            "requestGenerator": uniqSeedRequestGenerator
+        };
+
+        var gLatency;
+
+        function statusCallback(error, result, latency) {
+            gLatency = latency;
+        }
+
+        var operation = loadtest.loadTest(options, function(error) {
+            if (error) {
+                console.error('Got an error: %s', error);
+            } else if (operation.running === false) {
+                var data = {};
+                data.gLatency = gLatency;
+                data.noRequestPerHour = noRequestPerHour;
+                data.avgRequestTime = avgRequestTime;
+                perfReporter(data);
+                gLatency.totalErrors.should.equal(0);
+                (gLatency.rps * 3600).should.be.greaterThan(noRequestPerHour);
+                (gLatency.meanLatencyMs).should.be.below(avgRequestTime);
+
+                done();
+            }
+        });
+    });
+    it("performance testing /public/audio tempo change - singles test", function(done) {
+
+        var noRequestPerHour = 3000;
+        var avgRequestTime = 900;
+
+        var basePath = 'http://localhost:' + config.server.port + '/public/audio';
+
+        var randTempo = function() {
+            var min = 23;
+            var max = 230;
+            return Math.floor(Math.random() * (max - min)) + min;
+        };
+
+        var uniqSeedRequestGenerator = function(params, options, client, callback) {
+            var newOpts = url.parse(basePath + "?seed=MYAUDIOSEED&tempo=" + randTempo());
+            return client(newOpts, callback);
+        };
+
+        this.timeout(1000 * 60 * 2);
+        this.slow(1000 * 60 * 2);
+
+        var options = {
+            "url": basePath,
+            "maxSeconds": 15,
+            "concurrency": 1,
+            "statusCallback": statusCallback,
+            "requestGenerator": uniqSeedRequestGenerator
+        };
+
+        var gLatency;
+
+        function statusCallback(error, result, latency) {
+            gLatency = latency;
+        }
+
+        var operation = loadtest.loadTest(options, function(error) {
+            if (error) {
+                console.error('Got an error: %s', error);
+            } else if (operation.running === false) {
+                var data = {};
+                data.gLatency = gLatency;
+                data.noRequestPerHour = noRequestPerHour;
+                data.avgRequestTime = avgRequestTime;
+                perfReporter(data);
+                gLatency.totalErrors.should.equal(0);
+                (gLatency.rps * 3600).should.be.greaterThan(noRequestPerHour);
+                (gLatency.meanLatencyMs).should.be.below(avgRequestTime);
+
+                done();
+            }
+        });
+    });
+
 });

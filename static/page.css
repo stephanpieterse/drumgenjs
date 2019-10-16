@@ -1,5 +1,5 @@
 body {
-  background-color: #ffffff;
+  background-color: #fdfdfd;
 }
 
 .abs-panel {
@@ -32,25 +32,37 @@ body {
   padding: 10px;
 }
 
+.title-image {
+  width: 128px;
+}
+
+.loader-image {
+  width: 48px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
 .util-image {
   width: 36px;
   margin-left: auto;
   margin-right: auto;
-	padding-left: 15px;
-	padding-right: 15px;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 .small-util-image {
   width: 18px;
   margin-left: auto;
   margin-right: 15px;
-	padding-left: 5px;
-	padding-right: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 .download-image {
   width: 48px;
-	padding-left: 15px;
-	padding-right: 15px;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 div {

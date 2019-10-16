@@ -1,7 +1,6 @@
-/* global require, module */
+/* global require, module, __dirname */
 /* jslint strict:false */
 
-var startpath = '/opt/app';
 
 var express = require("express");
 var musxml = require("./main.js");
@@ -9,6 +8,9 @@ var app = express();
 var config = require("./config.js");
 var serverPort = config.server.port;
 var metrics = require('./metrics.js');
+var prommetrics = require('./prommetrics.js');
+var promclient = require('prom-client');
+var prominit = require('./prominit.js');
 var timers = require('./timers.js');
 var cleanup = require('./cleanup.js');
 
@@ -16,6 +18,8 @@ var sanitize = require('./sanitize.js');
 
 var Log = require('./logger.js');
 var util = require('./util.js');
+var appId = util.getOTP("appId");
+prommetrics.appid = appId;
 
 cleanup.start(function() {
     Log.debug("Callback for cleanup script ran");
@@ -28,11 +32,63 @@ app.use(function metricTracker(req, res, next) {
 
 app.use(function timingTracker(req, res, next) {
     timers.start(req.path);
+    req._dgtimingstart = Date.now();
     res.on("finish", function() {
         timers.end(req.path);
+        var time = Date.now() - req._dgtimingstart;
         metrics.increment('http-status', res.statusCode);
+        prommetrics.cadd('http_requests_total', 1, {
+            "status_code": res.statusCode,
+            "path": req.path,
+            "appid": appId
+        });
+        prommetrics.hobs('http_requests_timings', time, {
+            "path": req.path,
+            "appid": appId
+        });
     });
     next();
+});
+
+app.post("/analytics", function(req, res) {
+
+    var chunk = '';
+
+    req.on('data', function(data) {
+        chunk += data; // here you get your raw data.
+    });
+
+    req.on('end', function() {
+        // console.log(chunk); //just show in console
+        try {
+            var obj = JSON.parse(chunk);
+            prommetrics.hobs('analytics_user_pagetime', obj.timeOnPage, {
+                "path": obj.pathname,
+                "appid": appId
+            });
+            prommetrics.hobs('analytics_user_timehidden', obj.timeInState.hidden, {
+                "path": obj.pathname,
+                "appid": appId
+            });
+            prommetrics.hobs('analytics_user_timevisible', obj.timeInState.visible, {
+                "path": obj.pathname,
+                "appid": appId
+            });
+        } catch (e) {
+            Log.error(e);
+        }
+    });
+    res.status(201).send();
+});
+
+app.post("/feedback", function(req, res){
+  res.status(204).send();
+});
+
+app.get("/prometheus", function(req, res) {
+    res.send(promclient.register.metrics({
+        timestamps: false
+    }));
 });
 
 app.get("/metrics", function(req, res) {
@@ -44,7 +100,7 @@ app.get("/timers", function(req, res) {
 });
 
 app.get("/", function(req, res) {
-    res.redirect("/static/page.html");
+    res.redirect("/static/home.html");
 });
 
 app.get("/health", function(req, res) {
@@ -102,6 +158,16 @@ app.get("/image", function(req, res) {
 
 function publicGetPat(req, res) {
 
+    var pat;
+    if (req.query['patref']) {
+        var ref = req.query['patref'];
+        ref = sanitize.trimString(ref);
+        //ref = sanitize.cleanString(ref);
+        pat = JSON.parse(musxml.importBlocks(ref));
+        res.setHeader('x-drumgen-patref', musxml.exportBlocks(pat));
+        return pat;
+    }
+
     var seed = req.query['seed'] || "public";
     seed = sanitize.trimString(seed);
 
@@ -117,10 +183,10 @@ function publicGetPat(req, res) {
     var tupnum = util.getOTP('tups' + seed);
 
     var mappings = ['-', 'r', 'R', 'l', 'L'];
-  if (queryOpts.noRests) {
-      mappings.shift();
+    if (queryOpts.noRests) {
+        mappings.shift();
     }
-    var pat = musxml.convertNumSimple(num, patlen, mappings);
+    pat = musxml.convertNumSimple(num, patlen, mappings);
     pat = JSON.parse(musxml.importBlocks(pat));
 
     Log.debug({
@@ -153,6 +219,13 @@ function publicGetPat(req, res) {
     res.setHeader('x-drumgen-patref', musxml.exportBlocks(pat));
     return pat;
 }
+
+app.get("/public/pattern", function(req, res) {
+    var ppat = publicGetPat(req, res);
+    res.send({
+        "patref": musxml.exportBlocks(ppat)
+    });
+});
 
 app.get("/public/refresh/audio", function(req, res) {
 
@@ -221,6 +294,12 @@ app.get("/worksheet/:patlen", function(req, res) {
     musxml.getAll8(req, res);
 });
 
+app.use("/favicon.ico", function(req, res) {
+    res.redirect("/static/favicon.ico");
+});
+
+app.use("/static", express.static("static"));
+
 app.use(function errorHandler(err, req, res, next) {
 
     Log.error(err);
@@ -236,11 +315,9 @@ app.use(function errorHandler(err, req, res, next) {
     return next(err);
 });
 
-app.use("/favicon.ico", function(req, res) {
-    res.sendFile(startpath + "/static/favicon.ico");
+app.use(function missingHandler(req, res) {
+    res.status(404).sendFile(__dirname + "/static/404.html");
 });
-
-app.use("/static", express.static("static"));
 
 app.disable('x-powered-by');
 var this_server = app.listen(serverPort, function() {

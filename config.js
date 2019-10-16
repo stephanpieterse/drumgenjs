@@ -5,15 +5,15 @@ module.exports = {
         fullhost: "https://drumgen.apollolms.co.za"
     },
     tmpdir: "/opt/app/tmpgen/",
-    tmpCleanupInterval: ( 5 * 60 * 1000), // 5 minutes
+    tmpCleanupInterval: ( 1 * 60 * 1000), // 1 minutes
     tmpMaxAge: (6 * 60 * 60), // 6 hour
     tmpSizeOverMaxAge: (30), // 30 seconds
-    tmpSizeLimit: (100 * 1024 ), // 100mb 
+    tmpSizeLimit: (300 * 1024 ), // 300mb 
     worksheet: {
         pageItems: 20
     },
     queue: {
-        timeout: 1000 * 10,
-        concurrency: 2
+        timeout: 2000 * 10,
+        concurrency: 3
     }
 };

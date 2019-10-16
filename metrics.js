@@ -1,8 +1,6 @@
 /* jshint strict:false */
 /* global module, require */
 
-//var config = require('./config.js');
-//var util = require('./util.js');
 var perscache = require('persistent-cache');
 var savedcache = perscache({
     'name': 'metrics'

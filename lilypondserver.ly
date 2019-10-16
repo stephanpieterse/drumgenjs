@@ -8,6 +8,7 @@
       (while #t
         (let ((connection (accept server-socket)))
           (lys:fork-worker (lambda () (lys:client-handler (car connection))))))))
+         ; (lys:client-handler (car connection))))))
   (define (lys:open-socket-for-listening port) (let (
     (s (socket PF_INET SOCK_STREAM 0)))
     (setsockopt s SOL_SOCKET SO_REUSEADDR 1)
@@ -20,7 +21,7 @@
       (if (zero? child) (proc))
       (primitive-exit)
       ; wait for child to spawn grand-child
-      (waitpid child)))))
+     )(waitpid child))))
       
   (define lys:socket #f)
   (define lys:persist #f)

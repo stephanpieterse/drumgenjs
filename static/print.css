@@ -1,0 +1,11 @@
+@media print {
+ #navHolder {
+   display : none;
+ } 
+ #mainHolder div {
+    width: 256px;
+ }
+ #mainHolder div img {
+    width: 240px;
+ }
+}
