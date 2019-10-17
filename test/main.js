@@ -21,7 +21,7 @@ describe("Main Exported Tests", function() {
     });
 
     it("Importing and exporting should handle bad data", function() {
-      this.skip();
+        this.skip();
     });
 
     it("Regression check - lpad should work", function() {
@@ -96,5 +96,5 @@ describe("Main Exported Tests", function() {
         assert.deepEqual(main.getMappedTuple(2, 23), ['L', 'l']);
         assert.deepEqual(main.getMappedTuple(2, 24), ['L', 'L']);
     });
-    
+
 });

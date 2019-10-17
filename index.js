@@ -55,11 +55,10 @@ app.post("/analytics", function(req, res) {
     var chunk = '';
 
     req.on('data', function(data) {
-        chunk += data; // here you get your raw data.
+        chunk += data;
     });
 
     req.on('end', function() {
-        // console.log(chunk); //just show in console
         try {
             var obj = JSON.parse(chunk);
             prommetrics.hobs('analytics_user_pagetime', obj.timeOnPage, {
@@ -133,28 +132,6 @@ var getOptsFromReq = function(req) {
         map: req.query["map"] || []
     };
 };
-
-app.get("/image", function(req, res) {
-    var pat;
-    if (req.query["pat"]) {
-        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
-    } else {
-        pat = musxml.generateBlocks({});
-    }
-
-    musxml.getImage(res, pat, getOptsFromReq(req));
-});
-//
-//app.get("/audio", function(req, res) {
-//    var pat;
-//    if (req.query["pat"]) {
-//        pat = JSON.parse(musxml.importBlocks(req.query["pat"]));
-//    } else {
-//        pat = musxml.generateBlocks({});
-//    }
-//
-//    musxml.getAudio(res, pat, getOptsFromReq(req));
-//});
 
 function publicGetPat(req, res) {
 

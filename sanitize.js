@@ -38,13 +38,13 @@ function cleanString(tstring, remRegex) {
     return tstring.replace(remRegex, '');
 }
 
-function cleanNonAlphaNum(tstring){
-	return cleanString(tstring, /[^a-z0-9 ]/gi);
+function cleanNonAlphaNum(tstring) {
+    return cleanString(tstring, /[^a-z0-9 ]/gi);
 }
 
 module.exports = {
     tuples: sanitizeTuples,
     trimString: trimString,
-		cleanString: cleanString,
-		cleanNonAlphaNum: cleanNonAlphaNum
+    cleanString: cleanString,
+    cleanNonAlphaNum: cleanNonAlphaNum
 };

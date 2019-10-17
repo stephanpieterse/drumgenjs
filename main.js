@@ -1,7 +1,6 @@
 /* global Buffer, require, module, setInterval, clearInterval */
 /* jslint strict:false */
 
-// var sys = require('util');
 var exec = require('child_process').exec;
 var fs = require('fs');
 var util = require('./util.js');
@@ -65,34 +64,7 @@ var genLilyTupleMapper = function(blocks, repnote, noteBase) {
             }
             file += "{ " + nl;
 
-            //file += genLilyTupleMapper(blocks[b], repnote, noteBase);
             file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
-
-            //for (var tt = 0; tt < tupNum; tt++) {
-            //    switch (blocks[b][tt]) {
-            //        case "L":
-            //            file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
-            //            break;
-            //        case "l":
-            //            file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
-            //            break;
-            //        case "R":
-            //            file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
-            //            break;
-            //        case "r":
-            //            file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
-            //            break;
-            //        case "X":
-            //            file += repnote + (noteDur) + "->-\\omit\\fff" + space;
-            //            break;
-            //        case "x":
-            //            file += repnote + (noteDur) + '-\\omit\\pp' + space;
-            //            break;
-            //        case "-":
-            //            file += "r" + (noteDur) + space;
-            //            break;
-            //    }
-            //}
 
             file += "} " + "\n";
         } else {
@@ -162,59 +134,12 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
             }
             file += "{ " + nl;
             file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
-            //            for (var tt = 0; tt < tupNum; tt++) {
-            //                switch (blocks[b][tt]) {
-            //                    case "L":
-            //                        file += repnote + (noteDur) + '->-"L"-\\omit\\fff' + space;
-            //                        break;
-            //                    case "l":
-            //                        file += repnote + (noteDur) + '-"L"-\\omit\\pp' + space;
-            //                        break;
-            //                    case "R":
-            //                        file += repnote + (noteDur) + '->-"R"-\\omit\\fff' + space;
-            //                        break;
-            //                    case "r":
-            //                        file += repnote + (noteDur) + '-"R"-\\omit\\pp' + space;
-            //                        break;
-            //                    case "X":
-            //                        file += repnote + (noteDur) + "->-\\omit\\fff" + space;
-            //                        break;
-            //                    case "x":
-            //                        file += repnote + (noteDur) + '-\\omit\\pp' + space;
-            //                        break;
-            //                    case "-":
-            //                        file += "r" + (noteDur) + space;
-            //                        break;
-            //                }
-            //            }
-            //
+
             file += "} " + "\n";
 
         } else {
             file += genLilySingleMapper(blocks[b], repnote, noteBase);
-            //switch (blocks[b]) {
-            //    case "L":
-            //        file += repnote + noteBase + '->-"L"' + space;
-            //        break;
-            //    case "l":
-            //        file += repnote + noteBase + '-"L"' + space;
-            //        break;
-            //    case "R":
-            //        file += repnote + noteBase + '->-"R"' + space;
-            //        break;
-            //    case "r":
-            //        file += repnote + noteBase + '-"R"' + space;
-            //        break;
-            //    case "X":
-            //        file += repnote + noteBase + "->" + space;
-            //        break;
-            //    case "x":
-            //        file += repnote + noteBase + space;
-            //        break;
-            //    case "-":
-            //        file += "r" + noteBase + space;
-            //        break;
-            //}
+
         }
     }
     file += " }";
@@ -512,12 +437,12 @@ var generateLilypond = function(pattern, eopts) {
 
 var tagPNG = function(filename) {
     return new Promise(function(resolve, reject) {
-		    timers.start('tag-png');
+        timers.start('tag-png');
         var tagchild;
         // exiftool is nicer but damn slow
         // var tagchild = exec('exiftool -author=DrumGen -comment="Generated for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
         tagchild = exec('mogrify -comment "Generated by DrumGen for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
-						timers.end('tag-png');
+            timers.end('tag-png');
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (err) {
@@ -568,9 +493,9 @@ var generatePNG = function(filename) {
 var tagOGG = function(filename) {
     return new Promise(function(resolve, reject) {
         var tagchild;
-				timers.start('tag-ogg');
+        timers.start('tag-ogg');
         tagchild = exec('lltag --yes --ogg -a "DrumGen" -d `date` -t "' + filename + '" -c "Generated for your practicing enjoyment" ' + filename + '.ogg', function(err, stdout, stderr) {
-				    timers.end('tag-ogg');
+            timers.end('tag-ogg');
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (err) {
@@ -645,10 +570,6 @@ var generateAllFiles = function(pattern, eopts) {
 };
 
 var generateFilename = function(pattern, eopts) {
-
-    //if (eopts._fullname) {
-    //    return eopts;
-    //}
 
     var filenames_pre = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro') + '-' + eopts.tempo;
     var filenames_pre_notempo = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
@@ -917,7 +838,7 @@ var getAll8 = function(req, res) {
                 pattern[mx][px] = mappings[pattern[mx][px]];
             }
             sipattern[0] = pattern[mx];
-            res.write("<div><img src='" + pageHost + "/image?noname=true&nometro=true&pat=" + exportBlocks(sipattern) + "' alt='Pattern " + exportBlocks(sipattern) + "' /></div>" + nl);
+            res.write("<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + exportBlocks(sipattern) + "' alt='Pattern " + exportBlocks(sipattern) + "' /></div>" + nl);
             //res.flush();
             written += 1;
         } else {

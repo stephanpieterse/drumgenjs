@@ -18,25 +18,25 @@ const assert = require('assert');
 
 chai.use(chaiHttp);
 
-describe("Media tests", function(){
+describe("Media tests", function() {
 
-  after(function(){
-    indexjs.this_server.close();
-  });
+    after(function() {
+        indexjs.this_server.close();
+    });
 
-  it("Straight public/image should display and be what we expect", function(done){
-  this.timeout(2000);
-  this.slow(1000);
-     chai.request(server)
-      .get('/public/image')
-      .end(function (err, res) {
-        expect(res).to.have.property('status');
-        res.should.have.status(200);
-        terminalImage.buffer(res.body).then(function(s){
-        console.log(s);
-        done();
-        });
-      }); 
-  });
+    it("Straight public/image should display and be what we expect", function(done) {
+        this.timeout(2000);
+        this.slow(1000);
+        chai.request(server)
+            .get('/public/image')
+            .end(function(err, res) {
+                expect(res).to.have.property('status');
+                res.should.have.status(200);
+                terminalImage.buffer(res.body).then(function(s) {
+                    console.log(s);
+                    done();
+                });
+            });
+    });
 
 });

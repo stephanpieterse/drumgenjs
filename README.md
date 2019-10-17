@@ -1,20 +1,23 @@
-DRUMGEN-JS
+DRUMGEN-JS or ACCENTS COMPANION APP
 -------
 
-This is a nodejs + docker + lilypond project to generate nicelooking patterns for use in drum excercises.
-There is an html page as well as a cordova project for android frontend.
+This is a nodejs + docker + lilypond project to generate nicelooking
+ patterns for use in drum excercises.
+The page is also an installable PWA that should work on most platforms.
 
 BUILD
 ---
-Run `bash buildandrun.sh` for both app and backend, or `bash run.sh` for only the backend.
-Currently the backend is hardcoded to my current public instance at drumgen.apollolms.co.za
+The project is built with docker in mind, so if you have docker installed you can simply
+run the `run.sh` script with bash and it will boot everything.
+It was never intended to run outside of a container environment, mainly because you
+have to fiddle with some dependencies to get things working as expected.
 
 
-DEV-NOTES
----------
-Proper accent support in MIDI is allegedly in the 2.20 stable branch.
-It would be possible to build it from source and try it out, but since
-this use case for it seems trivial it might be best to stick with the
-workaround until 2.20 makes it to release.
+TESTS
+----
+Tests are also launched with a bash script, to have it in a container where
+we can do some performance testing as well as normal unit and integration tests.
 
+NOTES TO SELF
+-------------
 ALWAYS JSON.parse the importBlocks!

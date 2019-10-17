@@ -17,8 +17,6 @@ function timerEnd(name) {
     var ts = realtime[0] * 1000;
     var tms = realtime[1] / 1000000;
     var time = ts + tms;
-    var amount = timers[name + '_amount'] = timers[name + '_amount'] ? timers[name + '_amount'] + 1 : 1;
-    //var sum = timers[name + '_sum'] = timers[name + '_sum'] ? timers[name + '_sum'] + time : time;
     timers[name + '_avg'] = ((timers[name + '_avg'] || 0) + time) / 2;
     delete timers[name + '_start'];
 

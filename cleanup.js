@@ -41,7 +41,7 @@ function shouldDeleteFile(filename) {
 function isFsOverLimit() {
     try {
         var dudata = execSync("du -s " + config.tmpdir + "");
-        var dirsize = dudata.toString().replace("\n","").split(/(\s|\t)/g);
+        var dirsize = dudata.toString().replace("\n", "").split(/(\s|\t)/g);
         prommetrics.gset('drumgen_items_cache_size', parseInt(dirsize[0]), {
             "appid": prommetrics.appid
         });
@@ -160,8 +160,8 @@ function reportCachedItems() {
 
 reportInterval = setInterval(reportCachedItems, 30000);
 
-function stopReport(){
-  clearInterval(reportInterval);
+function stopReport() {
+    clearInterval(reportInterval);
 }
 
 function startCleanup(cb) {

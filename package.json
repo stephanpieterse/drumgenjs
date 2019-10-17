@@ -8,7 +8,7 @@
     "start": "nodejs --max_old_space_size=384 index.js"
   },
   "author": "stephan@apollolms.co.za",
-  "license": "MIT",
+  "license": "Apache-2.0 OR MIT",
   "dependencies": {
     "bunyan": "^1.8.12",
     "express": "^4.16.4",
