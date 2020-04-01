@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>Accents Companion App</title>
+ <link rel="manifest" href="/static/manifest.json">
+ <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+ <meta name="theme-color" content="#ffffff" />
+ <meta name="description" content="Get unique patterns for drumming practice" />
+ <meta name="keywords" content="Accent, Pattern, Rudiment, Unique" />
+ <meta name="msapplication-config" content="/static/browserconfig.xml"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+<meta name="msapplication-TileColor" content="#da532c">
+
+<link rel="stylesheet" href="/static/page.css" type="text/css" />
+<link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body>
+<div class="emptyimg" style="width:0px; height:0px"></div>
+<div class="wide75" style="width: 250px; height: 52px;"> 
+  <a class="settings-image" href="#" ><img class="util-image" src="/static/settings.png" alt="settings" /></a>
+  <a class="reload-image" href="#" ><img class="util-image" src="/static/reload.png" alt="reload" /></a>
+</div>
+<main>
+<div class="centerme wide75">
+
+<section>
+<div class="settingspanel abs-panel" style="display:none">
+    <a class="settings-image" href="#" ><img class="small-util-image" src="/static/close.png" alt="settings" /></a>
+    Barlength:
+    <input type="button" value="-" class="minusbtn" field="barlength" />
+		<input name="barlength" type="number" value="4"/>
+    <input type="button" value="+" class="plusbtn" field="barlength" />
+		<br/>
+    
+    <div class="tuples_enabled">
+    Tuples:<br/>
+		<label><input name="etuple1" type="checkbox" value="1" checked="checked" />1 - Quarters</label>
+		<label><input name="etuple2" type="checkbox" value="2" checked="checked" />2 - Eights</label>
+		<label><input name="etuple3" type="checkbox" value="3" checked="checked" />3 - Triplets</label>
+    <br/>
+		<label><input name="etuple4" type="checkbox" value="4" checked="checked" />4 - Sixteenths</label>
+		<label><input name="etuple5" type="checkbox" value="5" />5 - Quintuplets</label>
+    <br/>
+		<label><input name="etuple6" type="checkbox" value="6" />6 - Sextuplets</label>
+		<label><input name="etuple7" type="checkbox" value="7" />7 - Septuplets</label>
+    <br/>
+		<label><input name="etuple9" type="checkbox" value="9" />9 - Nontuplets</label>
+    </div>
+
+    <div class="extra_settings">
+      <input type="button" value="-" class="minusbtn" field="tempo" />
+		  <label>Tempo:<input name="tempo" type="number" value="100"/></label>
+      <input type="button" value="+" class="plusbtn" field="tempo" />
+			<br/>
+		  <label><input name="metronome_on" type="checkbox" value="1" />Metronome in audio<br/></label>
+		  <label><input name="rests_on" type="checkbox" value="1" checked="checked" />Rests in pattern<br/></label>
+		  <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
+		  <label><input name="loop_audio" type="checkbox" value="loop_audio" />Loop Audio<br/></label>
+    </div>
+
+    <br/>
+	<br/>	
+  <a href="/static/home.html">Home</a>
+  <br/>
+	</div>
+
+<div class="mainholder" style="text-align:center;">
+  <img class="loader-image" src="/static/loader.gif" alt="loader"></div>
+  <img class="pattern-image" src="" alt="pattern image"/>
+  <div class="mainsndholder">
+    <audio class="audiosrc" type="audio/ogg" preload="auto" controls> </audio>
+  </div>
+<br/>
+</section>
+</div>
+</main>
+
+</body>
+</html>

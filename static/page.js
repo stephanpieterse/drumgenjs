@@ -1,5 +1,5 @@
 /* jshint strict: false */
-/* global setInterval, Hammer */
+/* global setInterval, Hammer, NoSleep */
 
 window._ns_drumgen = {};
 

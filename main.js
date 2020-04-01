@@ -320,7 +320,7 @@ var convertNumToTuple = function(num, patlen, mappings) {
     mappings.sort();
 
     if (mappings.length < 2) {
-        mappings.unshift('1');
+        mappings.unshift(mappings[0]);
     }
 
     patlen = patlen || 8;

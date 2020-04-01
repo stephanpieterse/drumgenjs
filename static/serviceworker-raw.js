@@ -16,6 +16,12 @@ const
     ].concat(offlineURL),
     installFilesDesirable = [
         '/favicon.ico',
+        '/static/buttons/tup1.png',
+        '/static/buttons/tup2.png',
+        '/static/buttons/tup3.png',
+        '/static/buttons/tup4.png',
+        '/static/buttons/tup5.png',
+        '/static/buttons/rests.png',
         '/static/settings.png'
     ];
 
