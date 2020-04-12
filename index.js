@@ -1,7 +1,6 @@
 /* global require, module, __dirname */
 /* jslint strict:false */
 
-
 var express = require("express");
 var musxml = require("./main.js");
 var app = express();
@@ -265,6 +264,45 @@ app.get("/convertmulti", function(req, res) {
     musxml.convertMulti(req, res, req.query['nums'], req.query['patlen']);
 });
 
+app.get("/public/patreftocustommap/:patref", function(req, res){
+ 
+	var patref = req.params['patref'];
+  var blocks = JSON.parse(musxml.importBlocks(patref));
+	var mappings = ['-','x','X','l','L','r','R'];
+
+	function umap(obj){
+	  for (i in obj){
+	  	if (Array.isArray(obj[i])){
+	  		obj[i] = umap(obj[i]);
+	  	}else{
+	  		obj[i] = mappings.indexOf(obj[i]);
+	  	}
+	  }
+    return obj;
+	}
+
+	arr = umap(blocks);
+	ret = {unmapped:arr};
+	res.send(ret);
+});
+
+app.get("/public/custommaptopatref/:cmap", function(req,res){
+	var arr = JSON.parse(req.params['cmap']);
+	var mappings = ['-','x','X','l','L','r','R'];
+	function rmap(obj){
+	for (i in obj){
+		if (Array.isArray(obj[i])){
+			obj[i] = rmap(obj[i]);
+		}else{
+			obj[i] = mappings[obj[i]];
+		}
+	}
+		return obj;
+	}
+	arr = rmap(arr);
+	ret = {mapped:arr, patref:musxml.exportBlocks(arr)};
+	res.send(ret);
+});
 
 app.get("/worksheet/:patlen", function(req, res) {
     // var patlen = req.params['patlen'] || 4;

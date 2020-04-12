@@ -1,7 +1,8 @@
 {
   "name": "musxml",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Generates nice complex drum patterns",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "test": "mocha",
@@ -12,19 +13,17 @@
   "dependencies": {
     "bunyan": "^1.8.12",
     "express": "^4.16.4",
-    "gm": "^1.23.1",
-    "jimp": "^0.2.28",
     "midi-file": "^1.1.1",
     "node-cache": "^4.2.0",
     "persistent-cache": "^1.1.1",
     "prom-client": "^11.5.3",
-    "queue": "^4.5.1",
-    "terminal-image": "^0.2.0"
+    "queue": "^4.5.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "loadtest": "^3.0.7",
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "terminal-image": "^0.2.0"
   }
 }

@@ -15,9 +15,14 @@
 </head>
 <body>
 <div class="emptyimg" style="width:0px; height:0px"></div>
-<div class="" style="width: 250px; height: 52px;"> 
+<div class="" style="width: 425px; height: 52px;"> 
   <a class="settings-image" href="#" ><img class="util-image" src="/static/settings.png" alt="settings" /></a>
   <a class="reload-image" href="#" ><img class="util-image" src="/static/reload.png" alt="reload" /></a>
+  <a class="editbtn" href="" ><img class="util-image" src="/static/buttons/edit.png" alt="edit" /></a>
+  <div class="audioplaybtn">
+  <img class="playimg util-image" src="/static/buttons/play.png"/>
+  <img class="stopimg util-image" style="display: none" src="/static/buttons/stop.png"/>
+  </div>
 </div>
 <main>
 <div class="centerme wide85">
@@ -25,47 +30,52 @@
 <section>
 <div class="settingspanel abs-panel" style="display:none">
   <div style="text-align:left;">
-    <a class="settings-image" href="#" ><img class="small-util-image" src="/static/close.png" alt="settings" /></a>
-    </div>
-    Barlength<br/>
-    <input type="button" value="-" class="minusbtn" field="barlength" />
-		<input class="blockinput" name="barlength" type="number" value="4"/>
-    <input type="button" value="+" class="plusbtn" field="barlength" />
-		<br/>
-    
-    <div class="tuples_enabled">
-    Note values<br/>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple1" type="checkbox" value="1" checked="checked" /><img class="checkimg" src="/static/buttons/tup1.png"/><img class="uncheckimg" src="/static/buttons/tup1.png" /></label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple2" type="checkbox" value="2" checked="checked" /><img class="checkimg" src="/static/buttons/tup2.png"/><img class="uncheckimg" src="/static/buttons/tup2.png" /></label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple3" type="checkbox" value="3" checked="checked" /><img class="checkimg" src="/static/buttons/tup3.png"/><img class="uncheckimg" src="/static/buttons/tup3.png" /></label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple4" type="checkbox" value="4" checked="checked" /><img class="checkimg" src="/static/buttons/tup4.png"/><img class="uncheckimg" src="/static/buttons/tup4.png" /></label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple5" type="checkbox" value="5" /><img class="checkimg" src="/static/buttons/tup5.png"/><img class="uncheckimg" src="/static/buttons/tup5.png" /></label>
-	<!--	<label class="tuplelabel"><input class="tuplecheckbox" name="etuple6" type="checkbox" value="6" />Sextuplets</label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple7" type="checkbox" value="7" />Septuplets</label>
-		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple9" type="checkbox" value="9" />Nontuplets</label> -->
-		<label class="tuplelabel"><input name="rests_on" type="checkbox" value="1" checked="checked" /><img class="checkimg" src="/static/buttons/rests.png"/><img class="uncheckimg" src="/static/buttons/rests.png" /></label>
-    </div>
+    <a class="settings-image" href="#"><img class="small-util-image" src="/static/close.png" alt="settings"></a>
+  </div>
 
-    <div class="extra_settings">
-      Tempo<br/>
-      <input type="button" value="-" class="minusbtn" field="tempo" />
-		  <label><input class="blockinput" name="tempo" type="number" value="100"/></label>
-      <input type="button" value="+" class="plusbtn" field="tempo" />
-			<br/>
-		  <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
-		  <label><input name="metronome_on" type="checkbox" value="1" />Metronome in audio<br/></label>
-		  <label><input name="loop_audio" type="checkbox" value="loop_audio" />Loop Audio<br/></label>
-    </div>
-	<br/>	
+  <div class="barlength">
+    Signature /4
+    <br>
+    <input type="button" value="-" class="minusbtn" field="barlength">
+		<input class="blockinput" name="barlength" type="number" value="4">
+    <input type="button" value="+" class="plusbtn" field="barlength">
+  </div>
+    
+  <div class="tuples_enabled">
+    Note values
+    <br>
+		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple1" type="checkbox" value="1" checked="checked"><img class="checkimg" src="/static/buttons/tup1.png"><img class="uncheckimg" src="/static/buttons/tup1.png"></label>
+		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple2" type="checkbox" value="2" checked="checked"><img class="checkimg" src="/static/buttons/tup2.png"><img class="uncheckimg" src="/static/buttons/tup2.png"></label>
+		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple3" type="checkbox" value="3" checked="checked"><img class="checkimg" src="/static/buttons/tup3.png"><img class="uncheckimg" src="/static/buttons/tup3.png"></label>
+		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple4" type="checkbox" value="4" checked="checked"><img class="checkimg" src="/static/buttons/tup4.png"><img class="uncheckimg" src="/static/buttons/tup4.png"></label>
+		<label class="tuplelabel"><input class="tuplecheckbox" name="etuple5" type="checkbox" value="5"><img class="checkimg" src="/static/buttons/tup5.png"><img class="uncheckimg" src="/static/buttons/tup5.png"></label>
+		<!-- <label class="tuplelabel"><input class="tuplecheckbox" name="etuple6" type="checkbox" value="6" />Sextuplets</label> -->
+		<!-- <label class="tuplelabel"><input class="tuplecheckbox" name="etuple7" type="checkbox" value="7" />Septuplets</label> -->
+		<!-- <label class="tuplelabel"><input class="tuplecheckbox" name="etuple9" type="checkbox" value="9" />Nontuplets</label> -->
+		<label class="tuplelabel"><input name="rests_on" type="checkbox" value="1" checked="checked"><img class="checkimg" src="/static/buttons/rests.png"><img class="uncheckimg" src="/static/buttons/rests.png"></label>
+  </div>
+
+  <div class="extra_settings">
+    Tempo
+    <br>
+    <input type="button" value="-" class="minusbtn" field="tempo">
+    <label><input class="blockinput" name="tempo" type="number" value="100"></label>
+    <input type="button" value="+" class="plusbtn" field="tempo">
+    <label class="tuplelabel"><input name="metronome_on" type="checkbox" value="1" checked="checked"><img alt="metronome" class="checkimg" src="/static/buttons/metronome.png"><img alt="metronome" class="uncheckimg" src="/static/buttons/metronome.png"></label>
+    <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
+<!--     <label><input name="metronome_on" type="checkbox" value="1" checked="checked">Metronome in audio</label> -->
+    <!-- <label><input name="loop_audio" type="checkbox" value="loop_audio" checked="checked">Loop Audio</label> -->
+  </div>
+		
   <a href="/static/home.html">Home</a>
-  <br/>
-	</div>
+  
+</div>
 
 <div class="mainholder" style="text-align:center;">
   <img class="loader-image" src="/static/loader.gif" alt="loader"></div>
   <img class="pattern-image" src="" alt="pattern image"/>
   <div class="mainsndholder">
-    <audio class="audiosrc" type="audio/ogg" preload="auto" controls> </audio>
+    <audio class="audiosrc" type="audio/ogg" preload="auto" loop="true" > </audio>
   </div>
 <br/>
 </section>

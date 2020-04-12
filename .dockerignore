@@ -1,2 +1,4 @@
 androidapp/
 tmpgen/
+node_modules/
+.git/

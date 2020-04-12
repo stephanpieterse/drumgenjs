@@ -6,13 +6,14 @@ body {
   top: 15px;
   right: 15px;
   position: absolute;
-  background: #f3f3f3;
+  background: #ededed;
 }
 
 .settingspanel {
   padding: 15px;
-  border: 1px solid #010101;
+  border: 1px solid #909090;
   z-index: 10;
+  border-radius: 10px;
 }
 
 .mainsndholder {
@@ -47,7 +48,7 @@ body {
 }
 
 .util-image {
-  width: 36px;
+  width: 42px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 15px;
@@ -129,6 +130,8 @@ img {
 .tuplelabel input[type="checkbox"]:checked ~ .checkimg
 {
     display: inline-block;
+    box-shadow: inset 0 0 0 10px #ffffff;
+    background: #ffffff;
 }
  
 .tuplelabel input[type="checkbox"]:checked ~ .uncheckimg
@@ -137,10 +140,80 @@ img {
 }
 
 .tuplelabel img {
-  width: 45px;
-  height: 45px;
+  width: 47px;
+  height: 47px;
 }
 
 .uncheckimg {
    opacity: 0.3;
+}
+
+.settingspanel {
+  padding: 10px;
+  height: auto;
+}
+
+.settingspanel div:first-child {
+  padding: 0;
+  top: 10px;
+  left: 10px;
+  width: 26px;
+  height: 26px;
+  position: absolute;
+}
+
+.settingspanel div:first-child img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.settingspanel .minusbtn,
+.settingspanel .plusbtn {
+  border: 1px solid #909090;
+  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  vertical-align: middle;
+}
+
+.settingspanel .blockinput {
+  height: 40px;
+  width: 40px;
+  text-align: center;
+  margin: 5px 5px 10px;
+  border: 1px solid #909090;
+  border-radius: 10px;
+}
+
+.settingspanel .tuplelabel .checkimg,
+.settingspanel .tuplelabel .uncheckimg {
+  width: 46px;
+  height: 46px;
+  border: 1px solid #909090;
+  border-radius: 10px;
+  padding: 5px;
+  margin: 5px auto 5px;
+}
+
+.settingspanel .extra_settings label:nth-of-type(2),
+.settingspanel .extra_settings label:nth-of-type(3) {
+  margin: 5px auto;
+  display: inline-block;
+	vertical-align: middle;
+}
+
+.settingspanel br {
+  display: block;
+  border: none;
+  height: 0;
+  width: 0;
+  font-size: 0;
+  line-height: 0;
+}
+
+.audioplaybtn{
+	display: inline-block;
+	margin-left: 50px;
 }

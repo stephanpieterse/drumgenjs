@@ -2,7 +2,6 @@
 set -xe
 cd /opt/app/
 
-
 # lilypond lilypondserver.ly &
 bash startlilyserverhealth.sh &
 

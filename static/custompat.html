@@ -1,0 +1,100 @@
+<html>
+  <head>
+  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+  <style>
+  div {
+    display: inline-block;
+    	margin: 1px;
+    	padding: 1px;
+    }
+  .editsect {
+  	width: 90%;
+  	margin-left: auto;
+  	margin-right: auto;
+  }
+  .pmbtngroup{
+
+	}
+  .pmbtngroup div{
+    width: 25px;
+    height: 25px;
+    display: block
+	}
+  .notegroup:nth-of-type(odd) {
+    background: #e0e0e0;
+		border-radius: 2px;
+  }
+  .appender {
+  	width: 54px;
+  	height: 54px;
+    border: 1px solid #aeaeae;
+    border-radius: 5px;
+  }
+  .nselector {
+  	width: 54px;
+  	height: 54px;
+    background-repeat:no-repeat;
+    border: 1px solid #aeaeae;
+    border-radius: 5px;
+  }
+  .markdoneimg {
+    background-image: url("/static/buttons/markdone.png");
+    background-size: contain;
+  }
+  .plusimg {
+    background-image: url("/static/buttons/plus.png");
+    background-size: contain;
+  }
+  .minusimg {
+    background-image: url("/static/buttons/minus.png");
+    background-size: contain;
+  }
+  .ntype0 {
+    background-image: url("/static/buttons/ntype0.png");
+    background-size: contain;
+  }
+  .ntype1 {
+    background-image: url("/static/buttons/ntype1.png");
+    background-size: contain;
+  }
+  .ntype2 {
+    background-image: url("/static/buttons/ntype2.png");
+    background-size: contain;
+  }
+  .ntype3 {
+    background-image: url("/static/buttons/ntype3.png");
+    background-size: contain;
+  }
+  .ntype4 {
+    background-image: url("/static/buttons/ntype4.png");
+    background-size: contain;
+  }
+  .ntype5 {
+    background-image: url("/static/buttons/ntype5.png");
+    background-size: contain;
+  }
+  .ntype6 {
+    background-image: url("/static/buttons/ntype6.png");
+    background-size: contain;
+  }
+	</style>
+	</head>
+	<body>
+    <div class="markdoneimg appender" onclick="gotoMain()"></div>
+    <div class="pmbtngroup"><div class="appender plusimg" onclick="mainplus()"></div> <div class="appender minusimg" onclick="mainmin()"></div></div>
+	<br/>
+		<div class="editsect">
+		</div>
+	<br/>
+		<!-- <img src="" class="customimage"/> -->
+		<!-- <audio src="" class="customaudio" controls/> -->
+	<script src="/static/jquery.js" ></script>
+  <script type="text/javascript" src="/static/custompat.js"></script>
+  <script type="text/javascript" src="/static/analytics.js"></script>
+  <script type="text/javascript">
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/serviceworker.js');
+    }
+  </script>
+</body>
+</html>

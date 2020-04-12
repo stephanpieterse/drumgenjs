@@ -47,6 +47,7 @@ var impExpMap = {
 };
 
 var nl = "\n";
+var space = " ";
 
 var genLilyTupleMapper = function(blocks, repnote, noteBase) {
     var file = "";
@@ -77,7 +78,6 @@ var genLilyTupleMapper = function(blocks, repnote, noteBase) {
 
 var genLilySingleMapper = function(blockb, repnote, noteBase) {
     var file = "";
-    var space = " ";
     switch (blockb) {
         case "L":
             //file += repnote + noteBase + '->-"L"' + space;
@@ -114,7 +114,6 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
 var genLilypondPart = function(blocks, repnote, noteBase) {
     var file = "";
     var normDiv = [2, 4, 8, 16];
-    var space = " ";
     noteBase = noteBase || 4;
 
     // for nested and nice stuff, we need to
@@ -155,7 +154,8 @@ var genMetronomePart = function(patlen) {
     metro += "\\time " + patlen + "/4" + nl;
     metro += "\\drummode {" + nl;
     metro += "\\repeat volta 4 << {";
-    for (var w = 0; w < patlen; w++) {
+    metro += " wbh4 ";
+    for (var w = 1; w < patlen; w++) {
         metro += " wbl4 ";
     }
     metro += " } >>" + nl;
@@ -176,7 +176,7 @@ var getLilypondHeader = function() {
         "}";
     head += "\\version \"2.18.2\" " + nl;
     head += "#(ly:set-option 'resolution '400)" + nl;
-    head += "#(ly:set-option 'pixmap-format 'pnggray)" + nl;
+    head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
     head += "#(ly:set-option 'include-eps-fonts '#t)" + nl;
@@ -507,7 +507,7 @@ var tagOGG = function(filename) {
     });
 };
 
-var generateOGG = function(filename) {
+var generateOGG = function(filename, endtime) {
     return new Promise(function(resolve, reject) {
 
         if (fs.existsSync(filename + ".ogg")) {
@@ -515,12 +515,15 @@ var generateOGG = function(filename) {
             return;
         }
 
+	endtime = endtime || "";
         timers.start("gen-ogg");
         metrics.increment('generated', 'audio');
         q.push(function(cb) {
             var audiochild;
             // audiochild = exec("/usr/bin/time timidity --preserve-silence -EFreverb=0 -A120 -OvM1 " + filename + ".midi", function(error, stdout, stderr) {
-            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi && oggenc -q 9 " + filename + ".wav", function(error, stdout, stderr) {
+		// " sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " "
+            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
+            //audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi && oggenc --downmix -q 7 " + filename + ".wav", function(error, stdout, stderr) {
                 timers.end("gen-ogg");
                 Log.debug('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
@@ -603,7 +606,8 @@ var getAudio = function(res, pattern, eopts) {
     eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
-        generateOGG(eopts._fullname).then(function() {
+	patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * 4;
+        generateOGG(eopts._fullname, patendtime).then(function() {
             getAudioData(res, pattern, eopts);
         }).catch(function(e) {
             Log.error(e);
@@ -799,6 +803,8 @@ var getAll8 = function(req, res) {
         mxpat = maxPatterns;
     }
 
+    var randomPageNum = Math.round((Math.random() * maxPages) + 1);
+
     //var pageHost = config.server.fullhost;
     var pageHost = "";
 
@@ -818,9 +824,11 @@ var getAll8 = function(req, res) {
     }
     var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
     var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
+    var randomPageLink = pageHost + "/worksheet/" + patlen + "?page=" + randomPageNum;
     var footerData = "Page " + pagenum + " of " + maxPages;
     pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
     pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
+    pageStart = pageStart.replace("{{RANDOMPAGE}}", randomPageLink);
     pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
     pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
 

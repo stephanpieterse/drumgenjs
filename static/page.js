@@ -1,13 +1,16 @@
 /* jshint strict: false */
-/* global setInterval, Hammer, NoSleep */
+/* global setInterval, Hammer */
 
 window._ns_drumgen = {};
+var thisInst = window._ns_drumgen;
 
 function doHealthCheck() {
     $.get("/health?_=" + cseed).done(function() {
         $('.healthpanel').hide();
+				thisInst.health = "UP";
     }).catch(function() {
         $('.healthpanel').show();
+				thisInst.health = "DOWN";
     });
 }
 
@@ -25,42 +28,37 @@ $('.reload-image').click(function() {
 
 var funcs = {};
 var settings = {};
+var state = {};
+
+thisInst.dbtimers = {};
 
 var seedcount = 0;
 var cseed = "public";
+
+function debounce(func, delay){
+	var fname = func.name;
+	clearTimeout(thisInst.dbtimers[fname]);
+	thisInst.dbtimers[fname] = setTimeout(func, delay);
+}
 
 funcs.getSeed = function() {
     // new postfix every 10s
     var inst = parseInt(new Date().getTime() / 1000 / 10);
     // mod against 4, so 4 patterns every x seconds per user?
-    seedcount = (seedcount + 1) % 3;
-    cseed = "x-" + seedcount + inst + "-dg-app";
+    // we double the increment and the mod because of
+    //  how the backend increments totps
+    seedcount = (seedcount + 2) % 8;
+    cseed = "" + getId() + seedcount + inst;
 };
 
-funcs.getSeed();
-
-var hosturl = '';
-var patternbaseurl = hosturl + '/public/pattern?app=true';
-var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
-var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
-var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
-var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
-var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
-
-settings.pattern_length = 4;
-settings.pattern_type = 'accent';
-settings.pattern_limbs = 4;
-settings.pattern_tuples = [2, 3, 4];
-settings.pattern_ref = "s5c5c4c4c4cbb6e";
-settings.metronome_on = false;
-settings.rests_on = true;
-settings.nested_tuples = false;
-settings.loop_audio = false;
-settings.tempo = 100;
 
 var LS = {
     get: function(a) {
-        return JSON.parse(window.localStorage.getItem(a));
+        try {
+          return JSON.parse(window.localStorage.getItem(a));
+        } catch (e){
+					return undefined;
+				}
     },
     set: function(a, b) {
         window.localStorage.setItem(a, JSON.stringify(b));
@@ -78,6 +76,53 @@ var getId = function() {
     return ncid;
 };
 
+funcs.getSeed();
+
+var hosturl = '';
+var patternbaseurl = hosturl + '/public/pattern?app=true';
+var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
+var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
+var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
+var editpatext = hosturl + '/static/custompat.html?patref={{PATREF}}';
+var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
+var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
+
+settings.pattern_length = 4;
+settings.pattern_type = 'accent';
+settings.pattern_limbs = 4;
+settings.pattern_tuples = [2, 3, 4];
+settings.pattern_ref = "s5c5c4c4c4cbb6e";
+settings.metronome_on = true;
+settings.rests_on = true;
+settings.nested_tuples = false;
+settings.loop_audio = true;
+settings.tempo = 100;
+
+
+var setupSettings = function() {
+    var s = LS.get("app-settings");
+    if (s) {
+        settings = s;
+    }
+
+    $('[name="barlength"]').val(settings.pattern_length);
+    $('[name="tempo"]').val(settings.tempo);
+
+    $('[name="rests_on"]').removeAttr('checked');
+    if(settings.rests_on){
+      $('[name="rests_on"]').attr('checked', 'checked');
+    } 
+
+   $('[name^="etuple"]').removeAttr('checked');
+   for (var pt in settings.pattern_tuples){
+      $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
+   }
+
+};
+
+setupSettings();
+
+// trying to count unique instances
 var ID = getId();
 
 $.ajaxSetup({
@@ -90,6 +135,7 @@ var loader = $('.loader-image');
 var imgholder = $('.pattern-image');
 var sndholder = $('.audiosrc');
 var mainsndholder = $('.mainsndholder');
+var audiobtnholder = $('.audioplaybtn');
 
 loader.hide();
 
@@ -107,14 +153,21 @@ function buildTemplateUrl(base) {
 var init = function() {
     funcs.getSeed();
 
-    loader.show();
     imgholder.hide();
     mainsndholder.hide();
+    audiobtnholder.hide();
+    loader.show();
 
     var paturl = buildTemplateUrl(patternbaseurl + paturlext);
     $.get(paturl).then(function(data) {
 
         settings.pattern_ref = data.patref;
+
+				if(LS.get("globpatref")){
+					settings.pattern_ref = LS.get("globpatref");
+					LS.set("globpatref", undefined);
+				}
+
         //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
         var newimg = buildTemplateUrl(imagebaseurl + hburlext);
 
@@ -125,10 +178,12 @@ var init = function() {
             loader.hide();
             imgholder.show();
             mainsndholder.show();
+            audiobtnholder.show();
         });
 
         imgholder.attr("src", newimg);
         sndholder.attr("src", newsnd);
+        $('.editbtn').attr("href", buildTemplateUrl(editpatext));
 
     }).catch(function(e) {
         console.log("whoopseedoodle");
@@ -137,6 +192,7 @@ var init = function() {
         loader.hide();
         imgholder.show();
         mainsndholder.show();
+        audiobtnholder.show();
     });
 
 };
@@ -156,20 +212,32 @@ hammerloadertime.on('swipe', function() {
 init();
 
 function callToChange() {
-    init();
+  LS.set("app-settings", settings);
+  if(state.playing){
+    $('.audioplaybtn').click();
+  }
+  init();
 }
 
 function callToRefresh() {
 
+    LS.set("app-settings", settings);
+
+    if(state.playing){
+	$('.audioplaybtn').click();
+    }
+
     funcs.getSeed();
     loader.show();
     mainsndholder.hide();
+    audiobtnholder.hide();
     //var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
     var newsnd = buildTemplateUrl(audiorefreshurl + hburlext);
 
     sndholder.attr("src", newsnd);
     sndholder.on("canplay", function() {
         mainsndholder.show();
+        audiobtnholder.show();
         loader.hide();
     });
 
@@ -177,7 +245,7 @@ function callToRefresh() {
 
 var bl = $('[name="barlength"]');
 bl.change(function() {
-    var blval = bl.val() <= 0 ? 1 : bl.val() % 16;
+    var blval = bl.val() < 2 ? 2 : (bl.val() > 16 ? 16 : bl.val());
     bl.val(blval);
     settings.pattern_length = blval;
 
@@ -187,7 +255,7 @@ bl.change(function() {
 
 var temposel = $('[name="tempo"]');
 temposel.change(function() {
-    var temposelval = temposel.val() <= 0 ? 34 : temposel.val() % 320;
+    var temposelval = temposel.val() < 34 ? 34 : (temposel.val() > 320 ? 320 : temposel.val());
     temposel.val(temposelval);
     settings.tempo = temposelval;
 
@@ -223,7 +291,7 @@ $('[name="rests_on"]').click(function() {
     callToChange();
 });
 
-$('[name="metronome_on"]').click(function() {
+$('[name="metronome_on"]').change(function() {
     settings.metronome_on = ($('[name="metronome_on"]:checked').val()) ? true : false;
     callToRefresh();
 });
@@ -243,20 +311,55 @@ $('[name="loop_audio"]').click(function() {
     }
 });
 
-$('.plusbtn').click(function(ev) {
-    ev.preventDefault();
-    var field = $(this).attr('field');
+function incPlus(field){
     var curval = parseInt($('input[name=' + field + ']').val());
     var newval = isNaN(curval) ? 0 : curval + 1;
     $('input[name=' + field + ']').val(newval);
-    $('input[name=' + field + ']').change();
+	debounce(function inc(){
+      $('input[name=' + field + ']').change();
+	}, 200);
+}
+
+function decMin(field){
+    var curval = parseInt($('input[name=' + field + ']').val());
+    var newval = isNaN(curval) ? 0 : curval - 1;
+    $('input[name=' + field + ']').val(newval);
+	debounce(function dec(){
+      $('input[name=' + field + ']').change();
+	}, 200);
+
+}
+var timeoutId = 0;
+
+$('.plusbtn').on('mousedown touchstart', function(ev) {
+    ev.preventDefault();
+    obj = $(this).attr('field');
+    timeoutId = setInterval(function(){incPlus(obj)}, 120);
+    incPlus(obj);
+}).on('mouseup mouseleave touchend', function() {
+    clearInterval(timeoutId);
 });
 
-$('.minusbtn').click(function(ev) {
+$('.minusbtn').on('mousedown touchstart', function(ev) {
     ev.preventDefault();
-    var field = $(this).attr('field');
-    var curval = parseInt($('input[name=' + field + ']').val());
-    var newval = (isNaN(curval) || curval <= 0) ? 0 : curval - 1;
-    $('input[name=' + field + ']').val(newval);
-    $('input[name=' + field + ']').change();
+    obj = $(this).attr('field');
+    timeoutId = setInterval(function(){decMin(obj)}, 120);
+    decMin(obj);
+}).on('mouseup mouseleave touchend', function() {
+    clearInterval(timeoutId);
+});
+
+$('.audioplaybtn').on('click', function(){
+  if (state.playing){
+    $('.audiosrc').get(0).pause();
+    $('.audiosrc').get(0).currentTime = 0;
+    $('.audiosrc').get(0).pause();
+    $('.audioplaybtn .playimg').show();
+    $('.audioplaybtn .stopimg').hide();
+  }else{
+    $('.audiosrc').get(0).play();
+    $('.audioplaybtn .stopimg').show();
+    $('.audioplaybtn .playimg').hide();
+  }
+  state.playing = !state.playing;
 });

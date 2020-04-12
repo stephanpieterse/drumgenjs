@@ -14,6 +14,6 @@ module.exports = {
     },
     queue: {
         timeout: 2000 * 10,
-        concurrency: 3
+        concurrency: 2
     }
 };
