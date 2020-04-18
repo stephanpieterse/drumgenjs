@@ -176,7 +176,7 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '350)" + nl;
+    head += "#(ly:set-option 'resolution '400)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
@@ -532,10 +532,7 @@ var generateOGG = function(filename, endtime) {
         metrics.increment('generated', 'audio');
         q.push(function(cb) {
             var audiochild;
-            // audiochild = exec("/usr/bin/time timidity --preserve-silence -EFreverb=0 -A120 -OvM1 " + filename + ".midi", function(error, stdout, stderr) {
-		// " sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " "
             audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-            //audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi && oggenc --downmix -q 7 " + filename + ".wav", function(error, stdout, stderr) {
                 timers.end("gen-ogg");
                 Log.debug('stdout: ' + stdout);
                 Log.debug('stderr: ' + stderr);
@@ -601,93 +598,86 @@ var generateFilename = function(pattern, eopts) {
     return eopts;
 };
 
-var getOrMakeFile = function(res, pattern, eopts, cb) {
+var getOrMakeFile = function(pattern, eopts, cb) {
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
     generateAllFiles(pattern, eopts).then(function() {
         cb();
     }).catch(function(e) {
-        Log.error(e);
-        res.status(500);
-        res.send(e);
+        cb(e);
     });
 
 };
 
-var getAudio = function(res, pattern, eopts) {
+var getAudio = function(pattern, eopts, cb) {
 
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
-    getOrMakeFile(res, pattern, eopts, function() {
+    getOrMakeFile(pattern, eopts, function(makeErr) {
+        if (makeErr) {
+            Log.error(makeErr);
+            cb(makeErr);
+            return;
+        }
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
 				patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
         generateOGG(eopts._fullname, patendtime).then(function() {
-            getAudioData(res, pattern, eopts);
+            getAudioData(pattern, eopts, function(err, auData){
+              if (err) {
+                Log.error(err);
+              }
+              cb(err, auData);
+              return;
+            });
         }).catch(function(e) {
             Log.error(e);
+            cb(e);
         });
     });
 };
 
-var getAudioData = function(res, pattern, eopts) {
+var getAudioData = function(pattern, eopts, cb) {
 
-    try {
         timers.start("read-ogg");
         fs.readFile(eopts._fullname + ".ogg", function(err, data) {
             timers.end("read-ogg");
             if (err) {
-                Log.error(err);
-                res.status(500);
-                res.send({
-                    error: err
-                });
-                return;
+              cb(err, {});
+              return;
             }
 
-
-            // if (!data) {
-            //     res.status(404);
-            //     res.send("Audio file not found!");
-            // }
-
+            var audioResult = {};
             if (eopts.asBase64) {
-                res.writeHead(200, {
-                    'Content-Type': 'text/plain'
-                });
                 var datString = "data:audio/ogg;base64," + data.toString("base64");
-                res.end(datString);
+                audioResult.contentType = 'text/plain';
+                audioResult.data = datString;
             } else {
-                res.writeHead(200, {
-                    'Content-Type': 'audio/ogg'
-                });
-                res.end(data);
+                audioResult.contentType = 'audio/ogg';
+                audioResult.data = data;
             }
+            cb(null, audioResult);
+            return;
         });
-    } catch (e) {
-        Log.error(e);
-        res.status(500);
-        res.send(e);
-    }
 };
 
-var getImage = function(res, pattern, eopts) {
+var getImage = function(pattern, eopts, cb) {
 
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
-    getOrMakeFile(res, pattern, eopts, function() {
-        getImageData( pattern, eopts, function(err, imgData){
+    getOrMakeFile(pattern, eopts, function(makeErr) {
+
+        if(makeErr){
+              Log.error(makeErr);
+              cb(makeErr)
+              return;
+        }
+
+        getImageData(pattern, eopts, function(err, imgData){
           if (err) {
               Log.error(err);
-              res.status(500);
-              res.send("image generation/retrieval error: " + err);
-              return;
           }
-  
-          res.writeHead(200, {
-              'Content-Type': imgData.contentType
-          });
-          res.end(imgData.data);
-     
+          cb(err, imgData);
+          return;
           });
     });
 };
@@ -698,13 +688,13 @@ var getImageData = function(pattern, eopts, cb) {
     fs.readFile(eopts._fullname_notempo + ".png", function(err, buf) {
 
         timers.end("read-img");
-        var imgResult = {};
 
         if (err) {
             cb(err, {});
             return;
         }
 
+        var imgResult = {};
         if (eopts.asBase64) {
             var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
             imgResult.contentType = 'text/plain';
@@ -740,7 +730,7 @@ var convertNumSimple = function(num, patlen, mappings) {
     return ret;
 };
 
-var convertNum = function(req, res, num, patlen, tuples) {
+var convertNum = function(num, patlen, tuples) {
     var simpleBlocks = convertNumSimple(num, patlen);
 
     if (tuples) {
@@ -749,11 +739,11 @@ var convertNum = function(req, res, num, patlen, tuples) {
         console.log(tupMap);
         // TODO
     }
-    res.send(simpleBlocks);
+    return simpleBlocks;
 
 };
 
-var convertMulti = function(req, res, num, patlen) {
+var convertMulti = function(num, patlen) {
     var nums = num.split(",");
     Log.debug(nums);
     // var mappings = ['-', 'r', 'R', 'l', 'L'];
@@ -782,9 +772,13 @@ var convertMulti = function(req, res, num, patlen) {
     }
 
     var ret = exportBlocks(sipattern);
-    res.send(ret);
+    return ret;
 };
 
+// we can probably use streams to pipe out
+// the generated sections, and avoid req,res coming
+// into this file
+// function might need to be split into 2 then
 var getAll8 = function(req, res) {
     var patlen = req.params['patlen'] || 4;
     var pagenum = req.query['page'] || 1;

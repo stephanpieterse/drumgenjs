@@ -239,7 +239,20 @@ app.get("/public/refresh/audio", function(req, res) {
         });
         return;
     }
-    musxml.getAudio(res, ppat, getOptsFromReq(req));
+    musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData){
+      if (err) {
+          Log.error("getAudio returned an error");
+          res.status(500);
+          res.send("audio generation/retrieval error: " + err);
+          return;
+      }
+
+      res.writeHead(200, {
+          'Content-Type': auData.contentType
+      });
+      res.end(auData.data);
+      return;
+    });
 
 });
 
@@ -250,7 +263,20 @@ app.get("/public/audio", function(req, res) {
 
     var ppat = publicGetPat(req, res);
     var opts = getOptsFromReq(req);
-    musxml.getAudio(res, ppat, opts);
+    musxml.getAudio(ppat, opts, function(err, auData){
+      if (err) {
+          Log.error("getAudio returned an error");
+          res.status(500);
+          res.send("audio generation/retrieval error: " + err);
+          return;
+      }
+
+      res.writeHead(200, {
+          'Content-Type': auData.contentType
+      });
+      res.end(auData.data);
+      return;
+    });
 });
 
 app.get("/public/image", function(req, res) {
@@ -261,7 +287,20 @@ app.get("/public/image", function(req, res) {
     var queryOpts = getOptsFromReq(req);
 
     var ppat = publicGetPat(req, res);
-    musxml.getImage(res, ppat, queryOpts);
+    musxml.getImage(ppat, queryOpts,  function(err, imgData){
+    if (err) {
+        Log.error("getImage returned an error");
+        res.status(500);
+        res.send("image retrieval error: " + err);
+        return;
+    }
+  
+    res.writeHead(200, {
+        'Content-Type': imgData.contentType
+    });
+    res.end(imgData.data);
+    
+    });
 
 });
 
@@ -269,13 +308,15 @@ app.get("/convertnum", function(req, res) {
     Log.debug("num = " + req.query['num']);
     Log.debug("len = " + req.query['patlen']);
     // we need to pass this a single opts obj
-    musxml.convertNum(req, res, req.query['num'], req.query['patlen'], req.query['tuples']);
+    var sResult = musxml.convertNum(req.query['num'], req.query['patlen'], req.query['tuples']);
+    res.send(sResult);
 });
 
 app.get("/convertmulti", function(req, res) {
     Log.debug("num = " + req.query['nums']);
     Log.debug("len = " + req.query['patlen']);
-    musxml.convertMulti(req, res, req.query['nums'], req.query['patlen']);
+    var sResult = musxml.convertMulti(req.query['nums'], req.query['patlen']);
+    res.send(sResult);
 });
 
 app.get("/public/patreftocustommap/:patref", function(req, res){
