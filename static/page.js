@@ -4,7 +4,11 @@
 window._ns_drumgen = {};
 var thisInst = window._ns_drumgen;
 
+thisInst.maxStarredPatterns = 15;
+thisInst.maxHistory = 100;
+
 function doHealthCheck() {
+		funcs.getSeed();
     $.get("/health?_=" + cseed).done(function() {
         $('.healthpanel').hide();
 				thisInst.health = "UP";
@@ -16,7 +20,7 @@ function doHealthCheck() {
 
 window._ns_drumgen.healthCheckInterval = setInterval(function() {
     doHealthCheck();
-}, 1000 * 60);
+}, 1000 * 45);
 
 $('.settings-image').click(function() {
     $('.settingspanel').toggle();
@@ -81,11 +85,13 @@ funcs.getSeed();
 var hosturl = '';
 var patternbaseurl = hosturl + '/public/pattern?app=true';
 var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
-var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
-var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}';
+var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&map={{MAP}}';
+var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&map={{MAP}}';
 var editpatext = hosturl + '/static/custompat.html?patref={{PATREF}}';
 var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
 var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
+
+var soundValuesMap = [{"map":"sn","text":"Snare"}, {"map":"ss","text":"Sidestick"}, {"map":"wbl","text":"Woodblock"}, {"map":"boh","text": "Bongo"}]
 
 settings.pattern_length = 4;
 settings.pattern_type = 'accent';
@@ -97,12 +103,70 @@ settings.rests_on = true;
 settings.nested_tuples = false;
 settings.loop_audio = true;
 settings.tempo = 100;
+settings.sound_map_index = 0;
+settings.sound_map_map = "sn";
 
+
+var loadStarred = function(){
+	var h = LS.get("starred-patterns");
+	if (h){
+		thisInst.starred = h;
+	} else {
+    thisInst.starred = [];
+	}
+}
+
+var loadStarredPattern = function(patref){
+	LS.set("globpatref", patref);
+	callToChange();	
+}
+
+var addToStarred = function(){
+	if(thisInst.starred.indexOf(settings.pattern_ref) != -1){
+		return false;
+	}
+
+	thisInst.starred.unshift(settings.pattern_ref);
+  while (thisInst.starred.length > thisInst.maxStarredPatterns){
+		thisInst.starred.pop();
+	}
+	LS.set("starred-patterns", thisInst.starred);
+  return true;
+}
+
+var removeFromStarred = function(item){
+  thisInst.starred.splice(thisInst.starred.indexOf(item), 1);
+	LS.set("starred-patterns", thisInst.starred);
+  viewStarred();
+}
+
+var toggleFromStarred = function(){
+  if(!addToStarred()){
+    removeFromStarred(settings.pattern_ref);
+  }
+}
+
+var viewStarred = function(){
+  var starredBlock = "";
+ 
+	if(thisInst.starred.indexOf(settings.pattern_ref) != -1){
+  $('.addToStarred img').attr("src", "/static/buttons/star-filled.png");
+  } else {
+  $('.addToStarred img').attr("src", "/static/buttons/star-empty.png");
+}
+
+  for (var s in thisInst.starred){
+    var tpr = thisInst.starred[s];
+    var templateVars = {seed:0,patref:tpr,metro:true,map:"sn",patlen:4,tempo:100};
+    starredBlock += '<div class="starredImagePreview"  ><img onclick="loadStarredPattern(\''+tpr+'\')" alt="preview" src="' + buildCustomTemplateUrl(imagebaseurl + hburlext, templateVars) + '" /><span onclick="removeFromStarred(\''+tpr+'\')">X</span></div>';
+  }
+  $('.starredPreviewPane .previews').html(starredBlock);
+}
 
 var setupSettings = function() {
     var s = LS.get("app-settings");
     if (s) {
-        settings = s;
+        settings = Object.assign(settings, s);
     }
 
     $('[name="barlength"]').val(settings.pattern_length);
@@ -118,9 +182,12 @@ var setupSettings = function() {
       $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
    }
 
+	updateCurrentSound();
+
 };
 
 setupSettings();
+loadStarred();
 
 // trying to count unique instances
 var ID = getId();
@@ -139,6 +206,41 @@ var audiobtnholder = $('.audioplaybtn');
 
 loader.hide();
 
+function cycleMapIndex(cur, map){
+  return (cur + 1) % map.length;
+}
+
+function cycleCurrentSound(){
+  var cmi = cycleMapIndex(settings.sound_map_index, soundValuesMap);
+	settings.sound_map_index = cmi;
+  updateCurrentSound();	
+}
+
+function updateCurrentSound(){
+  var cmo = soundValuesMap[settings.sound_map_index];
+  var soundMap = cmo.map;
+  settings.sound_map_map = soundMap;
+  var soundText = cmo.text;
+  $(".currentSound").html(soundText);
+}
+
+$(".currentSound").click(function(){
+		cycleCurrentSound();
+    callToRefresh();
+});
+
+function buildCustomTemplateUrl(base, items){
+    return base.replace("{{SEED}}", items.seed)
+        .replace("{{PATLEN}}", items.patlen)
+        .replace("{{TUPLES}}", items.tuples)
+        .replace("{{NESTED}}", items.nested)
+        .replace("{{NOMETRO}}", items.nometro)
+        .replace("{{NORESTS}}", items.norests)
+        .replace("{{TEMPO}}", items.tempo)
+        .replace("{{PATREF}}", items.patref)
+        .replace("{{MAP}}", items.map);
+}
+
 function buildTemplateUrl(base) {
     return base.replace("{{SEED}}", cseed)
         .replace("{{PATLEN}}", settings.pattern_length)
@@ -147,7 +249,8 @@ function buildTemplateUrl(base) {
         .replace("{{NOMETRO}}", !settings.metronome_on)
         .replace("{{NORESTS}}", !settings.rests_on)
         .replace("{{TEMPO}}", settings.tempo)
-        .replace("{{PATREF}}", settings.pattern_ref);
+        .replace("{{PATREF}}", settings.pattern_ref)
+        .replace("{{MAP}}", settings.sound_map_map);
 }
 
 var init = function() {
@@ -166,6 +269,11 @@ var init = function() {
 				if(LS.get("globpatref")){
 					settings.pattern_ref = LS.get("globpatref");
 					LS.set("globpatref", undefined);
+				}
+
+				if(LS.get("editsoundmap")){
+					settings.sound_map_map = (LS.get("editsoundmap")).join(",");
+					LS.set("editsoundmap", undefined);
 				}
 
         //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
@@ -224,7 +332,7 @@ function callToRefresh() {
     LS.set("app-settings", settings);
 
     if(state.playing){
-	$('.audioplaybtn').click();
+	    $('.audioplaybtn').click();
     }
 
     funcs.getSeed();
@@ -311,18 +419,20 @@ $('[name="loop_audio"]').click(function() {
     }
 });
 
-function incPlus(field){
+function incPlus(field, amnt){
+    amnt = parseInt(amnt) || 1;
     var curval = parseInt($('input[name=' + field + ']').val());
-    var newval = isNaN(curval) ? 0 : curval + 1;
+    var newval = isNaN(curval) ? 0 : curval + amnt;
     $('input[name=' + field + ']').val(newval);
 	debounce(function inc(){
       $('input[name=' + field + ']').change();
 	}, 200);
 }
 
-function decMin(field){
+function decMin(field, amnt){
+    amnt = parseInt(amnt) || 1;
     var curval = parseInt($('input[name=' + field + ']').val());
-    var newval = isNaN(curval) ? 0 : curval - 1;
+    var newval = isNaN(curval) ? 0 : curval - amnt;
     $('input[name=' + field + ']').val(newval);
 	debounce(function dec(){
       $('input[name=' + field + ']').change();
@@ -333,20 +443,37 @@ var timeoutId = 0;
 
 $('.plusbtn').on('mousedown touchstart', function(ev) {
     ev.preventDefault();
-    obj = $(this).attr('field');
-    timeoutId = setInterval(function(){incPlus(obj)}, 120);
-    incPlus(obj);
+    var obj = $(this).attr('field');
+    var amnt = $(this).attr('amount');
+    incPlus(obj, amnt);
+    timeoutId = setInterval(function(){incPlus(obj, amnt)}, 110);
 }).on('mouseup mouseleave touchend', function() {
     clearInterval(timeoutId);
 });
 
 $('.minusbtn').on('mousedown touchstart', function(ev) {
     ev.preventDefault();
-    obj = $(this).attr('field');
-    timeoutId = setInterval(function(){decMin(obj)}, 120);
-    decMin(obj);
+    var obj = $(this).attr('field');
+    var amnt = $(this).attr('amount');
+    decMin(obj, amnt);
+    timeoutId = setInterval(function(){decMin(obj, amnt)}, 110);
 }).on('mouseup mouseleave touchend', function() {
     clearInterval(timeoutId);
+});
+
+$('.addToStarred').on('click', function(){
+	//  addToStarred();
+  toggleFromStarred();
+	viewStarred();
+});
+
+$('.closeStarredPreviewPane').on('click',function(){
+ $('.starredPreviewPane').hide(); 
+});
+
+$('.viewStarred').on('click',function(){
+  viewStarred();
+  $('.starredPreviewPane').toggle(); 
 });
 
 $('.audioplaybtn').on('click', function(){
@@ -356,10 +483,14 @@ $('.audioplaybtn').on('click', function(){
     $('.audiosrc').get(0).pause();
     $('.audioplaybtn .playimg').show();
     $('.audioplaybtn .stopimg').hide();
-  }else{
+  } else {
     $('.audiosrc').get(0).play();
     $('.audioplaybtn .stopimg').show();
     $('.audioplaybtn .playimg').hide();
   }
   state.playing = !state.playing;
+});
+
+$('.openStarredPanel').on('click',function(){
+  $('.starredPanel').toggle();
 });

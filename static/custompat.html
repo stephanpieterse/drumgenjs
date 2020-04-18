@@ -3,26 +3,44 @@
   <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
   <style>
   div {
-    display: inline-block;
-    	margin: 1px;
-    	padding: 1px;
-    }
+  display: inline-block;
+  	margin: 1px;
+  	padding: 1px;
+  }
+  .layerSect {
+    padding: 5px;
+    border: 1px solid;
+    border-radius: 5px;
+  }
+  .layerSect:nth-of-type(odd) {
+    background: #e0e0e0;
+  }
+  .layerSect:nth-of-type(even) {
+    background: #fafafa;
+  }
   .editsect {
   	width: 90%;
   	margin-left: auto;
   	margin-right: auto;
   }
   .pmbtngroup{
-
+    display: block;
 	}
   .pmbtngroup div{
     width: 25px;
     height: 25px;
-    display: block
 	}
   .notegroup:nth-of-type(odd) {
     background: #e0e0e0;
-		border-radius: 2px;
+  }
+  .notegroup:nth-of-type(even) {
+    background: #fafafa;
+  }
+  .notegroup {
+    padding: 2px;
+    margin: 2px;
+    border: 1px solid;
+		border-radius: 5px;
   }
   .appender {
   	width: 54px;
@@ -81,8 +99,9 @@
 	</head>
 	<body>
     <div class="markdoneimg appender" onclick="gotoMain()"></div>
-    <div class="pmbtngroup"><div class="appender plusimg" onclick="mainplus()"></div> <div class="appender minusimg" onclick="mainmin()"></div></div>
+    <div onclick="cycleTotalLayers();">LAYERSBUTTON</div>
 	<br/>
+    <div class="pmbtngroup"><div class="appender plusimg" onclick="mainplus()"></div> <div class="appender minusimg" onclick="mainmin()"></div></div>
 		<div class="editsect">
 		</div>
 	<br/>

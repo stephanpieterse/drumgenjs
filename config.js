@@ -13,7 +13,7 @@ module.exports = {
         pageItems: 20
     },
     queue: {
-        timeout: 2000 * 10,
+        timeout: 1000 * 5,
         concurrency: 2
     }
 };

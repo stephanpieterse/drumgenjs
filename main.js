@@ -48,6 +48,7 @@ var impExpMap = {
 
 var nl = "\n";
 var space = " ";
+var repeatCount = 2;
 
 var genLilyTupleMapper = function(blocks, repnote, noteBase) {
     var file = "";
@@ -149,11 +150,11 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
 var genMetronomePart = function(patlen) {
     var metro = "";
     metro += "\\new DrumStaff" + "\n";
-    metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " }" + "\n";
+    metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " \\override Stem #'(details beamed-lengths) = #'(2) }" + "\n";
     metro += "{" + "\n";
     metro += "\\time " + patlen + "/4" + nl;
     metro += "\\drummode {" + nl;
-    metro += "\\repeat volta 4 << {";
+    metro += "\\repeat volta " + repeatCount + " << {";
     metro += " wbh4 ";
     for (var w = 1; w < patlen; w++) {
         metro += " wbl4 ";
@@ -175,7 +176,7 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '400)" + nl;
+    head += "#(ly:set-option 'resolution '350)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
@@ -191,6 +192,16 @@ var genMusicBlockSection = function(blocks, options) {
     var mappings = options.mappings;
     var staffnames = options._staffnames;
     var patlen = blocks[0].length;
+
+		// I don't think this is needed overall,
+    // but it does cause lilypond pre 2.19
+		// issues when I was messing around
+    // because repnote in the further functions
+    // became undefined
+		while (mappings.length < blocks.length){
+			mappings.push(mappings[0]);
+		}
+
     var file = "";
     file += "<<" + nl;
 
@@ -206,7 +217,7 @@ var genMusicBlockSection = function(blocks, options) {
             file += "\\tempo 4 = " + options.tempo + nl;
         }
         file += "\\drummode {" + nl;
-        file += "\\repeat volta 4 ";
+        file += "\\repeat volta " + repeatCount + " ";
         file += genLilypondPart(blocks[block], mappings[block]);
         file += "}" + nl;
         file += "}" + nl;
@@ -412,7 +423,8 @@ var generateLilypond = function(pattern, eopts) {
         eopts = getDefaultOptions(eopts);
         eopts = generateFilename(pattern, eopts);
 
-        eopts.mappings = (eopts.map ? [eopts.map] : "sn");
+        //eopts.mappings = (eopts.map ? [eopts.map] : "sn");
+        eopts.mappings = (eopts.map ? (Array.isArray(eopts.map) ? eopts.map : eopts.map.split(',')) : ["sn"]);
 
         timers.start("gen-lily");
         metrics.increment('generated', 'lilypond-files');
@@ -515,7 +527,7 @@ var generateOGG = function(filename, endtime) {
             return;
         }
 
-	endtime = endtime || "";
+				endtime = endtime || "";
         timers.start("gen-ogg");
         metrics.increment('generated', 'audio');
         q.push(function(cb) {
@@ -574,8 +586,10 @@ var generateAllFiles = function(pattern, eopts) {
 
 var generateFilename = function(pattern, eopts) {
 
-    var filenames_pre = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro') + '-' + eopts.tempo;
-    var filenames_pre_notempo = exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
+		var nameOpts = [eopts.map,eopts.pattern, eopts.noMetronome];
+		var fullBuffedOpts = Buffer.from(JSON.stringify(nameOpts)).toString('hex');
+    var filenames_pre_notempo = fullBuffedOpts + exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
+    var filenames_pre = filenames_pre_notempo + '-' + eopts.tempo;
     var fullname = dir_prefix + filenames_pre;
     var fullname_notempo = dir_prefix + filenames_pre_notempo;
     eopts._fullname = fullname;
@@ -606,7 +620,7 @@ var getAudio = function(res, pattern, eopts) {
     eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
-	patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * 4;
+				patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
         generateOGG(eopts._fullname, patendtime).then(function() {
             getAudioData(res, pattern, eopts);
         }).catch(function(e) {
@@ -618,8 +632,9 @@ var getAudio = function(res, pattern, eopts) {
 var getAudioData = function(res, pattern, eopts) {
 
     try {
-        timers.start("buf-ogg");
+        timers.start("read-ogg");
         fs.readFile(eopts._fullname + ".ogg", function(err, data) {
+            timers.end("read-ogg");
             if (err) {
                 Log.error(err);
                 res.status(500);
@@ -629,13 +644,11 @@ var getAudioData = function(res, pattern, eopts) {
                 return;
             }
 
-            timers.end("buf-ogg");
-            Log.debug(data);
 
-            if (!data) {
-                res.status(404);
-                res.send("Audio file not found!");
-            }
+            // if (!data) {
+            //     res.status(404);
+            //     res.send("Audio file not found!");
+            // }
 
             if (eopts.asBase64) {
                 res.writeHead(200, {
@@ -649,7 +662,6 @@ var getAudioData = function(res, pattern, eopts) {
                 });
                 res.end(data);
             }
-
         });
     } catch (e) {
         Log.error(e);
@@ -663,40 +675,48 @@ var getImage = function(res, pattern, eopts) {
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
     getOrMakeFile(res, pattern, eopts, function() {
-        getImageData(res, pattern, eopts);
+        getImageData( pattern, eopts, function(err, imgData){
+          if (err) {
+              Log.error(err);
+              res.status(500);
+              res.send("image generation/retrieval error: " + err);
+              return;
+          }
+  
+          res.writeHead(200, {
+              'Content-Type': imgData.contentType
+          });
+          res.end(imgData.data);
+     
+          });
     });
 };
 
-var getImageData = function(res, pattern, eopts) {
+var getImageData = function(pattern, eopts, cb) {
 
-    timers.start("buf-img");
+    timers.start("read-img");
     fs.readFile(eopts._fullname_notempo + ".png", function(err, buf) {
 
+        timers.end("read-img");
+        var imgResult = {};
+
         if (err) {
-            Log.error(err);
-            res.status(500);
-            res.send("image generation error: " + err);
+            cb(err, {});
             return;
         }
 
-        timers.end("buf-img");
-
         if (eopts.asBase64) {
             var imageAsBase64 = "data:image/png;base64," + buf.toString("base64");
-            res.writeHead(200, {
-                'Content-Type': 'text/plain'
-            });
-            res.end(imageAsBase64);
+            imgResult.contentType = 'text/plain';
+            imgResult.data = imageAsBase64;
         } else {
-            res.writeHead(200, {
-                'Content-Type': 'image/png'
-            });
-            res.end(buf);
+            imgResult.contentType = 'image/png';
+            imgResult.data = buf;
         }
+        cb(null, imgResult);
+        return;
     });
-
     return;
-
 };
 
 

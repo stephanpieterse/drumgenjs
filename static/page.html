@@ -15,30 +15,36 @@
 </head>
 <body>
 <div class="emptyimg" style="width:0px; height:0px"></div>
-<div class="" style="width: 425px; height: 52px;"> 
+<div class="" style="width: 575px; height: 48px;"> 
   <a class="settings-image" href="#" ><img class="util-image" src="/static/settings.png" alt="settings" /></a>
   <a class="reload-image" href="#" ><img class="util-image" src="/static/reload.png" alt="reload" /></a>
   <a class="editbtn" href="" ><img class="util-image" src="/static/buttons/edit.png" alt="edit" /></a>
+  </span>
+	<span class="viewStarred"><img class="util-image" src="/static/buttons/list-star-filled.png" alt="view starred"/></span>	
   <div class="audioplaybtn">
-  <img class="playimg util-image" src="/static/buttons/play.png"/>
-  <img class="stopimg util-image" style="display: none" src="/static/buttons/stop.png"/>
+  <img class="playimg util-image" src="/static/buttons/play.png" />
+  <img class="stopimg util-image" style="display: none" src="/static/buttons/stop.png" />
   </div>
 </div>
 <main>
 <div class="centerme wide85">
-
 <section>
-<div class="settingspanel abs-panel" style="display:none">
-  <div style="text-align:left;">
+	<div class="starredPreviewPane abs-panel" style="display:none">
+		<a class="closeStarredPreviewPane" href="#"><img class="small-util-image" src="/static/close.png"></a>
+    <span class="addToStarred"><img class="util-image" src="/static/buttons/star-empty.png" alt="star pattern"/></span>	
+		<div class="previews"></div>
+	</div>
+  <div class="settingspanel abs-panel" style="display:none">
+    <div style="text-align:left;">
     <a class="settings-image" href="#"><img class="small-util-image" src="/static/close.png" alt="settings"></a>
   </div>
 
   <div class="barlength">
     Signature /4
     <br>
-    <input type="button" value="-" class="minusbtn" field="barlength">
+    <input type="button" value="-" class="minusbtn" field="barlength" amount="1">
 		<input class="blockinput" name="barlength" type="number" value="4">
-    <input type="button" value="+" class="plusbtn" field="barlength">
+    <input type="button" value="+" class="plusbtn" field="barlength" amount="1">
   </div>
     
   <div class="tuples_enabled">
@@ -58,15 +64,17 @@
   <div class="extra_settings">
     Tempo
     <br>
-    <input type="button" value="-" class="minusbtn" field="tempo">
+    <input type="button" value="-5" class="minusbtn" field="tempo" amount="5">
+    <input type="button" value="-" class="minusbtn" field="tempo" amount="1">
     <label><input class="blockinput" name="tempo" type="number" value="100"></label>
-    <input type="button" value="+" class="plusbtn" field="tempo">
+    <input type="button" value="+" class="plusbtn" field="tempo" amount="1">
+    <input type="button" value="+5" class="plusbtn" field="tempo" amount="5">
     <label class="tuplelabel"><input name="metronome_on" type="checkbox" value="1" checked="checked"><img alt="metronome" class="checkimg" src="/static/buttons/metronome.png"><img alt="metronome" class="uncheckimg" src="/static/buttons/metronome.png"></label>
+    <span class="currentSound">Snare</span>
     <!-- <label><input name="nested_tuples" type="checkbox" value="1" />Nested tuples<br/></label> -->
 <!--     <label><input name="metronome_on" type="checkbox" value="1" checked="checked">Metronome in audio</label> -->
     <!-- <label><input name="loop_audio" type="checkbox" value="loop_audio" checked="checked">Loop Audio</label> -->
   </div>
-		
   <a href="/static/home.html">Home</a>
   
 </div>

@@ -49,6 +49,18 @@ app.use(function timingTracker(req, res, next) {
     next();
 });
 
+// we can use this once we stop passing around res object
+
+//app.use(function(req, res, next){
+//    res.setTimeout(30000, function(){
+//          Log.error("Client request returned with 503, we couldn't return it in time?");
+//          res.status(503);
+//          res.send();
+//        });
+//
+//    next();
+//});
+
 app.post("/analytics", function(req, res) {
 
     var chunk = '';
@@ -120,6 +132,8 @@ var getOptsFromReq = function(req) {
     }
     // !!! future
     /// ("" + req.opts['a']).toLowerCase() === 'true'
+    var mapArr = req.query["map"] || "";
+    mapArr = mapArr.split(",");
     return {
         noNames: (req.query["noname"] === true || req.query["noname"] === 'true'),
         noRests: (req.query["norests"] === true || req.query["norests"] === 'true'),
@@ -128,7 +142,7 @@ var getOptsFromReq = function(req) {
         patlen: isNaN(parseInt(req.query["patlen"])) ? 8 : parseInt(req.query["patlen"]),
         nested: (req.query["nested"] === 'true'),
         tempo: isNaN(parseInt(req.query["tempo"])) ? null : parseInt(req.query["tempo"]),
-        map: req.query["map"] || []
+        map: mapArr
     };
 };
 
@@ -149,7 +163,7 @@ function publicGetPat(req, res) {
 
     //req.query["nometro"] = 'true';
     req.query["noname"] = 'true';
-    req.query["map"] = "sn";
+    //req.query["map"] = "sn";
     var queryOpts = getOptsFromReq(req);
     var patlen = queryOpts.patlen || 8;
 
@@ -205,7 +219,7 @@ app.get("/public/pattern", function(req, res) {
 
 app.get("/public/refresh/audio", function(req, res) {
 
-    req.query["map"] = "sn";
+    //req.query["map"] = "sn";
 
     Log.debug(JSON.stringify(req.headers));
     var ppat = '';
@@ -232,7 +246,7 @@ app.get("/public/refresh/audio", function(req, res) {
 app.get("/public/audio", function(req, res) {
 
     req.query["noname"] = 'true';
-    req.query["map"] = "sn";
+    //req.query["map"] = "sn";
 
     var ppat = publicGetPat(req, res);
     var opts = getOptsFromReq(req);
@@ -243,7 +257,7 @@ app.get("/public/image", function(req, res) {
 
     req.query["nometro"] = true;
     req.query["noname"] = 'true';
-    req.query["map"] = "sn";
+    //req.query["map"] = "sn";
     var queryOpts = getOptsFromReq(req);
 
     var ppat = publicGetPat(req, res);

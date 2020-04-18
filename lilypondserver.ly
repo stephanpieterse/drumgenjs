@@ -1,6 +1,7 @@
 \version "2.19.37"
 
 #(begin
+  (display (format "\nLilypond server starting...\n"))
   (use-modules (ice-9 rdelim) (ice-9 getopt-long) (ice-9 regex))
   (define (lys:start-server port)
     (let ((server-socket (lys:open-socket-for-listening port)))
@@ -19,7 +20,7 @@
     (if (zero? child) (begin
       (set! child (primitive-fork))
       (if (zero? child) (proc))
-      (primitive-exit)
+        (primitive-_exit)
       ; wait for child to spawn grand-child
      )(waitpid child))))
       
@@ -39,7 +40,6 @@
       (lambda (key . params)
         (display (format "Error evaluating expression ~a: ~a\n" key params)))))
   
-      
   (define (lys:compile dir . opts)
     (let* ((t1 (get-internal-real-time))
            (opts (lys:translate-compile-options opts))

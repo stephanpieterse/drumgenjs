@@ -1,6 +1,12 @@
 window._ns_drumgen_editor = {};
 var thisEditor = window._ns_drumgen_editor;
 
+thisEditor.arr =  [[[3,1],[2,2],[3,3],[0,2]]];
+//var arr =  [[[3,1],[2,2],[3,3],[0,2]]];
+thisEditor.layers = 1;
+thisEditor.dbtimer = null; 
+thisEditor.globpatref = "";
+
 var LS = {
     get: function(a) {
         return JSON.parse(window.localStorage.getItem(a));
@@ -14,8 +20,7 @@ function urlparam(name){
     var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
     if (results==null){
        return null;
-    }
-    else{
+    } else {
        return results[1] || 0;
     }
 }
@@ -25,7 +30,9 @@ function makePatternSane(pat){
 	for (var i in pat){
 		if(!Array.isArray(pat[i])){
 			pat[i] = [pat[i]];
-		}
+	//	} else {
+  //    pat[i] = makePatternSane(pat[i]);
+    }
 	}
 	return pat;
 }
@@ -36,22 +43,49 @@ function makePatternUnsane(pat){
 	for (var i in pat){
 		if(pat[i].length == 1){
 			pat[i] = pat[i][0];
-		}
+		} else {
+      pat[i] = makePatternUnsane(pat[i]);
+    }
 	}
 	return pat;
 }
+function syncLayerSizes(){
+  while(thisEditor.arr.length > thisEditor.layers){
+    thisEditor.arr.pop();
+  }
+
+  while(thisEditor.soundMapIndex.length > thisEditor.layers){
+    thisEditor.soundMapIndex.pop();
+    thisEditor.soundMap.pop();
+  }
+
+  while(thisEditor.arr.length < thisEditor.layers){
+    var newArrLayer = [];
+    for (var bc = 0; bc  < thisEditor.arr[0].length; bc++){
+      newArrLayer.push([0]);
+    } 
+    thisEditor.arr.push(newArrLayer);
+  }
+  while(thisEditor.soundMapIndex.length < thisEditor.layers){
+    thisEditor.soundMapIndex.push(0);
+    thisEditor.soundMap.push("sn");
+  }
+}
 
 
-  thisEditor.arr =  [[3,1],[2,2],[3,3],[0,2]];
-	var arr =  [[3,1],[2,2],[3,3],[0,2]];
-  thisEditor.dbtimer = null; 
-  thisEditor.globpatref = "";
+function cycleTotalLayers(){
+  var maxLayers = 2;
+  thisEditor.layers = thisEditor.layers % maxLayers + 1;
 
- function gotoMain(){
-   LS.set("editidpattern", arr); 
-   LS.set("globpatref", thisEditor.globpatref); 
-	 window.location.href = '/static/page.html';
- }
+  init();
+}
+
+function gotoMain(){
+  LS.set("editidpattern", thisEditor.arr); 
+  LS.set("globpatref", thisEditor.globpatref); 
+  LS.set("editsoundmap", thisEditor.soundMap); 
+  window.location.href = '/static/page.html';
+}
 
 function debouncer(func, delay){
 		clearTimeout(thisEditor.dbtimer);
@@ -62,7 +96,7 @@ function shrinkMe(pos){
 		//pos = pos.split(",");
 	  //pos.pop();
 		//pos = pos.join(",");
-		arr = shrinkArr([arr], pos)[0];
+		thisEditor.arr = shrinkArr(thisEditor.arr, pos);
 		init();
 }
 
@@ -74,8 +108,8 @@ function shrinkArr(arr, pos){
 			arr[parseInt(arrpos)] = shrinkArr(arr[parseInt(arrpos)],np.join(","));	
 		} else {
 			if(arr[parseInt(np[0])].length > 1){
-			arr[parseInt(np[0])].pop();
-			}
+        arr[parseInt(np[0])].pop();
+      }
 		}
 		return arr;
 	}
@@ -84,28 +118,27 @@ function extendMe(pos){
 		//pos = pos.split(",");
 		//pos.pop();
 		//pos = pos.join(",");
-		arr = extendArr([arr], pos)[0];
+		thisEditor.arr = extendArr(thisEditor.arr, pos);
 		init();
 	}
 
 function extendArr(arr, pos){
-
 	var np = pos.split(",");
 		if(np.length > 1){
 			var arrpos = np.shift();
 			arr[parseInt(arrpos)] = extendArr(arr[parseInt(arrpos)],np.join(","));	
 		} else {
-			if(arr[parseInt(np[0])].length < 8){
-			arr[parseInt(np[0])].push(0);
-				}
+			if(arr[parseInt(np[0])].length < 9){
+        arr[parseInt(np[0])].push(0);
+      }
 		}
 		return arr;
-	}
+}
 
 function incarr(pos){
-		arr = incme([arr], pos)[0];
+		thisEditor.arr = incme(thisEditor.arr, pos);
 		init();
-	}
+}
 
 function incme(arr, pos){
 	var np = pos.split(",");
@@ -121,14 +154,17 @@ function incme(arr, pos){
 function blockAppender(sect, curstr, curlevel){
 	
 	for ( var i in sect ){
-		var newlevel = curlevel + "," + i;
+		//var newlevel = curlevel + "" + i + ",";
+    var newlevel = curlevel.split(',').filter(function(a){return parseInt(a) >= 0});
+    newlevel.push(i);
+    newlevel = newlevel.join(',');
 		if(Array.isArray(sect[i])){
       curstr += '<div class="notegroup">';
-			curstr +=  '<div class="pmbtngroup"><div class="appender plusimg" onclick="extendMe(\'' + newlevel + '\')"></div> <div class="appender minusimg" onclick="shrinkMe(\'' + newlevel + '\')"></div></div>';
-			curstr +=  blockAppender(sect[i], "", newlevel);
+			curstr += '<div class="pmbtngroup"><div class="appender plusimg" onclick="extendMe(\'' + newlevel + '\')"></div> <div class="appender minusimg" onclick="shrinkMe(\'' + newlevel + '\')"></div></div>';
+			curstr += blockAppender(sect[i], "", newlevel);
 			curstr += '</div>';
 		} else {
-			curstr += '<div onclick="incarr(\''+ newlevel +'\');" class="nselector ' + newlevel + ' ntype'+sect[i]+'" > </div>';
+			curstr += '<div onclick="incarr(\''+ newlevel +'\');" class="nselector ' + newlevel + ' ntype' + sect[i] + '" > </div>';
 		}
 	}
 	return curstr;
@@ -136,44 +172,89 @@ function blockAppender(sect, curstr, curlevel){
 
 
 function mainplus(){
-  if(arr.length < 16){
-  arr.push([0]);
+  if(thisEditor.arr[0].length < 16){
+    for (var s in thisEditor.arr){
+      thisEditor.arr[s].push([0]);
+    }
   }
   init();
 }
 
 function mainmin(){
-	if (arr.length > 2){
-	arr.pop();
+	if (thisEditor.arr[0].length > 2){
+    for (var s in thisEditor.arr){
+	    thisEditor.arr[s].pop();
+    }
 	}
 	init();
 }
+
+function cycleMapIndex(cur, map){
+  return (cur + 1) % map.length;
+}
+
+var soundValuesMap = [{"map":"sn","text":"Snare"}, {"map":"ss","text":"Sidestick"}, {"map":"wbl","text":"Woodblock"}, {"map":"boh","text": "Bongo"}]
+thisEditor.soundMapIndex = [0];
+thisEditor.soundMap = ["sn"];
+
+function cycleSelectedSound(sid){
+  var cmi = cycleMapIndex(thisEditor.soundMapIndex[sid], soundValuesMap);
+  thisEditor.soundMapIndex[sid] = cmi;
+  updateCurrentSound(sid);
+}
 	
+function updateCurrentSound(sid){
+  var cmo = soundValuesMap[thisEditor.soundMapIndex[sid]];
+  var soundMap = cmo.map;
+  thisEditor.soundMap[sid] = soundMap;
+  var soundText = cmo.text;
+  $(".soundSelector-" + sid).html(soundText);
+}
+
+function generateSoundSelector(){
+  var items = "";
+  for (var i in thisEditor.arr){
+    items += '<span class="soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')"> ' + soundValuesMap[thisEditor.soundMapIndex[i]].text + ' </span><br/>'; 
+  }
+  return items;
+}
+
 function init(){
+  syncLayerSizes();
 	var str = "";
-	str += 'Signature ' + arr.length +  '/4 ';
+	str += 'Signature ' + thisEditor.arr[0].length +  '/4 ';
 	str += "<br/>";
-  str += blockAppender(arr, "", "0");
+  str += "Sounds: <br/>" + generateSoundSelector();
+  for (var ba in thisEditor.arr){
+    str += '<div class="layerSect">';
+    str += blockAppender(thisEditor.arr[ba], "", "" + ba);
+    str += '</div>';
+    str += '<br/>';
+  }
 	str += "<br/>";
 	$('.editsect').html(str);
-		$.get('/public/custommaptopatref/' + JSON.stringify([makePatternUnsane(arr)])).then(function(d){
+		$.get('/public/custommaptopatref/' + JSON.stringify(makePatternUnsane(thisEditor.arr))).then(function(d){
 		  thisEditor.globpatref = d.patref;
 			debouncer(function(){
 			//$('.customimage').attr("src",'https://drumgen.apollolms.co.za/public/image?app=true&patref='+d.patref);
 			//$('.customaudio').attr("src",'https://drumgen.apollolms.co.za/public/audio?app=true&patref='+d.patref);
-			$.get('/public/image?app=true&patref=' + d.patref);
-		  $.get('/public/audio?app=true&patref=' + d.patref);
+			  $.get('/public/image?app=true&patref=' + d.patref);
+		    $.get('/public/audio?app=true&patref=' + d.patref);
 			}, 2000);
-
 		});
-	}
-  var patref = urlparam("patref");
-  if(patref){
-     $.get('/public/patreftocustommap/' + patref).then(function(data){
-  	   arr =  makePatternSane(data.unmapped[0]);
-	  init();
-   });
-   }else{
+}
+
+var patref = urlparam("patref");
+if (patref) {
+   $.get('/public/patreftocustommap/' + patref).then(function(data){
+     for (var d in  data.unmapped){
+        data.unmapped[d] = makePatternSane(data.unmapped[d]);
+      }
+	   thisEditor.arr = data.unmapped; //makePatternSane(data.unmapped);
+     thisEditor.layers = thisEditor.arr.length;
+   init();
+ });
+} else {
   init();
 }
 

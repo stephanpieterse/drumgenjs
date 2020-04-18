@@ -25,16 +25,17 @@ RUN apt-get install -y sox
 
 RUN sed -i '/-dBATCH/a "-dNumRenderingThreads=1"' /usr/share/lilypond/current/scm/ps-to-png.scm \
     && sed -i '/-dBATCH/a "-dUseCropBox"' /usr/share/lilypond/current/scm/ps-to-png.scm \
-    && sed -i 's/AlphaBits=4/AlphaBits=2/g' /usr/share/lilypond/current/scm/ps-to-png.scm \
-    && sed -i 's/-r1200/-r700/g' /usr/share/lilypond/current/scm/backend-library.scm
+    && sed -i 's/AlphaBits=4/AlphaBits=4/g' /usr/share/lilypond/current/scm/ps-to-png.scm \
+    && sed -i 's/-r1200/-r1200/g' /usr/share/lilypond/current/scm/backend-library.scm
 
 COPY ./docker_res/timidity.cfg /etc/timidity/timidity.cfg
 COPY ./docker_res/timidity.cfg /usr/local/share/timidity/timidity.cfg
 COPY ./docker_res/ /opt/res/
 
+COPY ./package.json /opt/app/package.json
+RUN cd /opt/app && npm install --only=production
 COPY ./ /opt/app/
 RUN mkdir -p /opt/app/tmpgen && chmod 0777 /opt/app/tmpgen
 RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
-RUN cd /opt/app && npm install --only=production
 
 CMD ["bash", "/opt/app/startapp.sh"]
