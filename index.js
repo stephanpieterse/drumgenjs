@@ -20,6 +20,19 @@ var util = require('./util.js');
 var appId = util.getOTP("appId");
 prommetrics.appid = appId;
 
+var queue = require('queue');
+var q = new queue();
+q.timeout = config.queue.timeout;
+q.concurrency = config.queue.concurrency;
+q.autostart = true;
+q.on('timeout', function(continuejob, job) {
+    metrics.increment('errors', 'q-timeouts');
+    Log.error({
+        job: job,
+        continuejob: continuejob
+    }, 'A q job timed out!');
+});
+
 cleanup.start(function() {
     Log.debug("Callback for cleanup script ran");
 });
@@ -49,17 +62,15 @@ app.use(function timingTracker(req, res, next) {
     next();
 });
 
-// we can use this once we stop passing around res object
+app.use(function(req, res, next){
+    res.setTimeout(15000, function(){
+          Log.error("Client request returned with 503, we couldn't return it in time?");
+          res.status(503);
+          res.send();
+        });
 
-//app.use(function(req, res, next){
-//    res.setTimeout(30000, function(){
-//          Log.error("Client request returned with 503, we couldn't return it in time?");
-//          res.status(503);
-//          res.send();
-//        });
-//
-//    next();
-//});
+    next();
+});
 
 app.post("/analytics", function(req, res) {
 
@@ -239,11 +250,13 @@ app.get("/public/refresh/audio", function(req, res) {
         });
         return;
     }
+    var execFunc = function(cb){
     musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData){
       if (err) {
           Log.error("getAudio returned an error");
           res.status(500);
           res.send("audio generation/retrieval error: " + err);
+          cb();
           return;
       }
 
@@ -251,8 +264,12 @@ app.get("/public/refresh/audio", function(req, res) {
           'Content-Type': auData.contentType
       });
       res.end(auData.data);
+      cb();
       return;
     });
+    };
+    execFunc.timeout = 1000;
+    q.push(execFunc);
 
 });
 
@@ -263,11 +280,13 @@ app.get("/public/audio", function(req, res) {
 
     var ppat = publicGetPat(req, res);
     var opts = getOptsFromReq(req);
+    var execFunc = function(cb){
     musxml.getAudio(ppat, opts, function(err, auData){
       if (err) {
           Log.error("getAudio returned an error");
           res.status(500);
           res.send("audio generation/retrieval error: " + err);
+          cb();
           return;
       }
 
@@ -275,8 +294,12 @@ app.get("/public/audio", function(req, res) {
           'Content-Type': auData.contentType
       });
       res.end(auData.data);
+      cb();
       return;
     });
+    };
+    execFunc.timeout = 1000;
+    q.push(execFunc);
 });
 
 app.get("/public/image", function(req, res) {
@@ -287,20 +310,25 @@ app.get("/public/image", function(req, res) {
     var queryOpts = getOptsFromReq(req);
 
     var ppat = publicGetPat(req, res);
-    musxml.getImage(ppat, queryOpts,  function(err, imgData){
-    if (err) {
-        Log.error("getImage returned an error");
-        res.status(500);
-        res.send("image retrieval error: " + err);
-        return;
-    }
+    var execFunc = function(cb){
+      musxml.getImage(ppat, queryOpts,  function(err, imgData){
+      if (err) {
+          Log.error("getImage returned an error");
+          res.status(500);
+          res.send("image retrieval error: " + err);
+          cb();
+          return;
+      }
   
-    res.writeHead(200, {
-        'Content-Type': imgData.contentType
-    });
-    res.end(imgData.data);
-    
-    });
+      res.writeHead(200, {
+          'Content-Type': imgData.contentType
+      });
+      res.end(imgData.data);
+      cb(); 
+      });
+    };
+    execFunc.timeout = 3000;
+    q.push(execFunc);
 
 });
 
@@ -360,8 +388,23 @@ app.get("/public/custommaptopatref/:cmap", function(req,res){
 });
 
 app.get("/worksheet/:patlen", function(req, res) {
-    // var patlen = req.params['patlen'] || 4;
-    musxml.getAll8(req, res);
+    var opts = {};
+    opts.patlen = req.params['patlen'] || 4;
+    opts.pagenum = req.query['page'] || 1;
+    opts.blanks = req.query['blanks'];
+    opts.rests = req.query['rests'];
+
+    res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'Transfer-Encoding'
+    });
+
+    var Readable = require('stream').Readable;
+    var rs = new Readable();
+    rs._read = function(){};
+    rs.pipe(res);
+    musxml.getAll8Stream(rs, opts);
 });
 
 app.use("/favicon.ico", function(req, res) {

@@ -17,7 +17,8 @@
     "node-cache": "^4.2.0",
     "persistent-cache": "^1.1.1",
     "prom-client": "^11.5.3",
-    "queue": "^4.5.1"
+    "queue": "^4.5.1",
+    "xml2js": "^0.4.23"
   },
   "devDependencies": {
     "chai": "^4.2.0",

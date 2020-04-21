@@ -40,3 +40,5 @@ RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsu
 RUN apt-get install -y strace vim 
 
 CMD ["bash", "/opt/app/startapp.sh"]
+RUN apt-get update && apt-get install -y git
+RUN cd /opt/app && npm install

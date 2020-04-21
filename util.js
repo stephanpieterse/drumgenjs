@@ -89,9 +89,26 @@ var TOTP = function() {
 
 var totpObj = new TOTP();
 
+var lpad = function(value, padding) {
+    var zeroes = "0";
+
+    for (var i = 0; i < padding; i++) {
+        zeroes += "0";
+    }
+
+    return (zeroes + value).slice(padding * -1);
+};
+
+
+function regexEscape(str) {
+    return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
 module.exports = {
 
     getOTP: totpObj.getOTP,
     cache: cache,
+    lpad: lpad,
+    regexEscape: regexEscape
 
 };

@@ -28,7 +28,6 @@ const
         '/static/buttons/ntype4.png',
         '/static/buttons/ntype5.png',
         '/static/buttons/ntype6.png',
-        '/static/buttons/ntype7.png',
         '/static/buttons/rests.png',
         '/static/buttons/star-filled.png',
         '/static/buttons/star-empty.png',

@@ -13,19 +13,6 @@ var miditools = require('./miditools.js');
 
 var Log = require('./logger.js');
 
-//var queue = require('queue');
-//var q = new queue();
-//q.timeout = config.queue.timeout;
-//q.concurrency = config.queue.concurrency;
-//q.autostart = true;
-//q.on('timeout', function(continuejob, job) {
-//    metrics.increment('errors', 'q-timeouts');
-//    Log.error({
-//        job: job,
-//        continuejob: continuejob
-//    }, 'A q job timed out!');
-//});
-
 var dir_prefix = config.tmpdir;
 
 var impExpMap = {
@@ -193,14 +180,14 @@ var genMusicBlockSection = function(blocks, options) {
     var staffnames = options._staffnames;
     var patlen = blocks[0].length;
 
-		// I don't think this is needed overall,
+    // I don't think this is needed overall,
     // but it does cause lilypond pre 2.19
-		// issues when I was messing around
+    // issues when I was messing around
     // because repnote in the further functions
     // became undefined
-		while (mappings.length < blocks.length){
-			mappings.push(mappings[0]);
-		}
+    while (mappings.length < blocks.length) {
+        mappings.push(mappings[0]);
+    }
 
     var file = "";
     file += "<<" + nl;
@@ -307,7 +294,7 @@ var genericMapper = function(num, patlen, mappings) {
 
     var randPat = parseInt(num);
     var cpat = (randPat).toString(notetypes);
-    cpat = lpad(cpat, barlen);
+    cpat = util.lpad(cpat, barlen);
     pattern[0] = cpat.split("");
     for (var px in pattern[0]) {
         // pattern[0][px] = mappings[pattern[0][px]];
@@ -360,7 +347,7 @@ var importBlocks = function(patid) {
 
     var regex;
     for (var m in impExpMap) {
-        regex = new RegExp(regexEscape(impExpMap[m]), "g");
+        regex = new RegExp(util.regexEscape(impExpMap[m]), "g");
         Log.trace(pat);
         pat = pat.replace(regex, m);
         Log.trace(pat);
@@ -396,7 +383,7 @@ var exportBlocks = function(blocks) {
 
     var regex;
     for (var m in impExpMap) {
-        regex = new RegExp(regexEscape(m), "g");
+        regex = new RegExp(util.regexEscape(m), "g");
         enc = enc.replace(regex, impExpMap[m]);
     }
 
@@ -404,10 +391,6 @@ var exportBlocks = function(blocks) {
     enc = enc.toString();
     return enc;
 };
-
-function regexEscape(str) {
-    return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-}
 
 var getDefaultOptions = function(eopts) {
     var options = JSON.parse(JSON.stringify(eopts)) || {};
@@ -479,25 +462,25 @@ var generatePNG = function(filename) {
         metrics.increment('generated', 'images');
         var genchild;
         //q.push(function(cb) {
-            //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
-            genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
-                timers.end("gen-png");
-                Log.debug('stdout: ' + stdout);
-                Log.debug('stderr: ' + stderr);
-                if (error !== null) {
-                    Log.error('exec error: ' + error);
-                    reject(error);
-         //           cb();
-                    return;
-                }
-                tagPNG(filename).then(function() {
-                    resolve();
-           //         cb();
-                }).catch(function() {
-                    resolve();
-              //      cb();
-                });
+        //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
+        genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
+            timers.end("gen-png");
+            Log.debug('stdout: ' + stdout);
+            Log.debug('stderr: ' + stderr);
+            if (error !== null) {
+                Log.error('exec error: ' + error);
+                reject(error);
+                //           cb();
+                return;
+            }
+            tagPNG(filename).then(function() {
+                resolve();
+                //         cb();
+            }).catch(function() {
+                resolve();
+                //      cb();
             });
+        });
         //});
     });
 };
@@ -527,30 +510,30 @@ var generateOGG = function(filename, endtime) {
             return;
         }
 
-				endtime = endtime || "";
+        endtime = endtime || "";
         timers.start("gen-ogg");
         metrics.increment('generated', 'audio');
-       // q.push(function(cb) {
-            var audiochild;
-            // audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-                timers.end("gen-ogg");
-                Log.debug('stdout: ' + stdout);
-                Log.debug('stderr: ' + stderr);
-                if (error !== null) {
-                    Log.error('exec error: ' + error);
-                    reject(error);
-                    return;
-                }
-                tagOGG(filename).then(function() {
-                    resolve();
-          //          cb();
-                }).catch(function() {
-                    resolve();
-         //           cb();
-                });
+        // q.push(function(cb) {
+        var audiochild;
+        // audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
+        audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
+            timers.end("gen-ogg");
+            Log.debug('stdout: ' + stdout);
+            Log.debug('stderr: ' + stderr);
+            if (error !== null) {
+                Log.error('exec error: ' + error);
+                reject(error);
+                return;
+            }
+            tagOGG(filename).then(function() {
+                resolve();
+                //          cb();
+            }).catch(function() {
+                resolve();
+                //           cb();
             });
-       // });
+        });
+        // });
     });
 };
 
@@ -584,8 +567,8 @@ var generateAllFiles = function(pattern, eopts) {
 
 var generateFilename = function(pattern, eopts) {
 
-		var nameOpts = [eopts.map,eopts.pattern, eopts.noMetronome];
-		var fullBuffedOpts = Buffer.from(JSON.stringify(nameOpts)).toString('hex');
+    var nameOpts = [eopts.map, eopts.pattern, eopts.noMetronome];
+    var fullBuffedOpts = Buffer.from(JSON.stringify(nameOpts)).toString('hex');
     var filenames_pre_notempo = fullBuffedOpts + exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
     var filenames_pre = filenames_pre_notempo + '-' + eopts.tempo;
     var fullname = dir_prefix + filenames_pre;
@@ -621,14 +604,14 @@ var getAudio = function(pattern, eopts, cb) {
             return;
         }
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
-				patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
+        patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
         generateOGG(eopts._fullname, patendtime).then(function() {
-            getAudioData(pattern, eopts, function(err, auData){
-              if (err) {
-                Log.error(err);
-              }
-              cb(err, auData);
-              return;
+            getAudioData(pattern, eopts, function(err, auData) {
+                if (err) {
+                    Log.error(err);
+                }
+                cb(err, auData);
+                return;
             });
         }).catch(function(e) {
             Log.error(e);
@@ -639,26 +622,26 @@ var getAudio = function(pattern, eopts, cb) {
 
 var getAudioData = function(pattern, eopts, cb) {
 
-        timers.start("read-ogg");
-        fs.readFile(eopts._fullname + ".ogg", function(err, data) {
-            timers.end("read-ogg");
-            if (err) {
-              cb(err, {});
-              return;
-            }
-
-            var audioResult = {};
-            if (eopts.asBase64) {
-                var datString = "data:audio/ogg;base64," + data.toString("base64");
-                audioResult.contentType = 'text/plain';
-                audioResult.data = datString;
-            } else {
-                audioResult.contentType = 'audio/ogg';
-                audioResult.data = data;
-            }
-            cb(null, audioResult);
+    timers.start("read-ogg");
+    fs.readFile(eopts._fullname + ".ogg", function(err, data) {
+        timers.end("read-ogg");
+        if (err) {
+            cb(err, {});
             return;
-        });
+        }
+
+        var audioResult = {};
+        if (eopts.asBase64) {
+            var datString = "data:audio/ogg;base64," + data.toString("base64");
+            audioResult.contentType = 'text/plain';
+            audioResult.data = datString;
+        } else {
+            audioResult.contentType = 'audio/ogg';
+            audioResult.data = data;
+        }
+        cb(null, audioResult);
+        return;
+    });
 };
 
 var getImage = function(pattern, eopts, cb) {
@@ -667,19 +650,19 @@ var getImage = function(pattern, eopts, cb) {
     eopts = generateFilename(pattern, eopts);
     getOrMakeFile(pattern, eopts, function(makeErr) {
 
-        if(makeErr){
-              Log.error(makeErr);
-              cb(makeErr)
-              return;
+        if (makeErr) {
+            Log.error(makeErr);
+            cb(makeErr)
+            return;
         }
 
-        getImageData(pattern, eopts, function(err, imgData){
-          if (err) {
-              Log.error(err);
-          }
-          cb(err, imgData);
-          return;
-          });
+        getImageData(pattern, eopts, function(err, imgData) {
+            if (err) {
+                Log.error(err);
+            }
+            cb(err, imgData);
+            return;
+        });
     });
 };
 
@@ -711,15 +694,6 @@ var getImageData = function(pattern, eopts, cb) {
 };
 
 
-var lpad = function(value, padding) {
-    var zeroes = "0";
-
-    for (var i = 0; i < padding; i++) {
-        zeroes += "0";
-    }
-
-    return (zeroes + value).slice(padding * -1);
-};
 
 var convertNumSimple = function(num, patlen, mappings) {
 
@@ -764,7 +738,7 @@ var convertMulti = function(num, patlen) {
         var randPat = parseInt(nums[j]);
         Log.trace(randPat);
         var cpat = (randPat).toString(notetypes);
-        cpat = lpad(cpat, barlen);
+        cpat = util.lpad(cpat, barlen);
         pattern[j] = cpat.split("");
         for (var px in pattern[j]) {
             pattern[j][px] = mappings[pattern[j][px]];
@@ -776,112 +750,112 @@ var convertMulti = function(num, patlen) {
     return ret;
 };
 
-// the streaming is needed in the first place because:
-// we can precalc the entire page and just serve it,
-// but it is a very static page, and there are images
-// on there which may be unrendered server side and
-// may take a few (60) seconds to generate all of them
-// the browser doesn't render ANYTHING up until that point
-// which is very bad UX.
-// if we stream the tags, the browser actually renders the
-// page, and images pop up as they get rendered, which
-// is a much smoother experience
-var getAll8Stream = function(stream, opts) {
-    
-    var patlen = opts.patlen;
-    var pagenum = opts.pagenum;
-    var maxpatlen = 16 + 1;
-    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
-    pagenum = Math.abs(pagenum);
-    patlen = isNaN(patlen) ? 4 : patlen;
-    patlen = Math.abs(patlen % maxpatlen);
-    var barlen = patlen;
 
-    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
-    var mappings = ['r', 'R', 'l', 'L'];
-    var pageLinkAdd = "";
-    if (opts.blanks) {
-        mappings = mappings.concat(['x', 'X']);
-        pageLinkAdd += "&blanks=true";
-    }
-    if (opts.rests) {
-        mappings.push("-");
-        pageLinkAdd += "&rests=true";
-    }
-
-    var pattern = [];
-    var sipattern = [];
-    pattern[0] = makeCleanBlock(8);
-    sipattern[0] = makeCleanBlock(8);
-
-    var notetypes = mappings.length;
-    var maxPatterns = Math.pow(notetypes, barlen);
-    var maxPages = Math.ceil(Math.pow(notetypes, barlen) / config.worksheet.pageItems);
-    if (pagenum > maxPages) {
-        pagenum = 1;
-    }
-    var mxpat = pagenum * config.worksheet.pageItems;
-    if (mxpat > maxPatterns) {
-        mxpat = maxPatterns;
-    }
-
-    var randomPageNum = Math.round((Math.random() * maxPages) + 1);
-
-    //var pageHost = config.server.fullhost;
-    var pageHost = "";
-
-    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
-    var pageStart = pageSplits[0];
-    var pageEnd = pageSplits[1];
-
-    var patLenLinks = "";
-    for (var i = 2; i < maxpatlen; i++) {
-        patLenLinks += '<a href="/worksheet/' + i + '"> ' + i + ' </a>';
-    }
-    var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
-    var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
-    var randomPageLink = pageHost + "/worksheet/" + patlen + "?page=" + randomPageNum;
-    var footerData = "Page " + pagenum + " of " + maxPages;
-    pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
-    pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
-    pageStart = pageStart.replace("{{RANDOMPAGE}}", randomPageLink);
-    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
-    pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
-
-    stream.push(pageStart);
-    var written = (pagenum - 1) * config.worksheet.pageItems;
-
-    var bufferWriteInterval = setInterval(function() {
-        if (written < mxpat) {
-            var mx = written;
-            var cpat = (mx).toString(notetypes);
-            cpat = lpad(cpat, barlen);
-            pattern[mx] = cpat.split("");
-            for (var px in pattern[mx]) {
-                pattern[mx][px] = mappings[pattern[mx][px]];
+var baseObj = {
+    'score-partwise': [{
+            'part-list': {
+                'score-part': {
+                    '$': {
+                        id: "P1"
+                    },
+                        'part-name': 'HelloWorld'
+                }
             }
-            sipattern[0] = pattern[mx];
-            var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + exportBlocks(sipattern) + "' alt='Pattern " + exportBlocks(sipattern) + "' /></div>" + nl;
-            stream.push(writable);
-            written += 1;
-        } else {
-            stream.push(pageEnd);
-            stream.push(null);
-            clearInterval(bufferWriteInterval);
+        }, {
+            'part': {
+                '$': {
+                    id: 'P1'
+                },
+                
+                    'measure': [{
+                        '$': {
+                            'number': "1"
+                        },
+                        
+                                'attributes': {
+                                    'divisions': 1,
+                                    'key': {
+                                        'fifths': 0
+                                    },
+                                    'time': {
+                                        'beats': 4,
+                                        'beat-type': 4
+                                    },
+                                    'clef': {
+                                        'sign': 'G',
+                                        'line': 2
+                                    }
+                                }
+                            ,
+                            
+                                'note': {
+                                    'pitch': {
+                                        'step': 'C',
+                                        'octave': '4'
+                                    },
+                                    'duration': '4',
+                                    'type': 'whole'
+                                }
+                            
+                        
+                    }]
+                
+            }
         }
-    }, 50);
-};
+    ]
+}
+
+// <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+// <!DOCTYPE score-partwise PUBLIC
+//     "-//Recordare//DTD MusicXML 3.1 Partwise//EN"
+//     "http://www.musicxml.org/dtds/partwise.dtd">
+// <score-partwise version="3.1">
+//   <part-list>
+//     <score-part id="P1">
+//       <part-name>Music</part-name>
+//     </score-part>
+//   </part-list>
+//   <part id="P1">
+//     <measure number="1">
+//       <attributes>
+//         <divisions>1</divisions>
+//         <key>
+//           <fifths>0</fifths>
+//         </key>
+//         <time>
+//           <beats>4</beats>
+//           <beat-type>4</beat-type>
+//         </time>
+//         <clef>
+//           <sign>G</sign>
+//           <line>2</line>
+//         </clef>
+//       </attributes>
+//       <note>
+//         <pitch>
+//           <step>C</step>
+//           <octave>4</octave>
+//         </pitch>
+//         <duration>4</duration>
+//         <type>whole</type>
+//       </note>
+//     </measure>
+//   </part>
+// </score-partwise>
+
+var xml2js = require('xml2js');
+var builder = new xml2js.Builder();
+var xml = builder.buildObject(baseObj);
+console.log(xml);
 
 module.exports = {
     importBlocks: importBlocks,
     exportBlocks: exportBlocks,
     getImage: getImage,
     getAudio: getAudio,
-    getAll8Stream: getAll8Stream,
     getMappedTuple: getMappedTuple,
     convertNumToTuple: convertNumToTuple,
     convertNum: convertNum,
     convertNumSimple: convertNumSimple,
     convertMulti: convertMulti,
-    lpad: lpad,
 };

@@ -2,3 +2,5 @@ androidapp/
 tmpgen/
 node_modules/
 .git/
+run.sh
+runtest.sh

@@ -46,12 +46,12 @@ function debounce(func, delay){
 }
 
 funcs.getSeed = function() {
-    // new postfix every 10s
-    var inst = parseInt(new Date().getTime() / 1000 / 10);
-    // mod against 4, so 4 patterns every x seconds per user?
+    // new postfix every 8s
+    var inst = parseInt(new Date().getTime() / 1000 / 8);
+    // mod against y, so y/2 patterns every x seconds per user?
     // we double the increment and the mod because of
     //  how the backend increments totps
-    seedcount = (seedcount + 2) % 8;
+    seedcount = (seedcount + 2) % 32;
     cseed = "" + getId() + seedcount + inst;
 };
 
@@ -158,7 +158,7 @@ var viewStarred = function(){
   for (var s in thisInst.starred){
     var tpr = thisInst.starred[s];
     var templateVars = {seed:0,patref:tpr,metro:true,map:"sn",patlen:4,tempo:100};
-    starredBlock += '<div class="starredImagePreview"  ><img onclick="loadStarredPattern(\''+tpr+'\')" alt="preview" src="' + buildCustomTemplateUrl(imagebaseurl + hburlext, templateVars) + '" /><span onclick="removeFromStarred(\''+tpr+'\')">X</span></div>';
+    starredBlock += '<div class="starredImagePreview"  ><img onclick="loadStarredPattern(\''+tpr+'\')" alt="preview" src="' + buildCustomTemplateUrl(imagebaseurl + hburlext, templateVars) + '" /><span class="starredRemove" onclick="removeFromStarred(\'' + tpr + '\')">X</span></div>';
   }
   $('.starredPreviewPane .previews').html(starredBlock);
 }
@@ -177,12 +177,17 @@ var setupSettings = function() {
       $('[name="rests_on"]').attr('checked', 'checked');
     } 
 
-   $('[name^="etuple"]').removeAttr('checked');
-   for (var pt in settings.pattern_tuples){
-      $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
-   }
+    $('[name="metronome_on"]').removeAttr('checked');
+    if(settings.metronome_on){
+      $('[name="metronome_on"]').attr('checked', 'checked');
+    } 
 
-	updateCurrentSound();
+    $('[name^="etuple"]').removeAttr('checked');
+    for (var pt in settings.pattern_tuples){
+       $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
+    }
+
+    updateCurrentSound();
 
 };
 
@@ -213,13 +218,21 @@ function cycleMapIndex(cur, map){
 function cycleCurrentSound(){
   var cmi = cycleMapIndex(settings.sound_map_index, soundValuesMap);
 	settings.sound_map_index = cmi;
+  LS.set('soundmap', [soundValuesMap[cmi].map]);
   updateCurrentSound();	
 }
 
 function updateCurrentSound(){
+  try {
+    var cmo = soundValuesMap[settings.sound_map_index];
+    var soundMap = cmo.map;
+    settings.sound_map_map = soundMap;
+    updateCurrentSoundDisplay();
+  } catch(e){}
+}
+
+function updateCurrentSoundDisplay(){
   var cmo = soundValuesMap[settings.sound_map_index];
-  var soundMap = cmo.map;
-  settings.sound_map_map = soundMap;
   var soundText = cmo.text;
   $(".currentSound").html(soundText);
 }
@@ -271,16 +284,14 @@ var init = function() {
 					LS.set("globpatref", undefined);
 				}
 
-				if(LS.get("editsoundmap")){
-					settings.sound_map_map = (LS.get("editsoundmap")).join(",");
-					LS.set("editsoundmap", undefined);
+				if(LS.get("soundmap")){
+					settings.sound_map_map = (LS.get("soundmap")).join(",");
+          settings.sound_map_index = soundValuesMap.indexOf(soundValuesMap.filter(function(e,i){return e.map == settings.sound_map_map.split(',')[0]})[0]);
+          updateCurrentSoundDisplay();
 				}
 
-        //var newimg = imagebaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
         var newimg = buildTemplateUrl(imagebaseurl + hburlext);
-
         var newsnd = buildTemplateUrl(audiobaseurl + hburlext);
-        //   var newsnd = audiobaseurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nested=' + settings.nested_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
 
         imgholder.on("load", function() {
             loader.hide();

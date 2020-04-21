@@ -18,7 +18,7 @@
   .layerSect:nth-of-type(even) {
     background: #fafafa;
   }
-  .editsect {
+  .editSect {
   	width: 90%;
   	margin-left: auto;
   	margin-right: auto;
@@ -95,14 +95,32 @@
     background-image: url("/static/buttons/ntype6.png");
     background-size: contain;
   }
+  .hover-selector-block {
+    background: #fafafa;
+    position: fixed;
+    border-radius: 5px;
+    top: 15vh;
+    height: 20vh;
+    padding: 15px;
+    text-align: center;
+    z-index: 15;
+  }
+  .hover-selector-block .hover-selector-item{
+    display: :inline;
+    border-radius: 5px;
+    height: 52px;
+    width: 52px;
+    border:1px solid;
+  }
 	</style>
 	</head>
 	<body>
     <div class="markdoneimg appender" onclick="gotoMain()"></div>
-    <div onclick="cycleTotalLayers();">LAYERSBUTTON</div>
+    <div class="stave-counter" onclick="cycleTotalLayers();">Staves: 1</div>
+    <div class="sigSect"></div>
 	<br/>
     <div class="pmbtngroup"><div class="appender plusimg" onclick="mainplus()"></div> <div class="appender minusimg" onclick="mainmin()"></div></div>
-		<div class="editsect">
+		<div class="editSect">
 		</div>
 	<br/>
 		<!-- <img src="" class="customimage"/> -->
@@ -115,5 +133,16 @@
       navigator.serviceWorker.register('/static/serviceworker.js');
     }
   </script>
+
+    <div class="hover-selector-block" style="display:none;">
+      <div typeval="0" class="hover-selector-item ntype0"> </div>
+      <div typeval="1" class="hover-selector-item ntype1"> </div>
+      <div typeval="2" class="hover-selector-item ntype2"> </div>
+      <div typeval="3" class="hover-selector-item ntype3"> </div>
+      <div typeval="4" class="hover-selector-item ntype4"> </div>
+      <div typeval="5" class="hover-selector-item ntype5"> </div>
+      <div typeval="6" class="hover-selector-item ntype6"> </div>
+    </div>
+
 </body>
 </html>

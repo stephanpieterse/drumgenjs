@@ -1,7 +1,12 @@
 #!/bin/bash
 source env-docker.sh
 NAME=drumgen-test
-docker build -t $NAME:latest .
+cat Dockerfile > Dockerfile.test
+cat <<EOF >> Dockerfile.test
+RUN apt-get update && apt-get install -y git
+RUN cd /opt/app && npm install
+EOF
+docker build -f Dockerfile.test -t $NAME:latest .
 docker stop $NAME
 docker rm $NAME
 docker run --rm \

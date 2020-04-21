@@ -76,14 +76,14 @@ function syncLayerSizes(){
 function cycleTotalLayers(){
   var maxLayers = 2;
   thisEditor.layers = thisEditor.layers % maxLayers + 1;
-
+  $('.stave-counter').html("Staves: " + thisEditor.layers);
   init();
 }
 
 function gotoMain(){
   LS.set("editidpattern", thisEditor.arr); 
   LS.set("globpatref", thisEditor.globpatref); 
-  LS.set("editsoundmap", thisEditor.soundMap); 
+  LS.set("soundmap", thisEditor.soundMap); 
   window.location.href = '/static/page.html';
 }
 
@@ -135,6 +135,22 @@ function extendArr(arr, pos){
 		return arr;
 }
 
+function setarr(pos, newval){
+		thisEditor.arr = setme(thisEditor.arr, pos, newval);
+		init();
+}
+
+function setme(arr, pos, newval){
+	var np = pos.split(",");
+		if(np.length > 1){
+			var arrpos = np.shift();
+			arr[parseInt(arrpos)] = setme(arr[parseInt(arrpos)], np.join(","), newval);	
+		} else {
+			arr[parseInt(np[0])] = parseInt(newval) % 7; 
+		}
+		return arr;
+	}
+
 function incarr(pos){
 		thisEditor.arr = incme(thisEditor.arr, pos);
 		init();
@@ -164,12 +180,24 @@ function blockAppender(sect, curstr, curlevel){
 			curstr += blockAppender(sect[i], "", newlevel);
 			curstr += '</div>';
 		} else {
-			curstr += '<div onclick="incarr(\''+ newlevel +'\');" class="nselector ' + newlevel + ' ntype' + sect[i] + '" > </div>';
+			//curstr += '<div onclick="incarr(\''+ newlevel +'\'); openNoteSelector(\'' + newlevel + '\')" class="nselector ' + newlevel + ' ntype' + sect[i] + '" > </div>';
+			curstr += '<div onclick="openNoteSelector(\'' + newlevel + '\')" class="nselector ' + newlevel + ' ntype' + sect[i] + '" > </div>';
 		}
 	}
 	return curstr;
 }
 
+
+function openNoteSelector(pos){
+  $('.hover-selector-block .hover-selector-item').each(function(){
+    $(this).attr('onclick', 'setarr("'+pos+'","'+$(this).attr('typeval')+'"); closeHoverSelector();');
+  });
+  $('.hover-selector-block').show();
+}
+
+function closeHoverSelector(){
+  $('.hover-selector-block').hide();
+}
 
 function mainplus(){
   if(thisEditor.arr[0].length < 16){
@@ -221,10 +249,15 @@ function generateSoundSelector(){
 
 function init(){
   syncLayerSizes();
+  var sigSect = "";
+
+	sigSect += 'Signature ' + thisEditor.arr[0].length +  '/4 ';
+	sigSect += "<br/>";
+  sigSect += "Sounds: <br/>" + generateSoundSelector();
+
+  $('.sigSect').html(sigSect);
+
 	var str = "";
-	str += 'Signature ' + thisEditor.arr[0].length +  '/4 ';
-	str += "<br/>";
-  str += "Sounds: <br/>" + generateSoundSelector();
   for (var ba in thisEditor.arr){
     str += '<div class="layerSect">';
     str += blockAppender(thisEditor.arr[ba], "", "" + ba);
@@ -232,7 +265,7 @@ function init(){
     str += '<br/>';
   }
 	str += "<br/>";
-	$('.editsect').html(str);
+	$('.editSect').html(str);
 		$.get('/public/custommaptopatref/' + JSON.stringify(makePatternUnsane(thisEditor.arr))).then(function(d){
 		  thisEditor.globpatref = d.patref;
 			debouncer(function(){
@@ -252,6 +285,7 @@ if (patref) {
       }
 	   thisEditor.arr = data.unmapped; //makePatternSane(data.unmapped);
      thisEditor.layers = thisEditor.arr.length;
+     $('.stave-counter').html("Staves: " + thisEditor.layers);
    init();
  });
 } else {

@@ -231,5 +231,19 @@ img {
 .starredPreviewPane {
   height: 290px;
   overflow: scroll;
+  border: 1px solid #909090;
+  z-index: 10;
+  border-radius: 10px;
+  min-width: 150px;
+}
 
+.closeStarredPreviewPane {
+  position: absolute;
+  left: 10px;
+  padding: 2px;
+}
+
+.starredRemove {
+  margin: 15px;
+  font-size: 1.3em;
 }
