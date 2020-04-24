@@ -32,11 +32,12 @@ COPY ./docker_res/ /opt/res/
 
 COPY ./package.json /opt/app/package.json
 RUN cd /opt/app && npm install --only=production
+
+RUN apt-get install -y libxml-parser-perl libmidi-perl
+RUN apt-get install -y strace vim 
+
 COPY ./ /opt/app/
 RUN mkdir -p /opt/app/tmpgen && chmod 0777 /opt/app/tmpgen
 RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
-
-# DEBUG TIME!
-RUN apt-get install -y strace vim 
 
 CMD ["bash", "/opt/app/startapp.sh"]

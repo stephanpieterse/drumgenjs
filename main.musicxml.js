@@ -10,36 +10,46 @@ var config = require('./config.js');
 var timers = require('./timers.js');
 var metrics = require('./metrics.js');
 var miditools = require('./miditools.js');
+var common = require('./commonblockfuncs.js');
+var mediautil = require('./mediautil.js');
+var xml2js = require('xml2js');
 
 var Log = require('./logger.js');
 
 var dir_prefix = config.tmpdir;
 
-var impExpMap = {
-    "[[": "s",
-    "[1": "N",
-    "[0": "n",
-    "1]": "M",
-    "0]": "m",
-    "1,": "B",
-    "0,": "b",
-    ",1": "A",
-    ",0": "a",
-    "],": "p",
-    ",[": "P",
-    "]]": "e",
-    "]": "l",
-    "[": "k",
-    ",": "c"
+var repeatCount = 1;
+
+var noteNameLookup = {
+    '4': 'quarter',
+    '8': 'eighth',
+    '16': '16th',
+    '32': '32nd',
 };
 
-var nl = "\n";
-var space = " ";
-var repeatCount = 2;
+var findOptimalNoteDivision = function(blocks) {
+    // how do we do this for nested?
+    var tuples = [];
+    for (var b in blocks) {
+        tuples.push(blocks[b].length);
+    }
+    var mults = [];
+    for (var t in tuples) {
+        if (mults.indexOf(tuples[t]) === -1) {
+            mults.push(tuples[t]);
+        }
+    }
+    var division = mults.reduce(function(t, v) {
+        return t * v;
+    });
+    return division;
+};
 
-var genLilyTupleMapper = function(blocks, repnote, noteBase) {
-    var file = "";
+var genMusicXmlTupleMapper = function(blocks, repnote, noteBase, tupnestlevel, thisDiv) {
     var normDiv = [2, 4, 8, 16];
+    var notes = [];
+
+    var noteDuration = thisDiv / blocks.length;
 
     for (var b = 0; b < blocks.length; b++) {
         if (Array.isArray(blocks[b])) {
@@ -48,131 +58,255 @@ var genLilyTupleMapper = function(blocks, repnote, noteBase) {
             if (normDiv.indexOf(tupNum) !== -1) {
                 noteDur = "" + (tupNum * noteBase);
             } else {
-                file += "\\tuplet " + tupNum + "/2 " + "\n";
+                // file += "\\tuplet " + tupNum + "/2 " + "\n";
                 noteDur = "" + (noteDur * 2);
             }
-            file += "{ " + nl;
 
-            file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
+            noteBase = noteBase * 2;
+            var tupnotes = genMusicXmlTupleMapper(blocks[b], repnote, parseInt(noteDur), tupnestlevel + 1, noteDuration);
+            var tupnestnumber = '' + b + tupnestlevel;
+            tupnotes[0].notations = tupnotes[0].notations || {};
+            tupnotes[0].notations.tuplet = [{
+                $: {
+                    'type': 'start',
+                    'number': tupnestnumber
+                }
+            }];
 
-            file += "} " + "\n";
+            var lastitem = tupnotes.length - 1;
+            tupnotes[lastitem].notations = tupnotes[lastitem].notations || {};
+            tupnotes[lastitem].notations.tuplet = tupnotes[lastitem].notations.tuplet || [];
+            tupnotes[lastitem].notations.tuplet.push({
+                $: {
+                    'type': 'stop',
+                    'number': tupnestnumber
+                }
+            });
+
+            notes = notes.concat(tupnotes);
         } else {
-            file += genLilySingleMapper(blocks[b], repnote, noteBase);
+            notes.push(genMusicXmlSingleMapper(blocks[b], repnote, noteBase, noteDuration));
         }
     }
-    return file;
 
+    return notes;
 };
 
-var genLilySingleMapper = function(blockb, repnote, noteBase) {
-    var file = "";
+
+var genMusicXmlSingleMapper = function(blockb, repnote, noteBase, noteDuration) {
+    var noteObj = {};
+
+    //noteObj.pitch = {'step':'E','octave':'4'};
+    noteObj.unpitched = {
+        'display-step': 'E',
+        'display-octave': '4'
+    };
+    noteObj.duration = noteDuration;
+    noteObj.instrument = {
+        $: {
+            'id': 'P1-I77'
+        }
+    };
+    noteObj.voice = 1;
+    noteObj.type = noteNameLookup[noteBase];
+    noteObj.dynamics = "0.5";
+    noteObj.stem = 'down';
     switch (blockb) {
         case "L":
-            //file += repnote + noteBase + '->-"L"' + space;
-            file += repnote + (noteBase) + '->-"L"-\\omit\\fff' + space;
+            noteObj.dynamics = "0.9";
+            noteObj.notations = {
+                'articulations': {
+                    'accent': {}
+                }
+            };
+            noteObj.lyric = {
+                'text': blockb.toUpperCase(),
+                'syllabic': 'single'
+            };
             break;
         case "l":
-            //file += repnote + noteBase + '-"L"' + space;
-            file += repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
+            noteObj.lyric = {
+                'text': blockb.toUpperCase(),
+                'syllabic': 'single'
+            };
             break;
         case "R":
-            //file += repnote + noteBase + '->-"R"' + space;
-            file += repnote + (noteBase) + '->-"R"-\\omit\\fff' + space;
+            noteObj.dynamics = "0.9";
+            noteObj.notations = {
+                'articulations': {
+                    'accent': {}
+                }
+            };
+            noteObj.lyric = {
+                'text': blockb.toUpperCase(),
+                'syllabic': 'single'
+            };
             break;
         case "r":
-            //file += repnote + noteBase + '-"R"' + space;
-            file += repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
+            noteObj.lyric = {
+                'text': blockb.toUpperCase(),
+                'syllabic': 'single'
+            };
             break;
         case "X":
-            //file += repnote + noteBase + "->" + space;
-            file += repnote + (noteBase) + "->-\\omit\\fff" + space;
+            noteObj.dynamics = "0.9";
+            noteObj.notations = {
+                'articulations': {
+                    'accent': {}
+                }
+            };
             break;
         case "x":
-            //file += repnote + noteBase + space;
-            file += repnote + (noteBase) + '-\\omit\\pp' + space;
             break;
         case "-":
-            file += "r" + noteBase + space;
+            noteObj.rest = {};
             break;
     }
+    //{'pitch': {
+    //                            'step': 'D',
+    //                            'octave': '3'
+    //                        },
+    //                        'duration': '2',
+    //                        'type': 'half'
+    //                    }
+    //     <notations>
+    //          <articulations>
+    //            <accent default-x="-1" default-y="-55" placement="below"/>
+    //          </articulations>
+    //        </notations>
 
-    return file;
+    //   <lyric default-y="-80" number="1">
+    //     <syllabic>single</syllabic>
+    //     <text>Dans</text>
+    //   </lyric>
+    return noteObj;
 };
 
-var genLilypondPart = function(blocks, repnote, noteBase) {
-    var file = "";
+
+
+var genMusicXmlPart = function(blocks, repnote, noteBase, thisDiv) {
+    var notes = [];
     var normDiv = [2, 4, 8, 16];
     noteBase = noteBase || 4;
+    var plainTuple;
 
+    var tupnestlevel = 1;
+    var noteDuration = thisDiv;
     // for nested and nice stuff, we need to
     // split the arr and normal mapping into
     // two functions so we can recurse
 
-    file += "{";
     for (var b = 0; b < blocks.length; b++) {
         if (Array.isArray(blocks[b])) {
             var noteDur = "" + noteBase;
             var tupNum = blocks[b].length;
             if (normDiv.indexOf(tupNum) !== -1) {
                 noteDur = "" + (tupNum * noteBase);
+                plainTuple = true;
             } else {
-                file += "\\tuplet " + tupNum + "/2 " + "\n";
+                // file += "\\tuplet " + tupNum + "/2 " + "\n";
                 noteDur = "" + (noteDur * 2);
+                plainTuple = false;
             }
-            file += "{ " + nl;
-            file += genLilyTupleMapper(blocks[b], repnote, parseInt(noteDur));
+            var tupnotes = genMusicXmlTupleMapper(blocks[b], repnote, parseInt(noteDur), tupnestlevel + 1, noteDuration);
+            if (!plainTuple) {
+                // on first note of retrun
+                //  <notations>
+                //        <tuplet bracket="yes" number="1" placement="above" type="start"/>
+                //      </notations>
 
-            file += "} " + "\n";
+                var tupnestnumber = '' + b + tupnestlevel;
+                tupnotes[0].notations = tupnotes[0].notations || {};
+                tupnotes[0].notations.tuplet = [{
+                    $: {
+                        'type': 'start',
+                        'number': tupnestnumber
+                    }
+                }];
 
+
+                //       <tuplet-actual>
+                //           <tuplet-number>3</tuplet-number>
+                //           <tuplet-type>eighth</tuplet-type>
+                //         </tuplet-actual>
+
+                var lastitem = tupnotes.length - 1;
+                tupnotes[lastitem].notations = tupnotes[lastitem].notations || {};
+                tupnotes[lastitem].notations.tuplet = tupnotes[lastitem].notations.tuplet || [];
+                tupnotes[lastitem].notations.tuplet.push({
+                    $: {
+                        'type': 'stop',
+                        'number': tupnestnumber
+                    }
+                });
+                // on last not of terutn
+                //    <notations>
+                //         <tuplet number="1" type="stop"/>
+                //       </notations>
+
+
+                for (var t in tupnotes) {
+                    //     <time-modification>
+                    //         <actual-notes>9</actual-notes>
+                    //         <normal-notes>4</normal-notes>
+                    //         <normal-type>quarter</normal-type>
+                    //       </time-modification>
+
+
+                    // nested tuples get confusing cuz we need to calc how many
+                    // notes there would be if the entire tuple was subbed
+                    tupnotes[t]['time-modification'] = {
+                        'actual-notes': tupNum,
+                        'normal-notes': 2
+                    };
+                }
+
+            } else {
+                for (var u in tupnotes) {
+                    //    tupnotes[u]['duration'] = tupnotes[u]['duration'] / tupNum;
+                }
+            }
+            notes = notes.concat(tupnotes);
         } else {
-            file += genLilySingleMapper(blocks[b], repnote, noteBase);
+            notes.push(genMusicXmlSingleMapper(blocks[b], repnote, noteBase, noteDuration));
 
         }
     }
-    file += " }";
-    return file;
+    return notes;
 };
+
+
 
 // var genMetronomePart = function(patlen, eopts) {
 var genMetronomePart = function(patlen) {
-    var metro = "";
-    metro += "\\new DrumStaff" + "\n";
-    metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " \\override Stem #'(details beamed-lengths) = #'(2) }" + "\n";
-    metro += "{" + "\n";
-    metro += "\\time " + patlen + "/4" + nl;
-    metro += "\\drummode {" + nl;
-    metro += "\\repeat volta " + repeatCount + " << {";
-    metro += " wbh4 ";
+    var notes = [];
     for (var w = 1; w < patlen; w++) {
-        metro += " wbl4 ";
+        var noteObj = {};
+
+        noteObj.unpitched = {
+            'display-step': 'A',
+            'display-octave': '2'
+        };
+        noteObj.duration = 1; // who knows what a duration is
+        noteObj.type = 'quarter';
+        notes.push(noteObj);
     }
-    metro += " } >>" + nl;
-    metro += "}" + nl;
-    metro += "}" + nl;
-    return metro;
+    return notes;
+    //    metro += "\\new DrumStaff" + "\n";
+    //    metro += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 \\override Stem.Y-extent = ##f " + 'instrumentName = #"Metronome"' + " \\override Stem #'(details beamed-lengths) = #'(2) }" + "\n";
+    //    metro += "{" + "\n";
+    //    metro += "\\time " + patlen + "/4" + nl;
+    //    metro += "\\drummode {" + nl;
+    //    metro += "\\repeat volta " + repeatCount + " << {";
+    //    metro += " wbh4 ";
+    //    for (var w = 1; w < patlen; w++) {
+    //        metro += " wbl4 ";
+    //    }
+    //    metro += " } >>" + nl;
+    //    metro += "}" + nl;
+    //    metro += "}" + nl;
 };
 
-var getLilypondHeader = function() {
-    var head = "";
-    var paperString = "\\paper {" + nl +
-        " indent = 0\\mm" + nl +
-        " line-width = 110\\mm" + nl +
-        " oddHeaderMarkup = \"\"" + nl +
-        " evenHeaderMarkup = \"\"" + nl +
-        " oddFooterMarkup = \"\"" + nl +
-        " evenFooterMarkup = \"\"" + nl +
-        "}";
-    head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '400)" + nl;
-    head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
-    head += "#(ly:set-option 'backend 'eps)" + nl;
-    head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
-    head += "#(ly:set-option 'include-eps-fonts '#t)" + nl;
-    head += paperString;
-    var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
-    head += defDrums;
-    return head;
-};
 
 var genMusicBlockSection = function(blocks, options) {
 
@@ -180,216 +314,188 @@ var genMusicBlockSection = function(blocks, options) {
     var staffnames = options._staffnames;
     var patlen = blocks[0].length;
 
-    // I don't think this is needed overall,
-    // but it does cause lilypond pre 2.19
-    // issues when I was messing around
-    // because repnote in the further functions
-    // became undefined
     while (mappings.length < blocks.length) {
         mappings.push(mappings[0]);
     }
 
-    var file = "";
-    file += "<<" + nl;
-
-    file += "<<" + nl;
+    var notes = [];
     for (var block in blocks) {
-        file += "\\new DrumStaff " + nl;
-        file += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 " + 'instrumentName = #"' + staffnames[block] + '"' + " }" + nl;
-        file += " { " + nl;
-        file += "\\omit Score.MetronomeMark" + nl;
-        file += "\\time " + patlen + "/4" + nl;
-        file += "\\set DrumStaff.drumStyleTable = #(alist->hash-table mydrums)" + nl;
-        if (options.tempo) {
-            file += "\\tempo 4 = " + options.tempo + nl;
-        }
-        file += "\\drummode {" + nl;
-        file += "\\repeat volta " + repeatCount + " ";
-        file += genLilypondPart(blocks[block], mappings[block]);
-        file += "}" + nl;
-        file += "}" + nl;
-    }
-    file += ">>" + nl;
-
-    if (!options.noMetronome) {
-        file += genMetronomePart(patlen, options);
+        var optDiv = findOptimalNoteDivision(blocks[block]);
+        var thisPart = genMusicXmlPart(blocks[block], mappings[block], 4, parseInt(optDiv));
+        notes.push(thisPart);
     }
 
-    file += ">>" + nl;
-    return file;
+
+    //for (var block in blocks) {
+    //    file += "\\new DrumStaff " + nl;
+    //    file += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 " + 'instrumentName = #"' + staffnames[block] + '"' + " }" + nl;
+    //    file += " { " + nl;
+    //    file += "\\omit Score.MetronomeMark" + nl;
+    //    file += "\\time " + patlen + "/4" + nl;
+    //    file += "\\set DrumStaff.drumStyleTable = #(alist->hash-table mydrums)" + nl;
+    //    if (options.tempo) {
+    //        file += "\\tempo 4 = " + options.tempo + nl;
+    //    }
+    //    file += "\\drummode {" + nl;
+    //    file += "\\repeat volta " + repeatCount + " ";
+    //    file += genLilypondPart(blocks[block], mappings[block]);
+    //    file += "}" + nl;
+    //    file += "}" + nl;
+    //}
+
+    return notes;
 };
 
-var patternToLilypond = function(blocks, options) {
-    options = getDefaultOptions(options);
+var getMusicXmlTestObj = function() {
+    return getMusicXmlBase({
+        tempo: 100
+    });
+};
 
-    //var mappings = options.mappings || ["hh", "sn", "bd", "hh"];
-    //var mappings = ["hh", "sn", "bd", "hh"];
-    //if (options.mappings && options.mappings[0]) {
-    //    mappings = options.mappings;
+var getMusicXmlBase = function(eopts) {
+
+    //    36 Bass Drum 1
+    //    37 Side Stick/Rimshot
+    //    38 Acoustic Snare
+    //    39 Hand Clap
+    //    41 Low Floor Tom
+    //    42 Closed Hi-hat
+    //    44 Pedal Hi-hat
+    //    45 Low Tom
+    //    47 Low-Mid Tom
+    //    48 Hi-Mid Tom
+    //    50 High Tom
+    //    53 Ride Bell
+    //    54 Tambourine
+    //    56 Cowbell
+    //    60 High Bongo
+    //    61 Low Bongo
+    //    62 Mute High Conga
+    //    63 Open High Conga
+    //    64 Low Conga
+    //    65 High Timbale
+    //    66 Low Timbale
+    //    75 Claves
+    //    76 High Wood Block
+    //    77 Low Wood Block
+
+
+    // repeats to be added as part of measures
+    //   <barline location="left">
+    //     <bar-style>heavy-light</bar-style>
+    //     <repeat direction="forward"/>
+    //   </barline>
+    // 
+    //  <barline location="right">
+    //     <bar-style>light-heavy</bar-style>
+    //     <repeat direction="backward"/>
+    //   </barline>
+    // 
+
+    // in score-poart
+    //    <midi-instrument id="P2-X1">
+    //      <midi-channel>10</midi-channel>
+    //      <midi-program>1</midi-program>
+    //      <midi-unpitched>57</midi-unpitched>
+    //    </midi-instrument>
+    var baseObj = {
+        'score-partwise': [{
+            'part-list': {
+                'score-part': {
+                    '$': {
+                        id: "P1"
+                    },
+                    'part-name': 'Drums',
+                    'score-instrument': [{
+                        $: {
+                            'id': 'P1-I77'
+                        },
+                        'instrument-name': 'Woodblock'
+                    }],
+                    'midi-instrument': {
+                        $: {
+                            'id': 'P1-I77'
+                        },
+                        'midi-channel': '10',
+                        'midi-program': '1',
+                        'midi-unpitched': '77',
+                        'volume': '95'
+                    }
+                }
+            }
+        }, {
+            'part': {
+                '$': {
+                    id: 'P1'
+                },
+
+                'measure': [{
+                    '$': {
+                        'number': "1"
+                    },
+                    'attributes': {
+                        'divisions': 1,
+                        'key': {
+                            'fifths': 0
+                        },
+                        'time': {
+                            'beats': 4,
+                            'beat-type': 4
+                        },
+                        'instruments': 1,
+                        'clef': {
+                            'sign': 'percussion',
+                            'line': 2
+                        },
+                        'staff-details': {
+                            'staff-lines': '1'
+                        }
+                    },
+                    //  'direction':{
+                    //    $:{'placement':'above'}
+                    //  },
+                    'sound': {
+                        $: {
+                            'tempo': eopts.tempo
+                        }
+                    },
+                    'note': []
+
+                }]
+            }
+        }]
+    };
+
+    //'note': {
+    //    'pitch': {
+    //        'step': 'C',
+    //        'octave': '4'
+    //    },
+    //    'duration': '4',
+    //    'type': 'whole'
     //}
-    //// I'm actually a bit confused about this line,
-    //// but for now I think we need it.
-    //options.mappings = mappings;
+    return baseObj;
+};
 
+var patternToMusicXml = function(blocks, options) {
+
+    options = getDefaultOptions(options);
     var staffnames = ["HiHat", "Snare", "Bass Drum", "HH Foot"];
     if (options.noNames) {
         staffnames = ["", "", "", ""];
     }
     options._staffnames = staffnames;
 
-    var file = "";
-    file += getLilypondHeader();
-    // some metadata for our cleaning scripts
-    file += nl;
-    file += "% gendate:" + parseInt(Date.now() / 1000) + nl;
-    file += "% filename:" + options._fullname + nl;
-    file += "\\score {" + nl;
+    var xmlObj = JSON.parse(JSON.stringify(getMusicXmlBase(options)));
+    var partNotes = genMusicBlockSection(blocks, options);
 
-    options._isMidiSection = false;
-    file += genMusicBlockSection(blocks, options);
-
-    file += "\\layout { }" + nl;
-
-    file += "}" + nl;
-
-
-    options._isMidiSection = true;
-    file += "\\score {" + nl;
-    file += "\\unfoldRepeats " + nl;
-    file += genMusicBlockSection(blocks, options);
-    file += "\\midi { }" + nl;
-    file += "}";
-    return file;
-};
-
-var makeCleanBlock = function(blocks) {
-    var pat = [];
-    for (var b = 0; b < blocks; b++) {
-        pat[b] = '|';
+    xmlObj['score-partwise'][1]['part']['measure'][0]['note'] = partNotes[0];
+    xmlObj['score-partwise'][1]['part']['measure'][0]['attributes']['divisions'] = findOptimalNoteDivision(blocks[0]);
+    if (!options.noMetronome) {
+        var patlen = blocks[0].length;
+        var metroNotes = genMetronomePart(patlen, options);
     }
-
-    return pat;
-};
-
-var genericMapper = function(num, patlen, mappings) {
-
-    var cachedid = "genmapper-" + JSON.stringify(arguments);
-    var cid = cache.get(cachedid);
-
-    if (cid) {
-        Log.debug({
-            cacheitem: cid,
-            id: cachedid
-        }, "Returning map from cache");
-        return cache.get(cachedid);
-    }
-
-    var pattern = [];
-    var sipattern = [];
-    pattern[0] = makeCleanBlock(patlen);
-    sipattern[0] = makeCleanBlock(patlen);
-
-    var barlen = patlen;
-    var notetypes = mappings.length;
-
-    var randPat = parseInt(num);
-    var cpat = (randPat).toString(notetypes);
-    cpat = util.lpad(cpat, barlen);
-    pattern[0] = cpat.split("");
-    for (var px in pattern[0]) {
-        // pattern[0][px] = mappings[pattern[0][px]];
-        pattern[0][px] = mappings[(pattern[0][px]).toString(10)];
-    }
-
-    sipattern[0] = pattern[0];
-
-    Log.debug({
-        id: cachedid,
-        cacheitem: sipattern[0]
-    }, "Setting item in cache");
-    cache.set(cachedid, sipattern[0], 7200);
-
-    return sipattern[0];
-};
-
-var convertNumToTuple = function(num, patlen, mappings) {
-
-    mappings = (!mappings || mappings.length === 0) ? ['1', '2', '3', '4', '5'] : mappings;
-    mappings.sort();
-
-    if (mappings.length < 2) {
-        mappings.unshift(mappings[0]);
-    }
-
-    patlen = patlen || 8;
-
-    return genericMapper(num, patlen, mappings);
-
-};
-
-var getMappedTuple = function(tuple, num, mappings) {
-
-    mappings = (!mappings || mappings.length === 0) ? ['-', 'r', 'R', 'l', 'L'] : mappings;
-    var patlen = tuple;
-
-    return genericMapper(num, patlen, mappings);
-
-};
-
-var importBlocks = function(patid) {
-    var cpid = "patid" + patid;
-    if (cache.get(cpid)) {
-        return cache.get(cpid);
-    }
-
-    var pat = new Buffer(patid);
-    pat = pat.toString('UTF-8');
-
-    var regex;
-    for (var m in impExpMap) {
-        regex = new RegExp(util.regexEscape(impExpMap[m]), "g");
-        Log.trace(pat);
-        pat = pat.replace(regex, m);
-        Log.trace(pat);
-    }
-
-    pat = pat.replace(/0/g, '"-"');
-    pat = pat.replace(/1/g, '"x"');
-    pat = pat.replace(/2/g, '"X"');
-    pat = pat.replace(/3/g, '"r"');
-    pat = pat.replace(/4/g, '"R"');
-    pat = pat.replace(/5/g, '"l"');
-    pat = pat.replace(/6/g, '"L"');
-
-    Log.trace(pat);
-    cache.set(cpid, pat, 7200);
-    return pat;
-};
-
-var exportBlocks = function(blocks) {
-    var pat = JSON.stringify(blocks);
-    Log.trace(pat);
-    var enc = new Buffer(pat);
-    Log.debug(enc.toString('base64'));
-    enc = enc.toString();
-
-    enc = enc.replace(/"-"/g, 0);
-    enc = enc.replace(/"x"/g, 1);
-    enc = enc.replace(/"X"/g, 2);
-    enc = enc.replace(/"r"/g, 3);
-    enc = enc.replace(/"R"/g, 4);
-    enc = enc.replace(/"l"/g, 5);
-    enc = enc.replace(/"L"/g, 6);
-
-    var regex;
-    for (var m in impExpMap) {
-        regex = new RegExp(util.regexEscape(m), "g");
-        enc = enc.replace(regex, impExpMap[m]);
-    }
-
-    enc = new Buffer(enc);
-    enc = enc.toString();
-    return enc;
+    return xmlObj;
 };
 
 var getDefaultOptions = function(eopts) {
@@ -400,57 +506,56 @@ var getDefaultOptions = function(eopts) {
     return options;
 };
 
-
-var generateLilypond = function(pattern, eopts) {
+var generateMusicXml = function(pattern, eopts) {
     return new Promise(function(resolve, reject) {
+
         eopts = getDefaultOptions(eopts);
         eopts = generateFilename(pattern, eopts);
 
-        //eopts.mappings = (eopts.map ? [eopts.map] : "sn");
         eopts.mappings = (eopts.map ? (Array.isArray(eopts.map) ? eopts.map : eopts.map.split(',')) : ["sn"]);
 
-        timers.start("gen-lily");
-        metrics.increment('generated', 'lilypond-files');
-        var finalPattern = patternToLilypond(pattern, eopts);
-        timers.end("gen-lily");
-
-        if (fs.existsSync(eopts._fullname_notempo + ".ly")) {
+        var fileExt = ".musicxml";
+        if (fs.existsSync(eopts._fullname_notempo + fileExt)) {
             resolve();
             return;
         }
 
-        fs.writeFile(eopts._fullname_notempo + ".ly", finalPattern, function(error) {
+        timers.start("gen-musicxml");
+        var finalPatternObj = patternToMusicXml(pattern, eopts);
+
+        var builder = new xml2js.Builder({
+            xmldec: {
+                standalone: false
+            },
+            doctype: {
+                'pubID': '-//Recordare//DTD MusicXML 3.1 Partwise//EN',
+                'sysID': 'http://www.musicxml.org/dtds/partwise.dtd'
+            }
+        });
+        var finalPattern = builder.buildObject(finalPatternObj);
+
+        timers.end("gen-musicxml");
+        fs.writeFile(eopts._fullname_notempo + fileExt, finalPattern, function(error) {
             if (error) {
                 Log.error(error);
                 reject(error);
                 return;
             }
-            resolve();
-        });
-    });
-};
 
-var tagPNG = function(filename) {
-    return new Promise(function(resolve, reject) {
-        timers.start('tag-png');
-        var tagchild;
-        // exiftool is nicer but damn slow
-        // var tagchild = exec('exiftool -author=DrumGen -comment="Generated for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
-        tagchild = exec('mogrify -comment "Generated by DrumGen for your practicing enjoyment" ' + filename + '.png', function(err, stdout, stderr) {
-            timers.end('tag-png');
-            Log.debug('stdout: ' + stdout);
-            Log.debug('stderr: ' + stderr);
-            if (err) {
-                Log.error(err);
-                reject();
-            }
-            resolve();
+            var audioCmd = "perl /opt/app/musicxml2mid.pl " + eopts._fullname_notempo + fileExt + " > " + eopts._fullname_notempo + ".midi ";
+            var audiochild;
+            audiochild = exec(audioCmd, function(error, stdout, stderr) {
+                if (error) {
+                    reject();
+                    return;
+                }
+                resolve();
+            });
         });
     });
 };
 
 var generatePNG = function(filename) {
-
     return new Promise(function(resolve, reject) {
 
         if (fs.existsSync(filename + ".png")) {
@@ -458,46 +563,25 @@ var generatePNG = function(filename) {
             return;
         }
 
-        timers.start("gen-png");
+        timers.start("gen-msxml-png");
         metrics.increment('generated', 'images');
         var genchild;
-        //q.push(function(cb) {
-        //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
-        genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
-            timers.end("gen-png");
+        //genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
+        var imageCmd = "echo 1";
+        genchild = exec(imageCmd, function(error, stdout, stderr) {
+            timers.end("gen-msxml-png");
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
             if (error !== null) {
                 Log.error('exec error: ' + error);
                 reject(error);
-                //           cb();
                 return;
             }
-            tagPNG(filename).then(function() {
+            mediautil.tagPNG(filename).then(function() {
                 resolve();
-                //         cb();
             }).catch(function() {
                 resolve();
-                //      cb();
             });
-        });
-        //});
-    });
-};
-
-var tagOGG = function(filename) {
-    return new Promise(function(resolve, reject) {
-        var tagchild;
-        timers.start('tag-ogg');
-        tagchild = exec('lltag --yes --ogg -a "DrumGen" -d `date` -t "' + filename + '" -c "Generated for your practicing enjoyment" ' + filename + '.ogg', function(err, stdout, stderr) {
-            timers.end('tag-ogg');
-            Log.debug('stdout: ' + stdout);
-            Log.debug('stderr: ' + stderr);
-            if (err) {
-                Log.error(err);
-                reject();
-            }
-            resolve();
         });
     });
 };
@@ -513,10 +597,12 @@ var generateOGG = function(filename, endtime) {
         endtime = endtime || "";
         timers.start("gen-ogg");
         metrics.increment('generated', 'audio');
-        // q.push(function(cb) {
         var audiochild;
-        // audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-        audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
+        //var audioCmd = "perl /opt/app/musicxml2mid.pl " + filename + ".musicxml > " + filename + ".midi ";
+        // audioCmd += "&& timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi ";
+        var audioCmd = "timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi ";
+        audioCmd += "&&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ";
+        audiochild = exec(audioCmd, function(error, stdout, stderr) {
             timers.end("gen-ogg");
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
@@ -525,15 +611,24 @@ var generateOGG = function(filename, endtime) {
                 reject(error);
                 return;
             }
-            tagOGG(filename).then(function() {
+            mediautil.tagOGG(filename).then(function() {
                 resolve();
-                //          cb();
             }).catch(function() {
                 resolve();
-                //           cb();
             });
         });
-        // });
+    });
+};
+
+var getMusicXML = function(pattern, eopts, cb) {
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
+    generateMusicXml(pattern, eopts).then(function() {
+        fs.readFile(eopts._fullname_notempo + ".musicxml", function(err, buf) {
+            cb(err, buf);
+        });
+    }).catch(function(e) {
+        cb(e);
     });
 };
 
@@ -541,7 +636,7 @@ var generateAllFiles = function(pattern, eopts) {
 
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
-    var cacheName = "cache-gen-prom-" + pattern + JSON.stringify(eopts);
+    var cacheName = "cache-gen-msxml-prom-" + eopts._hash;
     var cachedItem = cache.get(cacheName);
 
     if (cachedItem) {
@@ -549,8 +644,7 @@ var generateAllFiles = function(pattern, eopts) {
     }
 
     var prom = new Promise(function(resolve, reject) {
-        generateLilypond(pattern, eopts).then(function() {
-            //generatePNG(eopts._fullname).then(function() {
+        generateMusicXml(pattern, eopts).then(function() {
             generatePNG(eopts._fullname_notempo).then(function() {
                 resolve();
             }).catch(function(e) {
@@ -569,7 +663,7 @@ var generateFilename = function(pattern, eopts) {
 
     var nameOpts = [eopts.map, eopts.pattern, eopts.noMetronome];
     var fullBuffedOpts = Buffer.from(JSON.stringify(nameOpts)).toString('hex');
-    var filenames_pre_notempo = fullBuffedOpts + exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
+    var filenames_pre_notempo = fullBuffedOpts + common.exportBlocks(pattern) + (eopts.noMetronome ? '-nometro' : '-metro');
     var filenames_pre = filenames_pre_notempo + '-' + eopts.tempo;
     var fullname = dir_prefix + filenames_pre;
     var fullname_notempo = dir_prefix + filenames_pre_notempo;
@@ -578,6 +672,7 @@ var generateFilename = function(pattern, eopts) {
     eopts._filenames_pre = filenames_pre;
     eopts._filenames_pre_notempo = filenames_pre_notempo;
     eopts._pattern = pattern;
+    eopts._hash = fullBuffedOpts;
 
     return eopts;
 };
@@ -604,7 +699,7 @@ var getAudio = function(pattern, eopts, cb) {
             return;
         }
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
-        patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
+        var patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
         generateOGG(eopts._fullname, patendtime).then(function() {
             getAudioData(pattern, eopts, function(err, auData) {
                 if (err) {
@@ -652,7 +747,7 @@ var getImage = function(pattern, eopts, cb) {
 
         if (makeErr) {
             Log.error(makeErr);
-            cb(makeErr)
+            cb(makeErr);
             return;
         }
 
@@ -693,169 +788,19 @@ var getImageData = function(pattern, eopts, cb) {
     return;
 };
 
+var testpat = [
+    ["l", ['r', 'r'], "R", ['l', 'l', 'l', 'l', 'l']]
+];
 
-
-var convertNumSimple = function(num, patlen, mappings) {
-
-    mappings = (!mappings || mappings.length === 0) ? ['-', 'r', 'R', 'l', 'L'] : mappings;
-
-    patlen = patlen || 8;
-
-    var ret = exportBlocks([genericMapper(num, patlen, mappings)]);
-    return ret;
-};
-
-var convertNum = function(num, patlen, tuples) {
-    var simpleBlocks = convertNumSimple(num, patlen);
-
-    if (tuples) {
-        var tupMap = tuples.split(",");
-
-        console.log(tupMap);
-        // TODO
+getMusicXML(testpat, {}, function(e, d) {
+    if (e) {
+        console.log(e);
     }
-    return simpleBlocks;
+});
 
-};
-
-var convertMulti = function(num, patlen) {
-    var nums = num.split(",");
-    Log.debug(nums);
-    // var mappings = ['-', 'r', 'R', 'l', 'L'];
-    var mappings = ['-', 'x', 'X'];
-
-    patlen = patlen || 8;
-
-    var pattern = [];
-    var sipattern = [];
-
-    for (var j in nums) {
-        pattern[j] = makeCleanBlock(patlen);
-        sipattern[j] = makeCleanBlock(patlen);
-        var barlen = patlen;
-        var notetypes = mappings.length;
-
-        var randPat = parseInt(nums[j]);
-        Log.trace(randPat);
-        var cpat = (randPat).toString(notetypes);
-        cpat = util.lpad(cpat, barlen);
-        pattern[j] = cpat.split("");
-        for (var px in pattern[j]) {
-            pattern[j][px] = mappings[pattern[j][px]];
-        }
-        sipattern[j] = pattern[j];
-    }
-
-    var ret = exportBlocks(sipattern);
-    return ret;
-};
-
-
-var baseObj = {
-    'score-partwise': [{
-            'part-list': {
-                'score-part': {
-                    '$': {
-                        id: "P1"
-                    },
-                        'part-name': 'HelloWorld'
-                }
-            }
-        }, {
-            'part': {
-                '$': {
-                    id: 'P1'
-                },
-                
-                    'measure': [{
-                        '$': {
-                            'number': "1"
-                        },
-                        
-                                'attributes': {
-                                    'divisions': 1,
-                                    'key': {
-                                        'fifths': 0
-                                    },
-                                    'time': {
-                                        'beats': 4,
-                                        'beat-type': 4
-                                    },
-                                    'clef': {
-                                        'sign': 'G',
-                                        'line': 2
-                                    }
-                                }
-                            ,
-                            
-                                'note': {
-                                    'pitch': {
-                                        'step': 'C',
-                                        'octave': '4'
-                                    },
-                                    'duration': '4',
-                                    'type': 'whole'
-                                }
-                            
-                        
-                    }]
-                
-            }
-        }
-    ]
-}
-
-// <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-// <!DOCTYPE score-partwise PUBLIC
-//     "-//Recordare//DTD MusicXML 3.1 Partwise//EN"
-//     "http://www.musicxml.org/dtds/partwise.dtd">
-// <score-partwise version="3.1">
-//   <part-list>
-//     <score-part id="P1">
-//       <part-name>Music</part-name>
-//     </score-part>
-//   </part-list>
-//   <part id="P1">
-//     <measure number="1">
-//       <attributes>
-//         <divisions>1</divisions>
-//         <key>
-//           <fifths>0</fifths>
-//         </key>
-//         <time>
-//           <beats>4</beats>
-//           <beat-type>4</beat-type>
-//         </time>
-//         <clef>
-//           <sign>G</sign>
-//           <line>2</line>
-//         </clef>
-//       </attributes>
-//       <note>
-//         <pitch>
-//           <step>C</step>
-//           <octave>4</octave>
-//         </pitch>
-//         <duration>4</duration>
-//         <type>whole</type>
-//       </note>
-//     </measure>
-//   </part>
-// </score-partwise>
-
-var xml2js = require('xml2js');
-var builder = new xml2js.Builder();
-var xml = builder.buildObject(baseObj);
-console.log(xml);
 
 module.exports = {
-    importBlocks: importBlocks,
-    exportBlocks: exportBlocks,
     getImage: getImage,
     getAudio: getAudio,
-    getMappedTuple: getMappedTuple,
-    convertNumToTuple: convertNumToTuple,
-    convertNum: convertNum,
-    convertNumSimple: convertNumSimple,
-    convertMulti: convertMulti,
+    getRawFile: getMusicXML
 };

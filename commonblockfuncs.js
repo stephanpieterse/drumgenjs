@@ -1,0 +1,221 @@
+
+var Log = require('./logger.js');
+var util = require('./util.js');
+var cache = util.cache;
+
+var impExpMap = {
+    "[[": "s",
+    "[1": "N",
+    "[0": "n",
+    "1]": "M",
+    "0]": "m",
+    "1,": "B",
+    "0,": "b",
+    ",1": "A",
+    ",0": "a",
+    "],": "p",
+    ",[": "P",
+    "]]": "e",
+    "]": "l",
+    "[": "k",
+    ",": "c"
+};
+
+var makeCleanBlock = function(blocks) {
+    var pat = [];
+    for (var b = 0; b < blocks; b++) {
+        pat[b] = '|';
+    }
+
+    return pat;
+};
+
+var convertNum = function(num, patlen, tuples) {
+    var simpleBlocks = convertNumSimple(num, patlen);
+
+    if (tuples) {
+        var tupMap = tuples.split(",");
+
+        console.log(tupMap);
+        // TODO
+    }
+    return simpleBlocks;
+
+};
+
+var convertNumSimple = function(num, patlen, mappings) {
+
+    mappings = (!mappings || mappings.length === 0) ? ['-', 'r', 'R', 'l', 'L'] : mappings;
+
+    patlen = patlen || 8;
+
+    var ret = exportBlocks([genericMapper(num, patlen, mappings)]);
+    return ret;
+};
+
+var convertMulti = function(num, patlen) {
+    var nums = num.split(",");
+    Log.debug(nums);
+    // var mappings = ['-', 'r', 'R', 'l', 'L'];
+    var mappings = ['-', 'x', 'X'];
+
+    patlen = patlen || 8;
+
+    var pattern = [];
+    var sipattern = [];
+
+    for (var j in nums) {
+        pattern[j] = makeCleanBlock(patlen);
+        sipattern[j] = makeCleanBlock(patlen);
+        var barlen = patlen;
+        var notetypes = mappings.length;
+
+        var randPat = parseInt(nums[j]);
+        Log.trace(randPat);
+        var cpat = (randPat).toString(notetypes);
+        cpat = util.lpad(cpat, barlen);
+        pattern[j] = cpat.split("");
+        for (var px in pattern[j]) {
+            pattern[j][px] = mappings[pattern[j][px]];
+        }
+        sipattern[j] = pattern[j];
+    }
+
+    var ret = exportBlocks(sipattern);
+    return ret;
+};
+
+var exportBlocks = function(blocks) {
+    var pat = JSON.stringify(blocks);
+    Log.trace(pat);
+    var enc = new Buffer(pat);
+    Log.debug(enc.toString('base64'));
+    enc = enc.toString();
+
+    enc = enc.replace(/"-"/g, 0);
+    enc = enc.replace(/"x"/g, 1);
+    enc = enc.replace(/"X"/g, 2);
+    enc = enc.replace(/"r"/g, 3);
+    enc = enc.replace(/"R"/g, 4);
+    enc = enc.replace(/"l"/g, 5);
+    enc = enc.replace(/"L"/g, 6);
+
+    var regex;
+    for (var m in impExpMap) {
+        regex = new RegExp(util.regexEscape(m), "g");
+        enc = enc.replace(regex, impExpMap[m]);
+    }
+
+    enc = new Buffer(enc);
+    enc = enc.toString();
+    return enc;
+};
+
+var importBlocks = function(patid) {
+    var cpid = "patid" + patid;
+    if (cache.get(cpid)) {
+        return cache.get(cpid);
+    }
+
+    var pat = new Buffer(patid);
+    pat = pat.toString('UTF-8');
+
+    var regex;
+    for (var m in impExpMap) {
+        regex = new RegExp(util.regexEscape(impExpMap[m]), "g");
+        Log.trace(pat);
+        pat = pat.replace(regex, m);
+        Log.trace(pat);
+    }
+
+    pat = pat.replace(/0/g, '"-"');
+    pat = pat.replace(/1/g, '"x"');
+    pat = pat.replace(/2/g, '"X"');
+    pat = pat.replace(/3/g, '"r"');
+    pat = pat.replace(/4/g, '"R"');
+    pat = pat.replace(/5/g, '"l"');
+    pat = pat.replace(/6/g, '"L"');
+
+    Log.trace(pat);
+    cache.set(cpid, pat, 7200);
+    return pat;
+};
+
+
+var convertNumToTuple = function(num, patlen, mappings) {
+
+    mappings = (!mappings || mappings.length === 0) ? ['1', '2', '3', '4', '5'] : mappings;
+    mappings.sort();
+
+    if (mappings.length < 2) {
+        mappings.unshift(mappings[0]);
+    }
+
+    patlen = patlen || 8;
+
+    return genericMapper(num, patlen, mappings);
+
+};
+
+var getMappedTuple = function(tuple, num, mappings) {
+
+    mappings = (!mappings || mappings.length === 0) ? ['-', 'r', 'R', 'l', 'L'] : mappings;
+    var patlen = tuple;
+
+    return genericMapper(num, patlen, mappings);
+
+};
+
+var genericMapper = function(num, patlen, mappings) {
+
+    var cachedid = "genmapper-" + JSON.stringify(arguments);
+    var cid = cache.get(cachedid);
+
+    if (cid) {
+        Log.debug({
+            cacheitem: cid,
+            id: cachedid
+        }, "Returning map from cache");
+        return cache.get(cachedid);
+    }
+
+    var pattern = [];
+    var sipattern = [];
+    pattern[0] = makeCleanBlock(patlen);
+    sipattern[0] = makeCleanBlock(patlen);
+
+    var barlen = patlen;
+    var notetypes = mappings.length;
+
+    var randPat = parseInt(num);
+    var cpat = (randPat).toString(notetypes);
+    cpat = util.lpad(cpat, barlen);
+    pattern[0] = cpat.split("");
+    for (var px in pattern[0]) {
+        // pattern[0][px] = mappings[pattern[0][px]];
+        pattern[0][px] = mappings[(pattern[0][px]).toString(10)];
+    }
+
+    sipattern[0] = pattern[0];
+
+    Log.debug({
+        id: cachedid,
+        cacheitem: sipattern[0]
+    }, "Setting item in cache");
+    cache.set(cachedid, sipattern[0], 7200);
+
+    return sipattern[0];
+};
+
+
+module.exports = {
+    convertNum: convertNum,
+    convertNumSimple: convertNumSimple,
+    convertMulti: convertMulti,
+    exportBlocks: exportBlocks,
+    importBlocks: importBlocks,
+    convertNumToTuple: convertNumToTuple,
+    getMappedTuple: getMappedTuple,
+    genericMapper: genericMapper,
+    makeCleanBlock: makeCleanBlock
+}

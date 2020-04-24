@@ -40,3 +40,18 @@ describe("Util tests - cache", function() {
     });
 
 });
+
+describe('Misc Util', function(){
+    it("Regression check - lpad should work", function() {
+
+        // positives
+        assert.equal(util.lpad(5, 2), "05", "Padding doesn't work!");
+        assert.equal(util.lpad("19", 5), "00019", "Padding doesn't work!");
+        assert.equal(util.lpad(5000, 5), "05000", "Padding doesn't work!");
+
+        // negatives
+        assert.notEqual(util.lpad("19", 4), "00019", "Padding doesn't work!");
+        assert.notEqual(util.lpad(500, 10), "009", "Padding doesn't work!");
+
+    });
+});

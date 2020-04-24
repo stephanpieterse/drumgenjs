@@ -2,7 +2,10 @@
 /* jslint strict:false */
 
 var express = require("express");
+var common = require('./commonblockfuncs.js');
 var musxml = require("./main.js");
+var backend_musicxml = require("./main.musicxml.js");
+var staticpages = require("./staticpages.js");
 var app = express();
 var config = require("./config.js");
 var serverPort = config.server.port;
@@ -62,12 +65,12 @@ app.use(function timingTracker(req, res, next) {
     next();
 });
 
-app.use(function(req, res, next){
-    res.setTimeout(15000, function(){
-          Log.error("Client request returned with 503, we couldn't return it in time?");
-          res.status(503);
-          res.send();
-        });
+app.use(function(req, res, next) {
+    res.setTimeout(15000, function() {
+        Log.error("Client request returned with 503, we couldn't return it in time?");
+        res.status(503);
+        res.send();
+    });
 
     next();
 });
@@ -102,8 +105,8 @@ app.post("/analytics", function(req, res) {
     res.status(201).send();
 });
 
-app.post("/feedback", function(req, res){
-  res.status(204).send();
+app.post("/feedback", function(req, res) {
+    res.status(204).send();
 });
 
 app.get("/prometheus", function(req, res) {
@@ -146,7 +149,7 @@ var getOptsFromReq = function(req) {
     var mapArr = req.query["map"] || "";
     mapArr = mapArr.split(",");
     return {
-        noNames: (req.query["noname"] === true || req.query["noname"] === 'true'),
+        noNames: (req.query["noname"] !== false || req.query["noname"] !== 'false'),
         noRests: (req.query["norests"] === true || req.query["norests"] === 'true'),
         noMetronome: (req.query["nometro"] === true || req.query["nometro"] === 'true'),
         asBase64: (req.query["asbase64"] === 'true'),
@@ -164,8 +167,8 @@ function publicGetPat(req, res) {
         var ref = req.query['patref'];
         ref = sanitize.trimString(ref);
         //ref = sanitize.cleanString(ref);
-        pat = JSON.parse(musxml.importBlocks(ref));
-        res.setHeader('x-drumgen-patref', musxml.exportBlocks(pat));
+        pat = JSON.parse(common.importBlocks(ref));
+        res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
         return pat;
     }
 
@@ -187,14 +190,14 @@ function publicGetPat(req, res) {
     if (queryOpts.noRests) {
         mappings.shift();
     }
-    pat = musxml.convertNumSimple(num, patlen, mappings);
-    pat = JSON.parse(musxml.importBlocks(pat));
+    pat = common.convertNumSimple(num, patlen, mappings);
+    pat = JSON.parse(common.importBlocks(pat));
 
     Log.debug({
         oldpat: pat
     });
 
-    var tupset = musxml.convertNumToTuple(tupnum, patlen, tupmap);
+    var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
     Log.trace({
         tupset: tupset
     });
@@ -203,7 +206,7 @@ function publicGetPat(req, res) {
         if (tupset[t] !== '1' && tupset[t] !== 1) {
 
             var tnum = util.getOTP('tup' + t + seed);
-            var mt = musxml.getMappedTuple(tupset[t], tnum, mappings);
+            var mt = common.getMappedTuple(tupset[t], tnum, mappings);
             Log.debug({
                 mappedTuple: mt,
                 tnum: tnum
@@ -217,14 +220,14 @@ function publicGetPat(req, res) {
         newpat: pat
     });
 
-    res.setHeader('x-drumgen-patref', musxml.exportBlocks(pat));
+    res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
     return pat;
 }
 
 app.get("/public/pattern", function(req, res) {
     var ppat = publicGetPat(req, res);
     res.send({
-        "patref": musxml.exportBlocks(ppat)
+        "patref": common.exportBlocks(ppat)
     });
 });
 
@@ -238,7 +241,7 @@ app.get("/public/refresh/audio", function(req, res) {
         var patref = req.headers['x-drumgen-patref'] || req.query['patref'];
         if (patref) {
             Log.debug("going to import for refresh :: " + patref);
-            ppat = JSON.parse(musxml.importBlocks(patref));
+            ppat = JSON.parse(common.importBlocks(patref));
         } else {
             throw "No pattern!";
         }
@@ -250,27 +253,56 @@ app.get("/public/refresh/audio", function(req, res) {
         });
         return;
     }
-    var execFunc = function(cb){
-    musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData){
-      if (err) {
-          Log.error("getAudio returned an error");
-          res.status(500);
-          res.send("audio generation/retrieval error: " + err);
-          cb();
-          return;
-      }
+    var execFunc = function(cb) {
+        musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData) {
+            if (err) {
+                Log.error("getAudio returned an error");
+                res.status(500);
+                res.send("audio generation/retrieval error: " + err);
+                cb();
+                return;
+            }
 
-      res.writeHead(200, {
-          'Content-Type': auData.contentType
-      });
-      res.end(auData.data);
-      cb();
-      return;
-    });
+            res.writeHead(200, {
+                'Content-Type': auData.contentType
+            });
+            res.end(auData.data);
+            cb();
+            return;
+        });
     };
     execFunc.timeout = 1000;
     q.push(execFunc);
 
+});
+
+app.get("/public/msxml/audio", function(req, res) {
+
+    req.query["noname"] = 'true';
+    //req.query["map"] = "sn";
+
+    var ppat = publicGetPat(req, res);
+    var opts = getOptsFromReq(req);
+    var execFunc = function(cb) {
+        backend_musicxml.getAudio(ppat, opts, function(err, auData) {
+            if (err) {
+                Log.error("getAudio returned an error");
+                res.status(500);
+                res.send("audio generation/retrieval error: " + err);
+                cb();
+                return;
+            }
+
+            res.writeHead(200, {
+                'Content-Type': auData.contentType
+            });
+            res.end(auData.data);
+            cb();
+            return;
+        });
+    };
+    execFunc.timeout = 1000;
+    q.push(execFunc);
 });
 
 app.get("/public/audio", function(req, res) {
@@ -280,23 +312,23 @@ app.get("/public/audio", function(req, res) {
 
     var ppat = publicGetPat(req, res);
     var opts = getOptsFromReq(req);
-    var execFunc = function(cb){
-    musxml.getAudio(ppat, opts, function(err, auData){
-      if (err) {
-          Log.error("getAudio returned an error");
-          res.status(500);
-          res.send("audio generation/retrieval error: " + err);
-          cb();
-          return;
-      }
+    var execFunc = function(cb) {
+        musxml.getAudio(ppat, opts, function(err, auData) {
+            if (err) {
+                Log.error("getAudio returned an error");
+                res.status(500);
+                res.send("audio generation/retrieval error: " + err);
+                cb();
+                return;
+            }
 
-      res.writeHead(200, {
-          'Content-Type': auData.contentType
-      });
-      res.end(auData.data);
-      cb();
-      return;
-    });
+            res.writeHead(200, {
+                'Content-Type': auData.contentType
+            });
+            res.end(auData.data);
+            cb();
+            return;
+        });
     };
     execFunc.timeout = 1000;
     q.push(execFunc);
@@ -310,22 +342,22 @@ app.get("/public/image", function(req, res) {
     var queryOpts = getOptsFromReq(req);
 
     var ppat = publicGetPat(req, res);
-    var execFunc = function(cb){
-      musxml.getImage(ppat, queryOpts,  function(err, imgData){
-      if (err) {
-          Log.error("getImage returned an error");
-          res.status(500);
-          res.send("image retrieval error: " + err);
-          cb();
-          return;
-      }
-  
-      res.writeHead(200, {
-          'Content-Type': imgData.contentType
-      });
-      res.end(imgData.data);
-      cb(); 
-      });
+    var execFunc = function(cb) {
+        musxml.getImage(ppat, queryOpts, function(err, imgData) {
+            if (err) {
+                Log.error("getImage returned an error");
+                res.status(500);
+                res.send("image retrieval error: " + err);
+                cb();
+                return;
+            }
+
+            res.writeHead(200, {
+                'Content-Type': imgData.contentType
+            });
+            res.end(imgData.data);
+            cb();
+        });
     };
     execFunc.timeout = 3000;
     q.push(execFunc);
@@ -336,55 +368,61 @@ app.get("/convertnum", function(req, res) {
     Log.debug("num = " + req.query['num']);
     Log.debug("len = " + req.query['patlen']);
     // we need to pass this a single opts obj
-    var sResult = musxml.convertNum(req.query['num'], req.query['patlen'], req.query['tuples']);
+    var sResult = common.convertNum(req.query['num'], req.query['patlen'], req.query['tuples']);
     res.send(sResult);
 });
 
 app.get("/convertmulti", function(req, res) {
     Log.debug("num = " + req.query['nums']);
     Log.debug("len = " + req.query['patlen']);
-    var sResult = musxml.convertMulti(req.query['nums'], req.query['patlen']);
+    var sResult = common.convertMulti(req.query['nums'], req.query['patlen']);
     res.send(sResult);
 });
 
-app.get("/public/patreftocustommap/:patref", function(req, res){
- 
-	var patref = req.params['patref'];
-  var blocks = JSON.parse(musxml.importBlocks(patref));
-	var mappings = ['-','x','X','l','L','r','R'];
+app.get("/public/patreftocustommap/:patref", function(req, res) {
 
-	function umap(obj){
-	  for (i in obj){
-	  	if (Array.isArray(obj[i])){
-	  		obj[i] = umap(obj[i]);
-	  	}else{
-	  		obj[i] = mappings.indexOf(obj[i]);
-	  	}
-	  }
-    return obj;
-	}
+    var patref = req.params['patref'];
+    var blocks = JSON.parse(common.importBlocks(patref));
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
 
-	arr = umap(blocks);
-	ret = {unmapped:arr};
-	res.send(ret);
+    function umap(obj) {
+        for (var i in obj) {
+            if (Array.isArray(obj[i])) {
+                obj[i] = umap(obj[i]);
+            } else {
+                obj[i] = mappings.indexOf(obj[i]);
+            }
+        }
+        return obj;
+    }
+
+    var arr = umap(blocks);
+    var ret = {
+        unmapped: arr
+    };
+    res.send(ret);
 });
 
-app.get("/public/custommaptopatref/:cmap", function(req,res){
-	var arr = JSON.parse(req.params['cmap']);
-	var mappings = ['-','x','X','l','L','r','R'];
-	function rmap(obj){
-	for (i in obj){
-		if (Array.isArray(obj[i])){
-			obj[i] = rmap(obj[i]);
-		}else{
-			obj[i] = mappings[obj[i]];
-		}
-	}
-		return obj;
-	}
-	arr = rmap(arr);
-	ret = {mapped:arr, patref:musxml.exportBlocks(arr)};
-	res.send(ret);
+app.get("/public/custommaptopatref/:cmap", function(req, res) {
+    var arr = JSON.parse(req.params['cmap']);
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
+
+    function rmap(obj) {
+        for (var i in obj) {
+            if (Array.isArray(obj[i])) {
+                obj[i] = rmap(obj[i]);
+            } else {
+                obj[i] = mappings[obj[i]];
+            }
+        }
+        return obj;
+    }
+    arr = rmap(arr);
+    var ret = {
+        mapped: arr,
+        patref: common.exportBlocks(arr)
+    };
+    res.send(ret);
 });
 
 app.get("/worksheet/:patlen", function(req, res) {
@@ -402,9 +440,9 @@ app.get("/worksheet/:patlen", function(req, res) {
 
     var Readable = require('stream').Readable;
     var rs = new Readable();
-    rs._read = function(){};
+    rs._read = function() {};
     rs.pipe(res);
-    musxml.getAll8Stream(rs, opts);
+    staticpages.getAll8Stream(rs, opts);
 });
 
 app.use("/favicon.ico", function(req, res) {
@@ -435,7 +473,6 @@ app.use(function missingHandler(req, res) {
 app.disable('x-powered-by');
 var this_server = app.listen(serverPort, function() {
     Log.info("Started on " + serverPort);
-    Log.debug(musxml);
 });
 
 module.exports = {

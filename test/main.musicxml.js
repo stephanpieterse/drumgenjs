@@ -1,10 +1,10 @@
 /* global require, describe, it */
 /* jshint strict:false */
 
-var main = require("../main.js");
+var main = require("../main.musicxml.js");
 var assert = require('assert');
 
-describe("Main Lilypond Exported Tests", function() {
+describe("Main MusicXML Exported Tests", function() {
 
     it("Should have an image function", function() {
         assert.equal('function', typeof main.getImage);
