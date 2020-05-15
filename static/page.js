@@ -1,5 +1,5 @@
 /* jshint strict: false */
-/* global setInterval, Hammer */
+/* global setInterval, Hammer, clearTimeout */
 
 window._ns_drumgen = {};
 var thisInst = window._ns_drumgen;
@@ -8,13 +8,15 @@ thisInst.maxStarredPatterns = 15;
 thisInst.maxHistory = 100;
 
 function doHealthCheck() {
-		funcs.getSeed();
+    funcs.getSeed();
     $.get("/health?_=" + cseed).done(function() {
         $('.healthpanel').hide();
-				thisInst.health = "UP";
+        thisInst.health = "UP";
     }).catch(function() {
         $('.healthpanel').show();
-				thisInst.health = "DOWN";
+        $('.audioplaybtn').hide();
+        $('.pattern-image').hide();
+        thisInst.health = "DOWN";
     });
 }
 
@@ -39,10 +41,10 @@ thisInst.dbtimers = {};
 var seedcount = 0;
 var cseed = "public";
 
-function debounce(func, delay){
-	var fname = func.name;
-	clearTimeout(thisInst.dbtimers[fname]);
-	thisInst.dbtimers[fname] = setTimeout(func, delay);
+function debounce(func, delay) {
+    var fname = func.name;
+    clearTimeout(thisInst.dbtimers[fname]);
+    thisInst.dbtimers[fname] = setTimeout(func, delay);
 }
 
 funcs.getSeed = function() {
@@ -59,10 +61,10 @@ funcs.getSeed = function() {
 var LS = {
     get: function(a) {
         try {
-          return JSON.parse(window.localStorage.getItem(a));
-        } catch (e){
-					return undefined;
-				}
+            return JSON.parse(window.localStorage.getItem(a));
+        } catch (e) {
+            return undefined;
+        }
     },
     set: function(a, b) {
         window.localStorage.setItem(a, JSON.stringify(b));
@@ -85,17 +87,29 @@ funcs.getSeed();
 var hosturl = '';
 var patternbaseurl = hosturl + '/public/pattern?app=true';
 var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
-var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&map={{MAP}}';
-var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&map={{MAP}}';
+var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}';
+var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}';
 var editpatext = hosturl + '/static/custompat.html?patref={{PATREF}}';
 var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
 var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
 
-var soundValuesMap = [{"map":"sn","text":"Snare"}, {"map":"ss","text":"Sidestick"}, {"map":"wbl","text":"Woodblock"}, {"map":"boh","text": "Bongo"}]
+var soundValuesMap = [{
+    "map": "sn",
+    "text": "Snare"
+}, {
+    "map": "ss",
+    "text": "Sidestick"
+}, {
+    "map": "wbl",
+    "text": "Woodblock"
+}, {
+    "map": "boh",
+    "text": "Bongo"
+}];
 
 settings.pattern_length = 4;
 settings.pattern_type = 'accent';
-settings.pattern_limbs = 4;
+settings.pattern_layers = 1;
 settings.pattern_tuples = [2, 3, 4];
 settings.pattern_ref = "s5c5c4c4c4cbb6e";
 settings.metronome_on = true;
@@ -107,61 +121,69 @@ settings.sound_map_index = 0;
 settings.sound_map_map = "sn";
 
 
-var loadStarred = function(){
-	var h = LS.get("starred-patterns");
-	if (h){
-		thisInst.starred = h;
-	} else {
-    thisInst.starred = [];
-	}
-}
+var loadStarred = function() {
+    var h = LS.get("starred-patterns");
+    if (h) {
+        thisInst.starred = h;
+    } else {
+        thisInst.starred = [];
+    }
+};
 
-var loadStarredPattern = function(patref){
-	LS.set("globpatref", patref);
-	callToChange();	
-}
+var loadStarredPattern = function(patref) {
+    LS.set("globpatref", patref);
+    callToChange();
+};
 
-var addToStarred = function(){
-	if(thisInst.starred.indexOf(settings.pattern_ref) != -1){
-		return false;
-	}
+var addToStarred = function() {
+    if (thisInst.starred.indexOf(settings.pattern_ref) !== -1) {
+        return false;
+    }
 
-	thisInst.starred.unshift(settings.pattern_ref);
-  while (thisInst.starred.length > thisInst.maxStarredPatterns){
-		thisInst.starred.pop();
-	}
-	LS.set("starred-patterns", thisInst.starred);
-  return true;
-}
+    thisInst.starred.unshift(settings.pattern_ref);
+    while (thisInst.starred.length > thisInst.maxStarredPatterns) {
+        thisInst.starred.pop();
+    }
+    LS.set("starred-patterns", thisInst.starred);
+    return true;
+};
 
-var removeFromStarred = function(item){
-  thisInst.starred.splice(thisInst.starred.indexOf(item), 1);
-	LS.set("starred-patterns", thisInst.starred);
-  viewStarred();
-}
+var removeFromStarred = function(item) {
+    thisInst.starred.splice(thisInst.starred.indexOf(item), 1);
+    LS.set("starred-patterns", thisInst.starred);
+    viewStarred();
+};
 
-var toggleFromStarred = function(){
-  if(!addToStarred()){
-    removeFromStarred(settings.pattern_ref);
-  }
-}
+var toggleFromStarred = function() {
+    if (!addToStarred()) {
+        removeFromStarred(settings.pattern_ref);
+    }
+};
 
-var viewStarred = function(){
-  var starredBlock = "";
- 
-	if(thisInst.starred.indexOf(settings.pattern_ref) != -1){
-  $('.addToStarred img').attr("src", "/static/buttons/star-filled.png");
-  } else {
-  $('.addToStarred img').attr("src", "/static/buttons/star-empty.png");
-}
+var viewStarred = function() {
+    var starredBlock = "";
 
-  for (var s in thisInst.starred){
-    var tpr = thisInst.starred[s];
-    var templateVars = {seed:0,patref:tpr,metro:true,map:"sn",patlen:4,tempo:100};
-    starredBlock += '<div class="starredImagePreview"  ><img onclick="loadStarredPattern(\''+tpr+'\')" alt="preview" src="' + buildCustomTemplateUrl(imagebaseurl + hburlext, templateVars) + '" /><span class="starredRemove" onclick="removeFromStarred(\'' + tpr + '\')">X</span></div>';
-  }
-  $('.starredPreviewPane .previews').html(starredBlock);
-}
+    if (thisInst.starred.indexOf(settings.pattern_ref) !== -1) {
+        $('.addToStarred img').attr("src", "/static/buttons/star-filled.png");
+    } else {
+        $('.addToStarred img').attr("src", "/static/buttons/star-empty.png");
+    }
+
+    for (var s in thisInst.starred) {
+        var tpr = thisInst.starred[s];
+        var templateVars = {
+            seed: 0,
+            patref: tpr,
+            nometro: true,
+            map: "sn",
+            patlen: 4,
+            layers: 1,
+            tempo: 100
+        };
+        starredBlock += '<div class="starredImagePreview"  ><img onclick="loadStarredPattern(\'' + tpr + '\')" alt="preview" src="' + buildCustomTemplateUrl(imagebaseurl + hburlext, templateVars) + '" /><span class="starredRemove" onclick="removeFromStarred(\'' + tpr + '\')">X</span></div>';
+    }
+    $('.starredPreviewPane .previews').html(starredBlock);
+};
 
 var setupSettings = function() {
     var s = LS.get("app-settings");
@@ -173,19 +195,21 @@ var setupSettings = function() {
     $('[name="tempo"]').val(settings.tempo);
 
     $('[name="rests_on"]').removeAttr('checked');
-    if(settings.rests_on){
-      $('[name="rests_on"]').attr('checked', 'checked');
-    } 
+    if (settings.rests_on) {
+        $('[name="rests_on"]').attr('checked', 'checked');
+    }
 
     $('[name="metronome_on"]').removeAttr('checked');
-    if(settings.metronome_on){
-      $('[name="metronome_on"]').attr('checked', 'checked');
-    } 
+    if (settings.metronome_on) {
+        $('[name="metronome_on"]').attr('checked', 'checked');
+    }
 
     $('[name^="etuple"]').removeAttr('checked');
-    for (var pt in settings.pattern_tuples){
-       $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
+    for (var pt in settings.pattern_tuples) {
+        $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
     }
+
+    $('.layersbutton').attr('value', "Layers: " + settings.pattern_layers);
 
     updateCurrentSound();
 
@@ -211,38 +235,38 @@ var audiobtnholder = $('.audioplaybtn');
 
 loader.hide();
 
-function cycleMapIndex(cur, map){
-  return (cur + 1) % map.length;
+function cycleMapIndex(cur, map) {
+    return (cur + 1) % map.length;
 }
 
-function cycleCurrentSound(){
-  var cmi = cycleMapIndex(settings.sound_map_index, soundValuesMap);
-	settings.sound_map_index = cmi;
-  LS.set('soundmap', [soundValuesMap[cmi].map]);
-  updateCurrentSound();	
+function cycleCurrentSound() {
+    var cmi = cycleMapIndex(settings.sound_map_index, soundValuesMap);
+    settings.sound_map_index = cmi;
+    LS.set('soundmap', [soundValuesMap[cmi].map]);
+    updateCurrentSound();
 }
 
-function updateCurrentSound(){
-  try {
+function updateCurrentSound() {
+    try {
+        var cmo = soundValuesMap[settings.sound_map_index];
+        var soundMap = cmo.map;
+        settings.sound_map_map = soundMap;
+        updateCurrentSoundDisplay();
+    } catch (e) {}
+}
+
+function updateCurrentSoundDisplay() {
     var cmo = soundValuesMap[settings.sound_map_index];
-    var soundMap = cmo.map;
-    settings.sound_map_map = soundMap;
-    updateCurrentSoundDisplay();
-  } catch(e){}
+    var soundText = cmo.text;
+    $(".currentSound").html(soundText);
 }
 
-function updateCurrentSoundDisplay(){
-  var cmo = soundValuesMap[settings.sound_map_index];
-  var soundText = cmo.text;
-  $(".currentSound").html(soundText);
-}
-
-$(".currentSound").click(function(){
-		cycleCurrentSound();
+$(".currentSound").click(function() {
+    cycleCurrentSound();
     callToRefresh();
 });
 
-function buildCustomTemplateUrl(base, items){
+function buildCustomTemplateUrl(base, items) {
     return base.replace("{{SEED}}", items.seed)
         .replace("{{PATLEN}}", items.patlen)
         .replace("{{TUPLES}}", items.tuples)
@@ -251,19 +275,34 @@ function buildCustomTemplateUrl(base, items){
         .replace("{{NORESTS}}", items.norests)
         .replace("{{TEMPO}}", items.tempo)
         .replace("{{PATREF}}", items.patref)
+        .replace("{{LAYERS}}", items.layers)
         .replace("{{MAP}}", items.map);
 }
 
 function buildTemplateUrl(base) {
-    return base.replace("{{SEED}}", cseed)
-        .replace("{{PATLEN}}", settings.pattern_length)
-        .replace("{{TUPLES}}", settings.pattern_tuples)
-        .replace("{{NESTED}}", settings.nested_tuples)
-        .replace("{{NOMETRO}}", !settings.metronome_on)
-        .replace("{{NORESTS}}", !settings.rests_on)
-        .replace("{{TEMPO}}", settings.tempo)
-        .replace("{{PATREF}}", settings.pattern_ref)
-        .replace("{{MAP}}", settings.sound_map_map);
+    var templateVars = {
+        seed: cseed,
+        patlen: settings.pattern_length,
+        tuples: settings.pattern_tuples,
+        nested: settings.nested_tuples,
+        nometro: !settings.metronome_on,
+        norests: !settings.rests_on,
+        tempo: settings.tempo,
+        patref: settings.pattern_ref,
+        layers: settings.pattern_layers,
+        map: settings.sound_map_map
+    };
+    return buildCustomTemplateUrl(base, templateVars);
+    // return base.replace("{{SEED}}", cseed)
+    //     .replace("{{PATLEN}}", settings.pattern_length)
+    //     .replace("{{TUPLES}}", settings.pattern_tuples)
+    //     .replace("{{NESTED}}", settings.nested_tuples)
+    //     .replace("{{NOMETRO}}", !settings.metronome_on)
+    //     .replace("{{NORESTS}}", !settings.rests_on)
+    //     .replace("{{TEMPO}}", settings.tempo)
+    //     .replace("{{PATREF}}", settings.pattern_ref)
+    //     .replace("{{LAYERS}}", settings.pattern_layers)
+    //     .replace("{{MAP}}", settings.sound_map_map);
 }
 
 var init = function() {
@@ -279,16 +318,18 @@ var init = function() {
 
         settings.pattern_ref = data.patref;
 
-				if(LS.get("globpatref")){
-					settings.pattern_ref = LS.get("globpatref");
-					LS.set("globpatref", undefined);
-				}
+        if (LS.get("globpatref")) {
+            settings.pattern_ref = LS.get("globpatref");
+            LS.set("globpatref", undefined);
+        }
 
-				if(LS.get("soundmap")){
-					settings.sound_map_map = (LS.get("soundmap")).join(",");
-          settings.sound_map_index = soundValuesMap.indexOf(soundValuesMap.filter(function(e,i){return e.map == settings.sound_map_map.split(',')[0]})[0]);
-          updateCurrentSoundDisplay();
-				}
+        if (LS.get("soundmap")) {
+            settings.sound_map_map = (LS.get("soundmap")).join(",");
+            settings.sound_map_index = soundValuesMap.indexOf(soundValuesMap.filter(function(e) {
+                return e.map === settings.sound_map_map.split(',')[0];
+            })[0]);
+            updateCurrentSoundDisplay();
+        }
 
         var newimg = buildTemplateUrl(imagebaseurl + hburlext);
         var newsnd = buildTemplateUrl(audiobaseurl + hburlext);
@@ -304,6 +345,7 @@ var init = function() {
         sndholder.attr("src", newsnd);
         $('.editbtn').attr("href", buildTemplateUrl(editpatext));
 
+        doHealthCheck();
     }).catch(function(e) {
         console.log("whoopseedoodle");
         console.log(e);
@@ -331,19 +373,19 @@ hammerloadertime.on('swipe', function() {
 init();
 
 function callToChange() {
-  LS.set("app-settings", settings);
-  if(state.playing){
-    $('.audioplaybtn').click();
-  }
-  init();
+    LS.set("app-settings", settings);
+    if (state.playing) {
+        $('.audioplaybtn').click();
+    }
+    init();
 }
 
 function callToRefresh() {
 
     LS.set("app-settings", settings);
 
-    if(state.playing){
-	    $('.audioplaybtn').click();
+    if (state.playing) {
+        $('.audioplaybtn').click();
     }
 
     funcs.getSeed();
@@ -382,19 +424,16 @@ temposel.change(function() {
 
 });
 
-var gl = $('[name="groovelimbs"]');
-gl.change(function() {
-    var glval = gl.val() <= 0 ? 1 : gl.val() % 4;
-    gl.val(glval);
-    settings.pattern_limbs = glval;
-    callToChange();
-});
 
-//$('[name="pattype"]').click(function() {
-//    var type = $('[name="pattype"]:checked').val().toLowerCase();
-//    settings.pattern_type = type;
-//    console.log("pattype is " + type);
-//});
+var layerbutton = $('.layersbutton');
+
+function cycleTotalLayers() {
+    var maxLayers = 2;
+    settings.pattern_layers = settings.pattern_layers % maxLayers + 1;
+    layerbutton.attr('value', "Layers: " + settings.pattern_layers);
+    init();
+}
+layerbutton.click(cycleTotalLayers);
 
 $('[name^="etuple"]').click(function() {
     settings.pattern_tuples = [];
@@ -430,24 +469,24 @@ $('[name="loop_audio"]').click(function() {
     }
 });
 
-function incPlus(field, amnt){
+function incPlus(field, amnt) {
     amnt = parseInt(amnt) || 1;
     var curval = parseInt($('input[name=' + field + ']').val());
     var newval = isNaN(curval) ? 0 : curval + amnt;
     $('input[name=' + field + ']').val(newval);
-	debounce(function inc(){
-      $('input[name=' + field + ']').change();
-	}, 200);
+    debounce(function inc() {
+        $('input[name=' + field + ']').change();
+    }, 200);
 }
 
-function decMin(field, amnt){
+function decMin(field, amnt) {
     amnt = parseInt(amnt) || 1;
     var curval = parseInt($('input[name=' + field + ']').val());
     var newval = isNaN(curval) ? 0 : curval - amnt;
     $('input[name=' + field + ']').val(newval);
-	debounce(function dec(){
-      $('input[name=' + field + ']').change();
-	}, 200);
+    debounce(function dec() {
+        $('input[name=' + field + ']').change();
+    }, 200);
 
 }
 var timeoutId = 0;
@@ -457,7 +496,9 @@ $('.plusbtn').on('mousedown touchstart', function(ev) {
     var obj = $(this).attr('field');
     var amnt = $(this).attr('amount');
     incPlus(obj, amnt);
-    timeoutId = setInterval(function(){incPlus(obj, amnt)}, 110);
+    timeoutId = setInterval(function() {
+        incPlus(obj, amnt);
+    }, 110);
 }).on('mouseup mouseleave touchend', function() {
     clearInterval(timeoutId);
 });
@@ -467,41 +508,43 @@ $('.minusbtn').on('mousedown touchstart', function(ev) {
     var obj = $(this).attr('field');
     var amnt = $(this).attr('amount');
     decMin(obj, amnt);
-    timeoutId = setInterval(function(){decMin(obj, amnt)}, 110);
+    timeoutId = setInterval(function() {
+        decMin(obj, amnt);
+    }, 110);
 }).on('mouseup mouseleave touchend', function() {
     clearInterval(timeoutId);
 });
 
-$('.addToStarred').on('click', function(){
-	//  addToStarred();
-  toggleFromStarred();
-	viewStarred();
+$('.addToStarred').on('click', function() {
+    //  addToStarred();
+    toggleFromStarred();
+    viewStarred();
 });
 
-$('.closeStarredPreviewPane').on('click',function(){
- $('.starredPreviewPane').hide(); 
+$('.closeStarredPreviewPane').on('click', function() {
+    $('.starredPreviewPane').hide();
 });
 
-$('.viewStarred').on('click',function(){
-  viewStarred();
-  $('.starredPreviewPane').toggle(); 
+$('.viewStarred').on('click', function() {
+    viewStarred();
+    $('.starredPreviewPane').toggle();
 });
 
-$('.audioplaybtn').on('click', function(){
-  if (state.playing){
-    $('.audiosrc').get(0).pause();
-    $('.audiosrc').get(0).currentTime = 0;
-    $('.audiosrc').get(0).pause();
-    $('.audioplaybtn .playimg').show();
-    $('.audioplaybtn .stopimg').hide();
-  } else {
-    $('.audiosrc').get(0).play();
-    $('.audioplaybtn .stopimg').show();
-    $('.audioplaybtn .playimg').hide();
-  }
-  state.playing = !state.playing;
+$('.audioplaybtn').on('click', function() {
+    if (state.playing) {
+        $('.audiosrc').get(0).pause();
+        $('.audiosrc').get(0).currentTime = 0;
+        $('.audiosrc').get(0).pause();
+        $('.audioplaybtn .playimg').show();
+        $('.audioplaybtn .stopimg').hide();
+    } else {
+        $('.audiosrc').get(0).play();
+        $('.audioplaybtn .stopimg').show();
+        $('.audioplaybtn .playimg').hide();
+    }
+    state.playing = !state.playing;
 });
 
-$('.openStarredPanel').on('click',function(){
-  $('.starredPanel').toggle();
+$('.openStarredPanel').on('click', function() {
+    $('.starredPanel').toggle();
 });

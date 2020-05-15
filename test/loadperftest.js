@@ -92,7 +92,7 @@ describe("Performance Test", function() {
 
         var options = {
             "url": 'http://localhost:' + config.server.port + '/public/image',
-            "maxSeconds": 10,
+            "maxSeconds": 5,
             "concurrency": 9,
             "statusCallback": statusCallback
         };

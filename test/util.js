@@ -21,6 +21,15 @@ describe("Util tests - OTP", function() {
         assert.notEqual(util.getOTP("aaaaaaaaaa"), util.getOTP("b"));
     });
 
+    it("Should generate different data for different secrets that might be close together", function() {
+        var otps = [];
+        for (var s = 10; s < 200; s += 1){
+          var gotps = util.getOTP(s);
+          //assert.notEqual(util.getOTP(s), util.getOTP(s+1));
+          assert.equal(-1, otps.indexOf(gotps), 'There is an OTP duplication in a small range');
+          otps.push(gotps);
+        }
+    });
 });
 
 describe("Util tests - cache", function() {

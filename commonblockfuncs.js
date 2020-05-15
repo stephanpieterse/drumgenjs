@@ -1,3 +1,5 @@
+/* jshint strict:false */
+/* global Buffer, module */
 
 var Log = require('./logger.js');
 var util = require('./util.js');
@@ -218,4 +220,4 @@ module.exports = {
     getMappedTuple: getMappedTuple,
     genericMapper: genericMapper,
     makeCleanBlock: makeCleanBlock
-}
+};

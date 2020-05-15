@@ -11,4 +11,6 @@ prommetrics.createHistogram('analytics_user_timehidden', "How long the page was 
 prommetrics.createHistogram('analytics_user_timevisible', "How long the page was visible in some form", ["path", "appid"], [5000, 30000, 120000, 300000]);
 prommetrics.createHistogram('analytics_server_generationtime', "Server side timing stats", ["section", "appid"], [50, 100, 250, 500, 1000, 2500]);
 
-module.exports = {};
+module.exports = {
+  init: function(){}
+};

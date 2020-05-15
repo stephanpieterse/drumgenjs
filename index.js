@@ -13,6 +13,7 @@ var metrics = require('./metrics.js');
 var prommetrics = require('./prommetrics.js');
 var promclient = require('prom-client');
 var prominit = require('./prominit.js');
+prominit.init();
 var timers = require('./timers.js');
 var cleanup = require('./cleanup.js');
 
@@ -166,7 +167,6 @@ function publicGetPat(req, res) {
     if (req.query['patref']) {
         var ref = req.query['patref'];
         ref = sanitize.trimString(ref);
-        //ref = sanitize.cleanString(ref);
         pat = JSON.parse(common.importBlocks(ref));
         res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
         return pat;
@@ -182,46 +182,65 @@ function publicGetPat(req, res) {
     var patlen = queryOpts.patlen || 8;
 
     var tupmap = sanitize.tuples(req.query['tuples']);
+    var layers = parseInt(req.query['layers']) || 1;
 
-    var num = util.getOTP('base' + seed);
-    var tupnum = util.getOTP('tups' + seed);
+    var globpat = [];
+    //start layer loop
+    for (var layer = 0; layer < layers; layer += 1) {
+        pat = [];
+        var lseed = ((layer + 1) * 4) * (layers * 4);
+        var num = util.getOTP('base' + lseed + seed);
+        var tupnum = util.getOTP('tups' + lseed + seed);
 
-    var mappings = ['-', 'r', 'R', 'l', 'L'];
-    if (queryOpts.noRests) {
-        mappings.shift();
-    }
-    pat = common.convertNumSimple(num, patlen, mappings);
-    pat = JSON.parse(common.importBlocks(pat));
+        Log.debug({
+            layer: layer,
+            layers: layers,
+            lseed: lseed,
+            num: num,
+            tupnum: tupnum
+        });
 
-    Log.debug({
-        oldpat: pat
-    });
-
-    var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
-    Log.trace({
-        tupset: tupset
-    });
-    for (var t in tupset) {
-
-        if (tupset[t] !== '1' && tupset[t] !== 1) {
-
-            var tnum = util.getOTP('tup' + t + seed);
-            var mt = common.getMappedTuple(tupset[t], tnum, mappings);
-            Log.debug({
-                mappedTuple: mt,
-                tnum: tnum
-            }, "Mapped number to tuple");
-
-            pat[0][t] = mt;
+        var mappings = ['-', 'r', 'R', 'l', 'L'];
+        if (queryOpts.noRests) {
+            mappings.shift();
         }
-    }
 
+        pat = common.convertNumSimple(num, patlen, mappings);
+        pat = JSON.parse(common.importBlocks(pat));
+
+        var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
+        Log.debug({
+            beforepat: pat,
+            tupset: tupset
+        });
+        for (var t in tupset) {
+
+            if (tupset[t] !== '1' && tupset[t] !== 1) {
+
+                var tnum = util.getOTP('tup' + t + lseed + seed);
+                var mt = common.getMappedTuple(tupset[t], tnum, mappings);
+                Log.debug({
+                    mappedTuple: mt,
+                    tnum: tnum
+                }, "Mapped number to tuple");
+
+                pat[0][t] = mt;
+            }
+        }
+        Log.debug({
+            globpat: globpat,
+            pat: pat
+
+        });
+        globpat[layer] = pat[0];
+    }
+    //   end layer loop
     Log.debug({
-        newpat: pat
+        newpat: globpat
     });
 
-    res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
-    return pat;
+    res.setHeader('x-drumgen-patref', common.exportBlocks(globpat));
+    return globpat;
 }
 
 app.get("/public/pattern", function(req, res) {
@@ -336,14 +355,20 @@ app.get("/public/audio", function(req, res) {
 
 app.get("/public/image", function(req, res) {
 
-    req.query["nometro"] = true;
+    //req.query["nometro"] = true;
     req.query["noname"] = 'true';
     //req.query["map"] = "sn";
-    var queryOpts = getOptsFromReq(req);
 
     var ppat = publicGetPat(req, res);
+    var queryOpts = getOptsFromReq(req);
+    Log.debug({
+        pat: ppat
+    }, 'received rest request');
     var execFunc = function(cb) {
         musxml.getImage(ppat, queryOpts, function(err, imgData) {
+            Log.debug({
+                pat: ppat
+            }, 'received image request');
             if (err) {
                 Log.error("getImage returned an error");
                 res.status(500);
@@ -431,6 +456,7 @@ app.get("/worksheet/:patlen", function(req, res) {
     opts.pagenum = req.query['page'] || 1;
     opts.blanks = req.query['blanks'];
     opts.rests = req.query['rests'];
+    opts.nosticking = req.query['nosticking'];
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -471,8 +497,36 @@ app.use(function missingHandler(req, res) {
 });
 
 app.disable('x-powered-by');
+var healthInterval = {};
+var healthStatus = {};
 var this_server = app.listen(serverPort, function() {
     Log.info("Started on " + serverPort);
+
+    healthInterval.lily = setInterval(function() {
+        musxml.healthCheck(function(health){
+          healthStatus.lily = health;
+        });
+    }, 2 * 60 * 1000);
+
+    healthInterval.main = setInterval(function(){
+      for (var h in healthStatus){
+        if(healthStatus[h].up !== true){
+          Log.error(h + ' is reporting unhealthy!');
+          if(healthStatus[h].fatal === true){
+            Log.error(healthStatus[h].reason);
+            process.exit(1);
+          }
+        }
+      }
+    }, 1 * 60 * 1000);
+
+});
+
+this_server.on('close', function(){
+  Log.info('Shutdown section');
+  for (var h in healthInterval){
+    clearInterval(healthInterval[h]);
+  }
 });
 
 module.exports = {

@@ -87,7 +87,7 @@ function syncLayerSizes() {
 function cycleTotalLayers() {
     var maxLayers = 2;
     thisEditor.layers = thisEditor.layers % maxLayers + 1;
-    $('.stave-counter').html("Staves: " + thisEditor.layers);
+    $('.stave-counter').html("Layers: " + thisEditor.layers);
     init();
 }
 
@@ -268,7 +268,7 @@ function updateCurrentSound(sid) {
 function generateSoundSelector() {
     var items = "";
     for (var i in thisEditor.arr) {
-        items += '<span class="soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')"> ' + soundValuesMap[thisEditor.soundMapIndex[i]].text + ' </span><br/>';
+        items += '<span class="buttonLike soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')"> ' + soundValuesMap[thisEditor.soundMapIndex[i]].text + ' </span><br/>';
     }
     return items;
 }
@@ -286,6 +286,7 @@ function init() {
     var str = "";
     for (var ba in thisEditor.arr) {
         str += '<div class="layerSect">';
+        str += '<div class="randomizeLayer" style="display: none;"><img src="/static/buttons/dice.png" /></div>';
         str += blockAppender(thisEditor.arr[ba], "", "" + ba);
         str += '</div>';
         str += '<br/>';
@@ -311,7 +312,7 @@ if (patref) {
         }
         thisEditor.arr = data.unmapped; //makePatternSane(data.unmapped);
         thisEditor.layers = thisEditor.arr.length;
-        $('.stave-counter').html("Staves: " + thisEditor.layers);
+        $('.stave-counter').html("Layers: " + thisEditor.layers);
         init();
     });
 } else {

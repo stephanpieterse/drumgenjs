@@ -43,13 +43,15 @@ var TOTP = function() {
         return hex;
     };
 
-    this.getOTP = function(secret) {
-
+    this.getOTP = function(seed) {
+        seed = "" + seed;
+        var secret = crypto.createHash('sha256').update(seed).digest('base64');
         if (cache.get(secret)) {
             return cache.get(secret);
         }
 
         try {
+
             var epoch = Math.round(new Date().getTime() / 1000.0);
             var validSecs = 60 * 30; // seconds * minutes
 
@@ -103,6 +105,7 @@ var lpad = function(value, padding) {
 function regexEscape(str) {
     return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
+
 
 module.exports = {
 

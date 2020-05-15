@@ -96,6 +96,7 @@ self.addEventListener('fetch', event => {
 
     // abandon non-GET requests
     if (event.request.method !== 'GET') return;
+    return;
 
     let url = event.request.url;
 

@@ -1,4 +1,4 @@
-/* global Buffer, require, module, setInterval, clearInterval */
+/* global Buffer, require, module */
 /* jslint strict:false */
 
 var exec = require('child_process').exec;
@@ -147,7 +147,7 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '400)" + nl;
+    head += "#(ly:set-option 'resolution '300)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
@@ -195,7 +195,7 @@ var genMusicBlockSection = function(blocks, options) {
     }
     file += ">>" + nl;
 
-    if (!options.noMetronome) {
+    if (!options.noMetronome && options._isMidiSection === true) {
         file += genMetronomePart(patlen, options);
     }
 
@@ -246,16 +246,6 @@ var patternToLilypond = function(blocks, options) {
     return file;
 };
 
-var makeCleanBlock = function(blocks) {
-    var pat = [];
-    for (var b = 0; b < blocks; b++) {
-        pat[b] = '|';
-    }
-
-    return pat;
-};
-
-
 var getDefaultOptions = function(eopts) {
     var options = JSON.parse(JSON.stringify(eopts)) || {};
     options.maxNotes = options.maxNotes || 8;
@@ -273,15 +263,15 @@ var generateLilypond = function(pattern, eopts) {
         //eopts.mappings = (eopts.map ? [eopts.map] : "sn");
         eopts.mappings = (eopts.map ? (Array.isArray(eopts.map) ? eopts.map : eopts.map.split(',')) : ["sn"]);
 
-        timers.start("gen-lily");
-        metrics.increment('generated', 'lilypond-files');
-        var finalPattern = patternToLilypond(pattern, eopts);
-        timers.end("gen-lily");
-
         if (fs.existsSync(eopts._fullname_notempo + ".ly")) {
             resolve();
             return;
         }
+
+        timers.start("gen-lily");
+        metrics.increment('generated', 'lilypond-files');
+        var finalPattern = patternToLilypond(pattern, eopts);
+        timers.end("gen-lily");
 
         fs.writeFile(eopts._fullname_notempo + ".ly", finalPattern, function(error) {
             if (error) {
@@ -308,21 +298,27 @@ var generatePNG = function(filename) {
         metrics.increment('generated', 'images');
         var genchild;
         //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
-        genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
-            timers.end("gen-png");
-            Log.debug('stdout: ' + stdout);
-            Log.debug('stderr: ' + stderr);
-            if (error !== null) {
-                Log.error('exec error: ' + error);
-                reject(error);
-                return;
-            }
-            mediautil.tagPNG(filename).then(function() {
-                resolve();
-            }).catch(function() {
-                resolve();
+        try {
+            genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", {
+                timeout: 10000
+            }, function(error, stdout, stderr) {
+                timers.end("gen-png");
+                Log.debug('stdout: ' + stdout);
+                Log.debug('stderr: ' + stderr);
+                if (error !== null) {
+                    Log.error('exec error: ' + error);
+                    reject(error);
+                    return;
+                }
+                mediautil.tagPNG(filename).then(function() {
+                    resolve();
+                }).catch(function() {
+                    resolve();
+                });
             });
-        });
+        } catch (e) {
+            reject(e);
+        }
     });
 };
 
@@ -339,21 +335,27 @@ var generateOGG = function(filename, endtime) {
         metrics.increment('generated', 'audio');
         var audiochild;
         // audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-        audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
-            timers.end("gen-ogg");
-            Log.debug('stdout: ' + stdout);
-            Log.debug('stderr: ' + stderr);
-            if (error !== null) {
-                Log.error('exec error: ' + error);
-                reject(error);
-                return;
-            }
-            mediautil.tagOGG(filename).then(function() {
-                resolve();
-            }).catch(function() {
-                resolve();
+        try {
+            audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", {
+                timeout: 3000
+            }, function(error, stdout, stderr) {
+                timers.end("gen-ogg");
+                Log.debug('stdout: ' + stdout);
+                Log.debug('stderr: ' + stderr);
+                if (error !== null) {
+                    Log.error('exec error: ' + error);
+                    reject(error);
+                    return;
+                }
+                mediautil.tagOGG(filename).then(function() {
+                    resolve();
+                }).catch(function() {
+                    resolve();
+                });
             });
-        });
+        } catch (e) {
+            reject(e);
+        }
     });
 };
 
@@ -370,7 +372,7 @@ var generateAllFiles = function(pattern, eopts) {
 
     var prom = new Promise(function(resolve, reject) {
         generateLilypond(pattern, eopts).then(function() {
-            //generatePNG(eopts._fullname).then(function() {
+
             generatePNG(eopts._fullname_notempo).then(function() {
                 resolve();
             }).catch(function(e) {
@@ -424,7 +426,7 @@ var getAudio = function(pattern, eopts, cb) {
             return;
         }
         miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
-        patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
+        var patendtime = (60 / eopts.tempo) * eopts._pattern[0].length * repeatCount;
         generateOGG(eopts._fullname, patendtime).then(function() {
             getAudioData(pattern, eopts, function(err, auData) {
                 if (err) {
@@ -472,7 +474,7 @@ var getImage = function(pattern, eopts, cb) {
 
         if (makeErr) {
             Log.error(makeErr);
-            cb(makeErr)
+            cb(makeErr);
             return;
         }
 
@@ -516,7 +518,7 @@ var getImageData = function(pattern, eopts, cb) {
 var getLilypond = function(pattern, eopts, cb) {
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
-    generateMusicXml(pattern, eopts).then(function() {
+    generateLilypond(pattern, eopts).then(function() {
         fs.readFile(eopts._fullname_notempo + ".ly", function(err, buf) {
             cb(err, buf);
         });
@@ -525,8 +527,40 @@ var getLilypond = function(pattern, eopts, cb) {
     });
 };
 
+var healthyLilypondCheck = function(cb) {
+    var genchild;
+    var state = {
+        up: true,
+        fatal: false,
+        reason: ""
+    };
+    try {
+        Log.debug('Running healthcheck...');
+        genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png /tmp/healthtest.ly", {
+            timeout: 5000
+        }, function(error, stdout, stderr) {
+            Log.debug('stdout: ' + stdout);
+            Log.debug('stderr: ' + stderr);
+            if (error !== null) {
+                Log.error('exec error: ' + error);
+                state.reason = error;
+                state.up = false;
+                state.fatal = true;
+            }
+            cb(state);
+        });
+    } catch (e) {
+        Log.error(e);
+        state.reason = e;
+        state.up = false;
+        state.fatal = true;
+        cb(state);
+    }
+};
+
 module.exports = {
     getImage: getImage,
     getAudio: getAudio,
     getRawFile: getLilypond,
+    healthCheck: healthyLilypondCheck,
 };

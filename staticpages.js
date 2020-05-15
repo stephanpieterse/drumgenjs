@@ -30,8 +30,12 @@ var getAll8Stream = function(stream, opts) {
     var barlen = patlen;
 
     var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
-    var mappings = ['r', 'R', 'l', 'L'];
     var pageLinkAdd = "";
+    var mappings = ['r', 'R', 'l', 'L'];
+    if (opts.nosticking) {
+        mappings = ['x','X'];
+        pageLinkAdd += "&nosticking=true";
+    }
     if (opts.blanks) {
         mappings = mappings.concat(['x', 'X']);
         pageLinkAdd += "&blanks=true";
@@ -103,7 +107,7 @@ var getAll8Stream = function(stream, opts) {
             stream.push(null);
             clearInterval(bufferWriteInterval);
         }
-    }, 50);
+    }, 75);
 };
 
 module.exports = {
