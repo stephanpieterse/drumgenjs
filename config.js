@@ -8,7 +8,7 @@ module.exports = {
     tmpCleanupInterval: ( 5 * 60 * 1000 ), // 5 minutes
     tmpMaxAge: (24 * 60 * 60), // 24 hour
     tmpSizeOverMaxAge: (120), // 120 seconds
-    tmpSizeLimit: (50 * 1024 ), // 100mb 
+    tmpSizeLimit: (100 * 1024 ), // 100mb 
     worksheet: {
         pageItems: 20
     },
@@ -16,5 +16,5 @@ module.exports = {
         timeout: 1000 * 10,
         concurrency: 2
     },
-    loader: 'musicxml' // or lilypond
+    loader: 'lilypond' // ? musicxml
 };

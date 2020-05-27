@@ -58,6 +58,13 @@ funcs.getSeed = function() {
 };
 
 
+funcs.getShareUrl = function(){
+  var host = window.location.host;
+  var shareUrl = host + "/public/image/ref/{{PATREF}}";
+  shareUrl = shareUrl.replace('{{PATREF}}', settings.pattern_ref);
+  return shareUrl;
+};
+
 var LS = {
     get: function(a) {
         try {

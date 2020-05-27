@@ -15,5 +15,6 @@ module.exports = {
     queue: {
         timeout: 1000 * 10,
         concurrency: 2
-    }
+    },
+		loader: 'lilypond'
 };

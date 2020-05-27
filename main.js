@@ -53,27 +53,21 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
     var file = "";
     switch (blockb) {
         case "L":
-            //file += repnote + noteBase + '->-"L"' + space;
             file += repnote + (noteBase) + '->-"L"-\\omit\\fff' + space;
             break;
         case "l":
-            //file += repnote + noteBase + '-"L"' + space;
             file += repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
             break;
         case "R":
-            //file += repnote + noteBase + '->-"R"' + space;
             file += repnote + (noteBase) + '->-"R"-\\omit\\fff' + space;
             break;
         case "r":
-            //file += repnote + noteBase + '-"R"' + space;
             file += repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
             break;
         case "X":
-            //file += repnote + noteBase + "->" + space;
             file += repnote + (noteBase) + "->-\\omit\\fff" + space;
             break;
         case "x":
-            //file += repnote + noteBase + space;
             file += repnote + (noteBase) + '-\\omit\\pp' + space;
             break;
         case "-":
@@ -147,11 +141,12 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '300)" + nl;
+    head += "#(ly:set-option 'resolution '400)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
-    head += "#(ly:set-option 'no-gs-load-fonts '#t)" + nl;
-    head += "#(ly:set-option 'include-eps-fonts '#t)" + nl;
+    head += "#(ly:set-option 'gs-load-lily-fonts '#t)" + nl;
+    head += "#(ly:set-option 'include-eps-fonts '#f)" + nl;
+    head += "#(ly:set-option 'aux-files '#f)" + nl;
     head += paperString;
     var defDrums = "#(define mydrums '( (hihat  cross   #f  0) ))";
     head += defDrums;
@@ -297,7 +292,6 @@ var generatePNG = function(filename) {
         timers.start("gen-png");
         metrics.increment('generated', 'images');
         var genchild;
-        //genchild = exec("cd " + dir_prefix + " && lilypond --png '" + filename + ".ly' && convert " + filename + ".png -trim " + filename + ".s.png", function(error, stdout, stderr) {
         try {
             genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", {
                 timeout: 10000
@@ -334,7 +328,6 @@ var generateOGG = function(filename, endtime) {
         timers.start("gen-ogg");
         metrics.increment('generated', 'audio');
         var audiochild;
-        // audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", function(error, stdout, stderr) {
         try {
             audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", {
                 timeout: 3000

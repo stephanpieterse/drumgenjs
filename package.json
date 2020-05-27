@@ -26,6 +26,7 @@
     "chai-http": "^4.3.0",
     "loadtest": "^3.0.7",
     "mocha": "^5.2.0",
-    "terminal-image": "^0.2.0"
+    "terminal-image": "^0.2.0",
+    "zombie": "^6.1.4"
   }
 }

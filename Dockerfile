@@ -43,6 +43,7 @@ RUN cd /opt/app && npm install --only=production
 
 COPY ./ /opt/app/
 RUN cd /opt/app/static; export DATE=`date +%s`; cat serviceworker-raw.js | envsubst > serviceworker.js
+RUN chown -R nobody /opt/app
 
 RUN mkdir -p /opt/app/tmpgen && chmod 0777 /opt/app/tmpgen
 CMD ["bash", "/opt/app/startapp.sh"]

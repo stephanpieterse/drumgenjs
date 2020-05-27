@@ -32,17 +32,27 @@ var getAll8Stream = function(stream, opts) {
     var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
     var pageLinkAdd = "";
     var mappings = ['r', 'R', 'l', 'L'];
-    if (opts.nosticking) {
-        mappings = ['x','X'];
+    if (opts.toggles.sticking === true) {
+        opts.nosticking = !opts.nosticking;
+    }
+    if (opts.nosticking !== false) {
+        mappings = ['x', 'X'];
         pageLinkAdd += "&nosticking=true";
+    } else {
+        pageLinkAdd += "&nosticking=false";
     }
     if (opts.blanks) {
         mappings = mappings.concat(['x', 'X']);
         pageLinkAdd += "&blanks=true";
     }
-    if (opts.rests) {
+    if (opts.toggles.rests === true) {
+        opts.rests = !opts.rests;
+    }
+    if (opts.rests === true) {
         mappings.push("-");
         pageLinkAdd += "&rests=true";
+    } else {
+        pageLinkAdd += "&rests=false";
     }
 
     var pattern = [];
@@ -76,8 +86,16 @@ var getAll8Stream = function(stream, opts) {
     }
     var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
     var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
-    var randomPageLink = pageHost + "/worksheet/" + patlen + "?page=" + randomPageNum;
+    var randomPageLink = pageHost + "/worksheet/" + patlen + "?page=" + randomPageNum + pageLinkAdd;
     var footerData = "Page " + pagenum + " of " + maxPages;
+
+    var toggleStickingLink = pageHost + "/worksheet/" + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
+    toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
+    var toggleRestsLink = pageHost + "/worksheet/" + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
+    toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+
     pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
     pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
     pageStart = pageStart.replace("{{RANDOMPAGE}}", randomPageLink);

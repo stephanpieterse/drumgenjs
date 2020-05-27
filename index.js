@@ -47,19 +47,19 @@ app.use(function metricTracker(req, res, next) {
 });
 
 app.use(function timingTracker(req, res, next) {
-    timers.start(req.path);
+    timers.start(req.route ? req.route.path : req.path);
     req._dgtimingstart = Date.now();
     res.on("finish", function() {
-        timers.end(req.path);
+        timers.end(req.route ? req.route.path : req.path);
         var time = Date.now() - req._dgtimingstart;
         metrics.increment('http-status', res.statusCode);
         prommetrics.cadd('http_requests_total', 1, {
             "status_code": res.statusCode,
-            "path": req.path,
+            "path": req.route ? req.route.path : req.path,
             "appid": appId
         });
         prommetrics.hobs('http_requests_timings', time, {
-            "path": req.path,
+            "path": req.route ? req.route.path : req.path,
             "appid": appId
         });
     });
@@ -96,6 +96,10 @@ app.post("/analytics", function(req, res) {
                 "appid": appId
             });
             prommetrics.hobs('analytics_user_timevisible', obj.timeInState.visible, {
+                "path": obj.pathname,
+                "appid": appId
+            });
+            prommetrics.hobs('analytics_resources_pagetotal', obj.pageEntries.length, {
                 "path": obj.pathname,
                 "appid": appId
             });
@@ -183,6 +187,10 @@ function publicGetPat(req, res) {
 
     var tupmap = sanitize.tuples(req.query['tuples']);
     var layers = parseInt(req.query['layers']) || 1;
+
+    metrics.increment('patlen', patlen);
+    metrics.increment('layers', layers);
+    metrics.increment('tuples', tupmap.join('-'));
 
     var globpat = [];
     //start layer loop
@@ -389,6 +397,41 @@ app.get("/public/image", function(req, res) {
 
 });
 
+app.get("/public/image/ref/:patref", function(req, res) {
+
+    // uses same code as image, can we make this common?
+
+    req.query['patref'] = req.param['patref'];
+    var ppat = publicGetPat(req, res);
+    var queryOpts = getOptsFromReq(req);
+    Log.debug({
+        pat: ppat
+    }, 'received rest request');
+    var execFunc = function(cb) {
+        musxml.getImage(ppat, queryOpts, function(err, imgData) {
+            Log.debug({
+                pat: ppat
+            }, 'received image request');
+            if (err) {
+                Log.error("getImage returned an error");
+                res.status(500);
+                res.send("image retrieval error: " + err);
+                cb();
+                return;
+            }
+
+            res.writeHead(200, {
+                'Content-Type': imgData.contentType
+            });
+            res.end(imgData.data);
+            cb();
+        });
+    };
+    execFunc.timeout = 3000;
+    q.push(execFunc);
+
+});
+
 app.get("/convertnum", function(req, res) {
     Log.debug("num = " + req.query['num']);
     Log.debug("len = " + req.query['patlen']);
@@ -429,7 +472,11 @@ app.get("/public/patreftocustommap/:patref", function(req, res) {
 });
 
 app.get("/public/custommaptopatref/:cmap", function(req, res) {
+    var cmapParam = req.params['cmap'];
+    cmapParam = sanitize.trimString(cmapParam);
+    cmapParam = cmapParam.replace(/[^\[\],0-9]/g,'');
     var arr = JSON.parse(req.params['cmap']);
+
     var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
 
     function rmap(obj) {
@@ -452,11 +499,14 @@ app.get("/public/custommaptopatref/:cmap", function(req, res) {
 
 app.get("/worksheet/:patlen", function(req, res) {
     var opts = {};
-    opts.patlen = req.params['patlen'] || 4;
-    opts.pagenum = req.query['page'] || 1;
+    opts.patlen = parseInt(req.params['patlen']) || 4;
+    opts.pagenum = parseInt(req.query['page']) || 1;
     opts.blanks = req.query['blanks'];
-    opts.rests = req.query['rests'];
-    opts.nosticking = req.query['nosticking'];
+    opts.rests = req.query['rests'] === "true" ? true  : false;
+    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
+    opts.toggles = {};
+    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
+    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',

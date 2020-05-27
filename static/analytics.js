@@ -1,3 +1,6 @@
+/* jshint strict: false */
+/* global navigator */
+
 var analyticsData = {};
 analyticsData.pathname = window.location.pathname;
 analyticsData.timeInState = {
@@ -9,6 +12,7 @@ var lastTime = Date.now();
 function logData() {
     try {
         analyticsData.timeOnPage = performance.now();
+        analyticsData.pageEntries = performance.getEntries();
         navigator.sendBeacon("/analytics", JSON.stringify(analyticsData));
     } catch (e) {
         // Can't do much here
