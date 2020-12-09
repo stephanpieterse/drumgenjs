@@ -8,7 +8,6 @@ var cache = util.cache;
 var config = require('./config.js');
 
 var timers = require('./timers.js');
-var metrics = require('./metrics.js');
 var miditools = require('./miditools.js');
 var common = require('./commonblockfuncs.js');
 var mediautil = require('./mediautil.js');
@@ -564,7 +563,6 @@ var generatePNG = function(filename) {
         }
 
         timers.start("gen-msxml-png");
-        metrics.increment('generated', 'images');
         var genchild;
         //genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", function(error, stdout, stderr) {
         var imageCmd = "echo 1";
@@ -596,7 +594,6 @@ var generateOGG = function(filename, endtime) {
 
         endtime = endtime || "";
         timers.start("gen-ogg");
-        metrics.increment('generated', 'audio');
         var audiochild;
         //var audioCmd = "perl /opt/app/musicxml2mid.pl " + filename + ".musicxml > " + filename + ".midi ";
         // audioCmd += "&& timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi ";

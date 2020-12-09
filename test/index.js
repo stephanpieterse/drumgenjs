@@ -35,7 +35,7 @@ describe("Server tests", function() {
 
     it("Should have a working metrics endpoint", function(done) {
         chai.request(server)
-            .get('/metrics')
+            .get('/prometheus')
             .end(function(err, res) {
                 expect(res).to.have.property('status');
                 res.should.have.status(200);

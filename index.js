@@ -9,7 +9,6 @@ var staticpages = require("./staticpages.js");
 var app = express();
 var config = require("./config.js");
 var serverPort = config.server.port;
-var metrics = require('./metrics.js');
 var prommetrics = require('./prommetrics.js');
 var promclient = require('prom-client');
 var prominit = require('./prominit.js');
@@ -30,7 +29,9 @@ q.timeout = config.queue.timeout;
 q.concurrency = config.queue.concurrency;
 q.autostart = true;
 q.on('timeout', function(continuejob, job) {
-    metrics.increment('errors', 'q-timeouts');
+    prommetrics.cadd('drumgen_errors_qtimeout', 1, {
+        "appid": appId
+    });
     Log.error({
         job: job,
         continuejob: continuejob
@@ -41,18 +42,12 @@ cleanup.start(function() {
     Log.debug("Callback for cleanup script ran");
 });
 
-app.use(function metricTracker(req, res, next) {
-    metrics.reqObjScraper(req);
-    next();
-});
-
 app.use(function timingTracker(req, res, next) {
     timers.start(req.route ? req.route.path : req.path);
     req._dgtimingstart = Date.now();
     res.on("finish", function() {
         timers.end(req.route ? req.route.path : req.path);
         var time = Date.now() - req._dgtimingstart;
-        metrics.increment('http-status', res.statusCode);
         prommetrics.cadd('http_requests_total', 1, {
             "status_code": res.statusCode,
             "path": req.route ? req.route.path : req.path,
@@ -118,10 +113,6 @@ app.get("/prometheus", function(req, res) {
     res.send(promclient.register.metrics({
         timestamps: false
     }));
-});
-
-app.get("/metrics", function(req, res) {
-    res.json(metrics.getMetrics());
 });
 
 app.get("/timers", function(req, res) {
@@ -190,9 +181,21 @@ function publicGetPat(req, res) {
     var tupmap = sanitize.tuples(req.query['tuples']);
     var layers = parseInt(req.query['layers']) || 1;
 
-    metrics.increment('patlen', patlen);
-    metrics.increment('layers', layers);
-    metrics.increment('tuples', tupmap.join('-'));
+    prommetrics.hobs('app_pattern_tempos', parseInt(req.query['tempo'] || 120), {
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_patlen', 1, {
+        "patlen": patlen,
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_layers', 1, {
+        "layers": layers,
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_tuples', 1, {
+        "tuples": tupmap.join('-'),
+        "appid": appId
+    });
 
     var globpat = [];
     //start layer loop
@@ -214,14 +217,14 @@ function publicGetPat(req, res) {
         if (queryOpts.noRests) {
             mappings.shift();
         }
-        if (queryOpts.flams){
-          mappings.push('u', 'U', 'i', 'I');
+        if (queryOpts.flams) {
+            mappings.push('u', 'U', 'i', 'I');
         }
-        if (queryOpts.tremolos){
-          mappings.push('o', 'O');
+        if (queryOpts.tremolos) {
+            mappings.push('o', 'O');
         }
-        if (queryOpts.flams && queryOpts.tremolos){
-          mappings.push('y', 'Y');
+        if (queryOpts.flams && queryOpts.tremolos) {
+            mappings.push('y', 'Y');
         }
 
         pat = common.convertNumSimple(num, patlen, mappings);
@@ -486,7 +489,7 @@ app.get("/public/patreftocustommap/:patref", function(req, res) {
 app.get("/public/custommaptopatref/:cmap", function(req, res) {
     var cmapParam = req.params['cmap'];
     cmapParam = sanitize.trimString(cmapParam);
-    cmapParam = cmapParam.replace(/[^\[\],0-9]/g,'');
+    cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
     var arr = JSON.parse(req.params['cmap']);
 
     var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
@@ -514,7 +517,7 @@ app.get("/worksheet/:patlen", function(req, res) {
     opts.patlen = parseInt(req.params['patlen']) || 4;
     opts.pagenum = parseInt(req.query['page']) || 1;
     opts.blanks = req.query['blanks'];
-    opts.rests = req.query['rests'] === "true" ? true  : false;
+    opts.rests = req.query['rests'] === "true" ? true : false;
     opts.nosticking = req.query['nosticking'] === "true" ? true : false;
     opts.toggles = {};
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
@@ -565,30 +568,30 @@ var this_server = app.listen(serverPort, function() {
     Log.info("Started on " + serverPort);
 
     healthInterval.lily = setInterval(function() {
-        musxml.healthCheck(function(health){
-          healthStatus.lily = health;
+        musxml.healthCheck(function(health) {
+            healthStatus.lily = health;
         });
     }, 2 * 60 * 1000);
 
-    healthInterval.main = setInterval(function(){
-      for (var h in healthStatus){
-        if(healthStatus[h].up !== true){
-          Log.error(h + ' is reporting unhealthy!');
-          if(healthStatus[h].fatal === true){
-            Log.error(healthStatus[h].reason);
-            process.exit(1);
-          }
+    healthInterval.main = setInterval(function() {
+        for (var h in healthStatus) {
+            if (healthStatus[h].up !== true) {
+                Log.error(h + ' is reporting unhealthy!');
+                if (healthStatus[h].fatal === true) {
+                    Log.error(healthStatus[h].reason);
+                    process.exit(1);
+                }
+            }
         }
-      }
     }, 1 * 60 * 1000);
 
 });
 
-this_server.on('close', function(){
-  Log.info('Shutdown section');
-  for (var h in healthInterval){
-    clearInterval(healthInterval[h]);
-  }
+this_server.on('close', function() {
+    Log.info('Shutdown section');
+    for (var h in healthInterval) {
+        clearInterval(healthInterval[h]);
+    }
 });
 
 module.exports = {

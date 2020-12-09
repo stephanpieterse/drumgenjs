@@ -21,10 +21,11 @@ function perfReporter(data) {
     var gLatency = data.gLatency;
     var avgRequestTime = data.avgRequestTime;
 
-    console.info("\n==============================\n");
+    //console.info("\n==============================\n");
+    console.info("==============================");
     console.info("Requests per hour: " + noRequestPerHour);
     console.info("Avg request time(Millis): " + avgRequestTime);
-    console.info("\n==============================\n");
+    console.info("==============================");
     console.info("Total Requests :", gLatency.totalRequests);
     console.info("Total Failures :", gLatency.totalErrors);
     console.info("Requests/Second :", gLatency.rps);
@@ -33,7 +34,7 @@ function perfReporter(data) {
     console.info("Min Request Time:", gLatency.minLatencyMs);
     console.info("Max Request Time:", gLatency.maxLatencyMs);
     console.info("Percentiles :", gLatency.percentiles);
-    console.info("\n===============================\n");
+    console.info("==============================");
 
 }
 
@@ -122,7 +123,7 @@ describe("Performance Test", function() {
         });
     });
 
-    it("performance testing /public/image uniques - singles test", function(done) {
+    it("performance testing /public/image uniques - single user test", function(done) {
 
         var noRequestPerHour = 3000;
         var avgRequestTime = 500;
@@ -169,7 +170,7 @@ describe("Performance Test", function() {
         });
     });
 
-    it("performance testing /public/image uniques - multiples test", function(done) {
+    it("performance testing /public/image uniques - multiple user test", function(done) {
 
         var noRequestPerHour = 10000;
         var avgRequestTime = 2500;
@@ -186,8 +187,8 @@ describe("Performance Test", function() {
 
         var options = {
             "url": basePath,
-            "maxSeconds": 30,
-            "concurrency": 6,
+            "maxSeconds": 25,
+            "concurrency": 3,
             "statusCallback": statusCallback,
             "requestGenerator": uniqSeedRequestGenerator
         };
@@ -216,7 +217,7 @@ describe("Performance Test", function() {
         });
     });
 
-    it("performance testing /public/audio uniques - singles test", function(done) {
+    it("performance testing /public/audio uniques - single user test", function(done) {
 
         var noRequestPerHour = 3000;
         var avgRequestTime = 900;
@@ -262,7 +263,7 @@ describe("Performance Test", function() {
             }
         });
     });
-    it("performance testing /public/audio tempo change - singles test", function(done) {
+    it("performance testing /public/audio tempo change - single user test", function(done) {
 
         var noRequestPerHour = 3000;
         var avgRequestTime = 900;
@@ -285,7 +286,7 @@ describe("Performance Test", function() {
 
         var options = {
             "url": basePath,
-            "maxSeconds": 15,
+            "maxSeconds": 12,
             "concurrency": 1,
             "statusCallback": statusCallback,
             "requestGenerator": uniqSeedRequestGenerator

@@ -3,7 +3,6 @@
 
 var Log = require('./logger.js');
 var util = require('./util.js');
-var cache = util.cache;
 
 var impExpMap = {
     "[[": "s",
@@ -122,10 +121,6 @@ var exportBlocks = function(blocks) {
 };
 
 var importBlocks = function(patid) {
-   // var cpid = "patid" + patid;
-   // if (cache.get(cpid)) {
-   //     return cache.get(cpid);
-   // }
 
     var pat = new Buffer(patid);
     pat = pat.toString('UTF-8');
@@ -155,7 +150,6 @@ var importBlocks = function(patid) {
     pat = pat.replace(/Y/g, '"Y"');
 
     Log.trace(pat);
-   // cache.set(cpid, pat, 7200);
     return pat;
 };
 
@@ -186,17 +180,6 @@ var getMappedTuple = function(tuple, num, mappings) {
 
 var genericMapper = function(num, patlen, mappings) {
 
-   // var cachedid = "genmapper-" + JSON.stringify(arguments);
-   // var cid = cache.get(cachedid);
-
-   // if (cid) {
-   //     Log.debug({
-   //         cacheitem: cid,
-   //         id: cachedid
-   //     }, "Returning map from cache");
-   //     return cache.get(cachedid);
-   // }
-
     var pattern = [];
     var sipattern = [];
     pattern[0] = makeCleanBlock(patlen);
@@ -216,12 +199,6 @@ var genericMapper = function(num, patlen, mappings) {
     }
 
     sipattern[0] = pattern[0];
-
-   // Log.debug({
-   //     id: cachedid,
-   //     cacheitem: sipattern[0]
-   // }, "Setting item in cache");
-   // cache.set(cachedid, sipattern[0], 7200);
 
     return sipattern[0];
 };

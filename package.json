@@ -15,7 +15,6 @@
     "express": "^4.16.4",
     "midi-file": "^1.1.1",
     "node-cache": "^4.2.0",
-    "persistent-cache": "^1.1.1",
     "png-metadata": "^1.0.2",
     "prom-client": "^11.5.3",
     "queue": "^4.5.1",

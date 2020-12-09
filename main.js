@@ -8,7 +8,7 @@ var cache = util.cache;
 var config = require('./config.js');
 
 var timers = require('./timers.js');
-var metrics = require('./metrics.js');
+var prommetrics = require('./prommetrics.js');
 var miditools = require('./miditools.js');
 var mediautil = require('./mediautil.js');
 var common = require('./commonblockfuncs.js');
@@ -292,7 +292,9 @@ var generateLilypond = function(pattern, eopts) {
         }
 
         timers.start("gen-lily");
-        metrics.increment('generated', 'lilypond-files');
+        prommetrics.cadd('drumgen_generated_lilypond', 1, {
+            "appid": prommetrics.appid
+        });
         var finalPattern = patternToLilypond(pattern, eopts);
         timers.end("gen-lily");
 
@@ -318,7 +320,9 @@ var generatePNG = function(filename) {
         }
 
         timers.start("gen-png");
-        metrics.increment('generated', 'images');
+        prommetrics.cadd('drumgen_generated_images', 1, {
+            "appid": prommetrics.appid
+        });
         var genchild;
         try {
             genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png '" + filename + ".ly'", {
@@ -354,7 +358,9 @@ var generateOGG = function(filename, endtime) {
 
         endtime = endtime || "";
         timers.start("gen-ogg");
-        metrics.increment('generated', 'audio');
+        prommetrics.cadd('drumgen_generated_audio', 1, {
+            "appid": prommetrics.appid
+        });
         var audiochild;
         try {
             audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", {
