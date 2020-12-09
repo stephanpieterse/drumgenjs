@@ -37,7 +37,6 @@ COPY ./docker_res/timidity.cfg /etc/timidity/timidity.cfg
 COPY ./docker_res/timidity.cfg /usr/local/share/timidity/timidity.cfg
 COPY ./docker_res/ /opt/res/
 RUN cp /usr/share/lilypond/current/fonts/otf/* /usr/share/lilypond/current/fonts/svg
-#RUN mkdir -p /usr/share/sounds/sf2 && cp /opt/res/FluidR3_GM.stripped.sf2 /usr/share/sounds/sf2/FluidR3_GM.sf2
 #RUN cp /opt/res/fluidr3_gm.cfg /etc/timidity/fluidr3_gm.cfg
 
 RUN apt-get purge -y ghostscript

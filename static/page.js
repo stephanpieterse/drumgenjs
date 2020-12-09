@@ -435,7 +435,6 @@ function callToRefresh() {
     loader.show();
     mainsndholder.hide();
     audiobtnholder.hide();
-    //var newsnd = audiorefreshurl + '&seed=' + cseed + '&patlen=' + settings.pattern_length + '&tuples=' + settings.pattern_tuples + '&nometro=' + !settings.metronome_on + '&tempo=' + settings.tempo;
     var newsnd = buildTemplateUrl(audiorefreshurl + hburlext);
 
     sndholder.attr("src", newsnd);
