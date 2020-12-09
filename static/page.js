@@ -113,7 +113,7 @@ funcs.getSeed();
 var hosturl = '';
 var patternbaseurl = hosturl + '/public/pattern?app=true';
 var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
-var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}';
+var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}&flams={{FLAMS}}&tremolos={{TREMOLOS}}';
 var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}&flams={{FLAMS}}&tremolos={{TREMOLOS}}';
 var editpatext = hosturl + '/static/custompat.html?patref={{PATREF}}';
 var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
