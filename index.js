@@ -1,4 +1,4 @@
-/* global require, module, __dirname */
+/* global require, module, __dirname, process */
 /* jslint strict:false */
 
 var express = require("express");
@@ -151,11 +151,13 @@ var getOptsFromReq = function(req) {
     }
     // !!! future
     /// ("" + req.opts['a']).toLowerCase() === 'true'
-    var mapArr = req.query["map"] || "";
+    var mapArr = req.query["map"] || "sn";
     mapArr = mapArr.split(",");
     return {
         noNames: (req.query["noname"] !== false || req.query["noname"] !== 'false'),
         noRests: (req.query["norests"] === true || req.query["norests"] === 'true'),
+        flams: (req.query["flams"] === true || req.query["flams"] === 'true'),
+        tremolos: (req.query["tremolos"] === true || req.query["tremolos"] === 'true'),
         noMetronome: (req.query["nometro"] === true || req.query["nometro"] === 'true'),
         asBase64: (req.query["asbase64"] === 'true'),
         patlen: isNaN(parseInt(req.query["patlen"])) ? 8 : parseInt(req.query["patlen"]),
@@ -211,6 +213,15 @@ function publicGetPat(req, res) {
         var mappings = ['-', 'r', 'R', 'l', 'L'];
         if (queryOpts.noRests) {
             mappings.shift();
+        }
+        if (queryOpts.flams){
+          mappings.push('u', 'U', 'i', 'I');
+        }
+        if (queryOpts.tremolos){
+          mappings.push('o', 'O');
+        }
+        if (queryOpts.flams && queryOpts.tremolos){
+          mappings.push('y', 'Y');
         }
 
         pat = common.convertNumSimple(num, patlen, mappings);
@@ -280,12 +291,13 @@ app.get("/public/refresh/audio", function(req, res) {
         });
         return;
     }
+
     var execFunc = function(cb) {
         musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData) {
             if (err) {
                 Log.error("getAudio returned an error");
                 res.status(500);
-                res.send("audio generation/retrieval error: " + err);
+                res.send("Audio generation/retrieval error: " + err);
                 cb();
                 return;
             }
@@ -380,7 +392,7 @@ app.get("/public/image", function(req, res) {
             if (err) {
                 Log.error("getImage returned an error");
                 res.status(500);
-                res.send("image retrieval error: " + err);
+                res.send("Image retrieval error: " + err);
                 cb();
                 return;
             }
@@ -401,7 +413,7 @@ app.get("/public/image/ref/:patref", function(req, res) {
 
     // uses same code as image, can we make this common?
 
-    req.query['patref'] = req.param['patref'];
+    req.query['patref'] = req.params['patref'];
     var ppat = publicGetPat(req, res);
     var queryOpts = getOptsFromReq(req);
     Log.debug({
@@ -415,7 +427,7 @@ app.get("/public/image/ref/:patref", function(req, res) {
             if (err) {
                 Log.error("getImage returned an error");
                 res.status(500);
-                res.send("image retrieval error: " + err);
+                res.send("Image retrieval error: " + err);
                 cb();
                 return;
             }

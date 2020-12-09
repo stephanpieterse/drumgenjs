@@ -4,3 +4,5 @@ node_modules/
 .git/
 run.sh
 runtest.sh
+Dockerfile
+Dockerfile.test

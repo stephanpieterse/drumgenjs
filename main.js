@@ -52,20 +52,48 @@ var genLilyTupleMapper = function(blocks, repnote, noteBase) {
 var genLilySingleMapper = function(blockb, repnote, noteBase) {
     var file = "";
     switch (blockb) {
+        case "Y":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"R"-\\omit\\pp' + space;
+            break;
+        case "y":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
+            break;
+        case "O":
+            //var tremtime = noteBase >= 8 ? noteBase*2 : 8;
+            //file += repnote + (noteBase) + ':' + tremtime +'-"R"-\\omit\\pp' + space;
+            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"R"-\\omit\\pp' + space;
+            break;
+        case "o":
+            //var tremtime = noteBase > 8 ? noteBase*2 : 8;
+            //file += repnote + (noteBase) + ':' + tremtime +'-"L"-\\omit\\pp' + space;
+            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
+            break;
+        case "I":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + repnote + (noteBase) + '^>-"R"-\\omit\\fff' + space;
+            break;
+        case "i":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
+            break;
+        case "U":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + repnote + (noteBase) + '^>-"L"-\\omit\\fff' + space;
+            break;
+        case "u":
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
+            break;
         case "L":
-            file += repnote + (noteBase) + '->-"L"-\\omit\\fff' + space;
+            file += repnote + (noteBase) + '^>-"L"-\\omit\\fff' + space;
             break;
         case "l":
             file += repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
             break;
         case "R":
-            file += repnote + (noteBase) + '->-"R"-\\omit\\fff' + space;
+            file += repnote + (noteBase) + '^>-"R"-\\omit\\fff' + space;
             break;
         case "r":
             file += repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
             break;
         case "X":
-            file += repnote + (noteBase) + "->-\\omit\\fff" + space;
+            file += repnote + (noteBase) + "^>-\\omit\\fff" + space;
             break;
         case "x":
             file += repnote + (noteBase) + '-\\omit\\pp' + space;
@@ -105,7 +133,6 @@ var genLilypondPart = function(blocks, repnote, noteBase) {
 
         } else {
             file += genLilySingleMapper(blocks[b], repnote, noteBase);
-
         }
     }
     file += " }";
@@ -141,8 +168,8 @@ var getLilypondHeader = function() {
         " evenFooterMarkup = \"\"" + nl +
         "}";
     head += "\\version \"2.18.2\" " + nl;
-    head += "#(ly:set-option 'resolution '400)" + nl;
-    head += "#(ly:set-option 'pixmap-format 'pngalpha)" + nl;
+    head += "#(ly:set-option 'resolution '1000)" + nl;
+    head += "#(ly:set-option 'pixmap-format 'pngmono)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
     head += "#(ly:set-option 'gs-load-lily-fonts '#t)" + nl;
     head += "#(ly:set-option 'include-eps-fonts '#f)" + nl;
@@ -176,6 +203,7 @@ var genMusicBlockSection = function(blocks, options) {
         file += "\\new DrumStaff " + nl;
         file += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 " + 'instrumentName = #"' + staffnames[block] + '"' + " }" + nl;
         file += " { " + nl;
+        file += "\\override Stem.direction = #UP" + nl;
         file += "\\omit Score.MetronomeMark" + nl;
         file += "\\time " + patlen + "/4" + nl;
         file += "\\set DrumStaff.drumStyleTable = #(alist->hash-table mydrums)" + nl;

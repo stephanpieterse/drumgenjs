@@ -59,10 +59,29 @@ funcs.getSeed = function() {
 
 
 funcs.getShareUrl = function(){
-  var host = window.location.host;
+  var host = window.location.protocol + "//" + window.location.host;
   var shareUrl = host + "/public/image/ref/{{PATREF}}";
   shareUrl = shareUrl.replace('{{PATREF}}', settings.pattern_ref);
   return shareUrl;
+};
+
+funcs.getShareLinks = function(){
+  var url = funcs.getShareUrl();
+  var links = {};
+  var appPage =  window.location.protocol + "//" + window.location.host + '/static/page.html';
+  links.Pinterest = "https://pinterest.com/pin/create/button/?url=" + encodeURI(appPage) + "&media="+encodeURI(url)+"&description=";
+  //links.facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURI(url);
+  //links.twitter = "https://twitter.com/intent/tweet?text=" + encodeURI(url);
+  return links;
+};
+
+funcs.updateShareLinks = function(){
+  var links = funcs.getShareLinks();
+  var body = "";
+  for (var sl in links){
+    body += '<a href="'+ links[sl]+'" target="_blank">Share on ' + sl + '</a>';
+  }
+  $('.sharelinks').html(body);
 };
 
 var LS = {
@@ -95,7 +114,7 @@ var hosturl = '';
 var patternbaseurl = hosturl + '/public/pattern?app=true';
 var audiobaseurl = hosturl + '/public/audio?app=true'; //asbase64=false';
 var paturlext = '&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}';
-var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}';
+var hburlext = '&patref={{PATREF}}&seed={{SEED}}&patlen={{PATLEN}}&tuples={{TUPLES}}&nested={{NESTED}}&nometro={{NOMETRO}}&tempo={{TEMPO}}&norests={{NORESTS}}&layers={{LAYERS}}&map={{MAP}}&flams={{FLAMS}}&tremolos={{TREMOLOS}}';
 var editpatext = hosturl + '/static/custompat.html?patref={{PATREF}}';
 var audiorefreshurl = hosturl + '/public/refresh/audio?app=true'; //asbase64=false';
 var imagebaseurl = hosturl + '/public/image?app=true'; //asbase64=false';
@@ -120,6 +139,8 @@ settings.pattern_layers = 1;
 settings.pattern_tuples = [2, 3, 4];
 settings.pattern_ref = "s5c5c4c4c4cbb6e";
 settings.metronome_on = true;
+settings.flams = true;
+settings.tremolos = true;
 settings.rests_on = true;
 settings.nested_tuples = false;
 settings.loop_audio = true;
@@ -211,6 +232,16 @@ var setupSettings = function() {
         $('[name="metronome_on"]').attr('checked', 'checked');
     }
 
+    $('[name="flams"]').removeAttr('checked');
+    if (settings.flams) {
+        $('[name="flams"]').attr('checked', 'checked');
+    }
+
+    $('[name="tremolos"]').removeAttr('checked');
+    if (settings.tremolos) {
+        $('[name="tremolos"]').attr('checked', 'checked');
+    }
+
     $('[name^="etuple"]').removeAttr('checked');
     for (var pt in settings.pattern_tuples) {
         $('[name="etuple' + settings.pattern_tuples[pt] + '"]').attr('checked', 'checked');
@@ -280,6 +311,8 @@ function buildCustomTemplateUrl(base, items) {
         .replace("{{NESTED}}", items.nested)
         .replace("{{NOMETRO}}", items.nometro)
         .replace("{{NORESTS}}", items.norests)
+        .replace("{{FLAMS}}", items.flams)
+        .replace("{{TREMOLOS}}", items.tremolos)
         .replace("{{TEMPO}}", items.tempo)
         .replace("{{PATREF}}", items.patref)
         .replace("{{LAYERS}}", items.layers)
@@ -294,6 +327,8 @@ function buildTemplateUrl(base) {
         nested: settings.nested_tuples,
         nometro: !settings.metronome_on,
         norests: !settings.rests_on,
+        flams: settings.flams,
+        tremolos: settings.tremolos,
         tempo: settings.tempo,
         patref: settings.pattern_ref,
         layers: settings.pattern_layers,
@@ -353,6 +388,7 @@ var init = function() {
         $('.editbtn').attr("href", buildTemplateUrl(editpatext));
 
         doHealthCheck();
+        funcs.updateShareLinks();
     }).catch(function(e) {
         console.log("whoopseedoodle");
         console.log(e);
@@ -453,6 +489,16 @@ $('[name^="etuple"]').click(function() {
 
 $('[name="rests_on"]').click(function() {
     settings.rests_on = ($('[name="rests_on"]:checked').val()) ? true : false;
+    callToChange();
+});
+
+$('[name="tremolos"]').change(function() {
+    settings.tremolos = ($('[name="tremolos"]:checked').val()) ? true : false;
+    callToChange();
+});
+
+$('[name="flams"]').change(function() {
+    settings.flams = ($('[name="flams"]:checked').val()) ? true : false;
     callToChange();
 });
 

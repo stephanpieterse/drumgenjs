@@ -24,8 +24,8 @@ describe("Media tests", function() {
         indexjs.this_server.close();
     });
 
-    it("Straight public/image should display and be what we expect", function(done) {
-        this.timeout(2000);
+    it("Straight public/image should be a valid image", function(done) {
+        this.timeout(3000);
         this.slow(1000);
         chai.request(server)
             .get('/public/image')
@@ -39,4 +39,54 @@ describe("Media tests", function() {
             });
     });
 
+    it("Image should contain flams", function(done) {
+        this.timeout(3000);
+        this.slow(1000);
+        var imgid = 's5c6c7c8e';
+        chai.request(server)
+            .get('/public/image/ref/' + imgid)
+            .end(function(err, res) {
+                expect(res).to.have.property('status');
+                res.should.have.status(200);
+                assert.equal(res.headers['x-drumgen-patref'], imgid);
+                terminalImage.buffer(res.body).then(function(s) {
+                    console.log(s);
+                    done();
+                });
+            });
+    });
+
+    it("Image should contain tremolos", function(done) {
+        this.timeout(5000);
+        this.slow(2000);
+        var imgid = 'socOc7c8e';
+        chai.request(server)
+            .get('/public/image/ref/' + imgid)
+            .end(function(err, res) {
+                expect(res).to.have.property('status');
+                res.should.have.status(200);
+                assert.equal(res.headers['x-drumgen-patref'], imgid);
+                terminalImage.buffer(res.body).then(function(s) {
+                    console.log(s);
+                    done();
+                });
+            });
+    });
+
+  //  it("Image should contain flammed tremolos", function(done) {
+  //      this.timeout(3000);
+  //      this.slow(1000);
+  //      var imgid = 'sycYc7c8e';
+  //      chai.request(server)
+  //          .get('/public/image/ref/' + imgid)
+  //          .end(function(err, res) {
+  //              expect(res).to.have.property('status');
+  //              res.should.have.status(200);
+  //              assert.equal(res.headers['x-drumgen-patref'], imgid);
+  //              terminalImage.buffer(res.body).then(function(s) {
+  //                  console.log(s);
+  //                  done();
+  //              });
+  //          });
+  //  });
 });

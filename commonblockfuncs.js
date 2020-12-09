@@ -101,6 +101,14 @@ var exportBlocks = function(blocks) {
     enc = enc.replace(/"R"/g, 4);
     enc = enc.replace(/"l"/g, 5);
     enc = enc.replace(/"L"/g, 6);
+    enc = enc.replace(/"u"/g, 7);
+    enc = enc.replace(/"U"/g, 8);
+    enc = enc.replace(/"i"/g, 'i');
+    enc = enc.replace(/"I"/g, 'I');
+    enc = enc.replace(/"o"/g, 'o');
+    enc = enc.replace(/"O"/g, 'O');
+    enc = enc.replace(/"y"/g, 'y');
+    enc = enc.replace(/"Y"/g, 'Y');
 
     var regex;
     for (var m in impExpMap) {
@@ -114,10 +122,10 @@ var exportBlocks = function(blocks) {
 };
 
 var importBlocks = function(patid) {
-    var cpid = "patid" + patid;
-    if (cache.get(cpid)) {
-        return cache.get(cpid);
-    }
+   // var cpid = "patid" + patid;
+   // if (cache.get(cpid)) {
+   //     return cache.get(cpid);
+   // }
 
     var pat = new Buffer(patid);
     pat = pat.toString('UTF-8');
@@ -137,9 +145,17 @@ var importBlocks = function(patid) {
     pat = pat.replace(/4/g, '"R"');
     pat = pat.replace(/5/g, '"l"');
     pat = pat.replace(/6/g, '"L"');
+    pat = pat.replace(/7/g, '"u"');
+    pat = pat.replace(/8/g, '"U"');
+    pat = pat.replace(/i/g, '"i"');
+    pat = pat.replace(/I/g, '"I"');
+    pat = pat.replace(/o/g, '"o"');
+    pat = pat.replace(/O/g, '"O"');
+    pat = pat.replace(/y/g, '"y"');
+    pat = pat.replace(/Y/g, '"Y"');
 
     Log.trace(pat);
-    cache.set(cpid, pat, 7200);
+   // cache.set(cpid, pat, 7200);
     return pat;
 };
 
@@ -170,16 +186,16 @@ var getMappedTuple = function(tuple, num, mappings) {
 
 var genericMapper = function(num, patlen, mappings) {
 
-    var cachedid = "genmapper-" + JSON.stringify(arguments);
-    var cid = cache.get(cachedid);
+   // var cachedid = "genmapper-" + JSON.stringify(arguments);
+   // var cid = cache.get(cachedid);
 
-    if (cid) {
-        Log.debug({
-            cacheitem: cid,
-            id: cachedid
-        }, "Returning map from cache");
-        return cache.get(cachedid);
-    }
+   // if (cid) {
+   //     Log.debug({
+   //         cacheitem: cid,
+   //         id: cachedid
+   //     }, "Returning map from cache");
+   //     return cache.get(cachedid);
+   // }
 
     var pattern = [];
     var sipattern = [];
@@ -195,16 +211,17 @@ var genericMapper = function(num, patlen, mappings) {
     pattern[0] = cpat.split("");
     for (var px in pattern[0]) {
         // pattern[0][px] = mappings[pattern[0][px]];
-        pattern[0][px] = mappings[(pattern[0][px]).toString(10)];
+        //pattern[0][px] = mappings[(pattern[0][px]).toString(10)];
+        pattern[0][px] = mappings[parseInt(pattern[0][px], notetypes)];
     }
 
     sipattern[0] = pattern[0];
 
-    Log.debug({
-        id: cachedid,
-        cacheitem: sipattern[0]
-    }, "Setting item in cache");
-    cache.set(cachedid, sipattern[0], 7200);
+   // Log.debug({
+   //     id: cachedid,
+   //     cacheitem: sipattern[0]
+   // }, "Setting item in cache");
+   // cache.set(cachedid, sipattern[0], 7200);
 
     return sipattern[0];
 };
