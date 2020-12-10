@@ -4,7 +4,6 @@
 var express = require("express");
 var common = require('./commonblockfuncs.js');
 var musxml = require("./main.js");
-var backend_musicxml = require("./main.musicxml.js");
 var staticpages = require("./staticpages.js");
 var app = express();
 var config = require("./config.js");
@@ -316,35 +315,6 @@ app.get("/public/refresh/audio", function(req, res) {
     execFunc.timeout = 1000;
     q.push(execFunc);
 
-});
-
-app.get("/public/msxml/audio", function(req, res) {
-
-    req.query["noname"] = 'true';
-    //req.query["map"] = "sn";
-
-    var ppat = publicGetPat(req, res);
-    var opts = getOptsFromReq(req);
-    var execFunc = function(cb) {
-        backend_musicxml.getAudio(ppat, opts, function(err, auData) {
-            if (err) {
-                Log.error("getAudio returned an error");
-                res.status(500);
-                res.send("audio generation/retrieval error: " + err);
-                cb();
-                return;
-            }
-
-            res.writeHead(200, {
-                'Content-Type': auData.contentType
-            });
-            res.end(auData.data);
-            cb();
-            return;
-        });
-    };
-    execFunc.timeout = 1000;
-    q.push(execFunc);
 });
 
 app.get("/public/audio", function(req, res) {

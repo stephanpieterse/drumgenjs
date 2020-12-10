@@ -17,8 +17,7 @@
     "node-cache": "^4.2.0",
     "png-metadata": "^1.0.2",
     "prom-client": "^11.5.3",
-    "queue": "^4.5.1",
-    "xml2js": "^0.4.23"
+    "queue": "^4.5.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
