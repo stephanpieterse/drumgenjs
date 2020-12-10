@@ -199,8 +199,7 @@ img {
   margin: 5px auto 5px;
 }
 
-.settingspanel .extra_settings label:nth-of-type(2),
-.settingspanel .extra_settings label:nth-of-type(3) {
+.settingspanel .extra_settings label {
   margin: 5px auto;
   display: inline-block;
 	vertical-align: middle;

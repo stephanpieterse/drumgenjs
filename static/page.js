@@ -69,7 +69,7 @@ funcs.getShareLinks = function(){
   var url = funcs.getShareUrl();
   var links = {};
   var appPage =  window.location.protocol + "//" + window.location.host + '/static/page.html';
-  links.Pinterest = "https://pinterest.com/pin/create/button/?url=" + encodeURI(appPage) + "&media="+encodeURI(url)+"&description=";
+  //links.Pinterest = "https://pinterest.com/pin/create/button/?url=" + encodeURI(appPage) + "&media="+encodeURI(url)+"&description=";
   //links.facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURI(url);
   //links.twitter = "https://twitter.com/intent/tweet?text=" + encodeURI(url);
   return links;
@@ -296,7 +296,7 @@ function updateCurrentSound() {
 function updateCurrentSoundDisplay() {
     var cmo = soundValuesMap[settings.sound_map_index];
     var soundText = cmo.text;
-    $(".currentSound").html(soundText);
+    $(".currentSound").attr("value", soundText);
 }
 
 $(".currentSound").click(function() {
