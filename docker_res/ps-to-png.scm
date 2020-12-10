@@ -140,11 +140,12 @@
                     (if is-eps
                         *unspecified*
                         (ly:format "-dDEVICEHEIGHTPOINTS=~$" page-height))
-                    "-dGraphicsAlphaBits=2"
-                    "-dTextAlphaBits=2"
+                    "-dGraphicsAlphaBits=4"
+                    "-q"
+                    "-dTextAlphaBits=4"
                     "-dNOPAUSE"
                     "-dBATCH"
-                    "-dUseCropBox"
+										"-dUseCropBox"
                     (ly:format "-sDEVICE=~a" pixmap-format)
                     "-dAutoRotatePages=/None"
                     "-dPrinted=false"
