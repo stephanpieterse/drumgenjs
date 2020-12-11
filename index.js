@@ -436,7 +436,7 @@ app.get("/public/patreftocustommap/:patref", function(req, res) {
 
     var patref = req.params['patref'];
     var blocks = JSON.parse(common.importBlocks(patref));
-    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R','u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
 
     function umap(obj) {
         for (var i in obj) {
@@ -462,7 +462,7 @@ app.get("/public/custommaptopatref/:cmap", function(req, res) {
     cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
     var arr = JSON.parse(req.params['cmap']);
 
-    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R'];
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R','u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
 
     function rmap(obj) {
         for (var i in obj) {

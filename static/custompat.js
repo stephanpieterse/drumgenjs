@@ -157,33 +157,33 @@ function setme(arr, pos, newval) {
         var arrpos = np.shift();
         arr[parseInt(arrpos)] = setme(arr[parseInt(arrpos)], np.join(","), newval);
     } else {
-        arr[parseInt(np[0])] = parseInt(newval) % 7;
+        arr[parseInt(np[0])] = parseInt(newval) % 15;
     }
     return arr;
 }
 
-function incarr(pos) {
-    thisEditor.arr = incme(thisEditor.arr, pos);
-    init();
-}
-
-function incme(arr, pos) {
-    var np = pos.split(",");
-    if (np.length > 1) {
-        var arrpos = np.shift();
-        arr[parseInt(arrpos)] = incme(arr[parseInt(arrpos)], np.join(","));
-    } else {
-        arr[parseInt(np[0])] = (arr[parseInt(np[0])] + 1) % 7;
-    }
-    return arr;
-}
+//function incarr(pos) {
+//    thisEditor.arr = incme(thisEditor.arr, pos);
+//    init();
+//}
+//
+//function incme(arr, pos) {
+//    var np = pos.split(",");
+//    if (np.length > 1) {
+//        var arrpos = np.shift();
+//        arr[parseInt(arrpos)] = incme(arr[parseInt(arrpos)], np.join(","));
+//    } else {
+//        arr[parseInt(np[0])] = (arr[parseInt(np[0])] + 1) % 7;
+//    }
+//    return arr;
+//}
 
 function blockAppender(sect, curstr, curlevel) {
 
     for (var i in sect) {
         //var newlevel = curlevel + "" + i + ",";
         var newlevel = curlevel.split(',').filter(function(a) {
-            return parseInt(a) >= 0
+            return parseInt(a) >= 0;
         });
         newlevel.push(i);
         newlevel = newlevel.join(',');
