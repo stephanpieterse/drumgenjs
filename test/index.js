@@ -14,6 +14,7 @@ const server = indexjs.app;
 const should = chai.should();
 const expect = require('chai').expect;
 const assert = require('assert');
+var blockfuncs = require("../commonblockfuncs.js");
 
 chai.use(chaiHttp);
 
@@ -134,6 +135,16 @@ describe("Server tests", function() {
                         done();
 
                     });
+            });
+    });
+
+    it("Should return the sticking inverted pattern when called with patref", function(done) {
+        var pattern = blockfuncs.exportBlocks(['i', 'l', 'R', 'U', 'Y']);
+        chai.request(server)
+            .get('/public/custom/invert/patref/' + pattern)
+            .end(function(err, res) {
+                assert.deepEqual(['u', 'r', 'L', 'I', 'y'], res.body.inverted);
+                done();
             });
     });
 

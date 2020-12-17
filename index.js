@@ -41,6 +41,10 @@ cleanup.start(function() {
     Log.debug("Callback for cleanup script ran");
 });
 
+function cloneObj(ob){
+  return JSON.parse(JSON.stringify(ob));
+}
+
 app.use(function timingTracker(req, res, next) {
     timers.start(req.route ? req.route.path : req.path);
     req._dgtimingstart = Date.now();
@@ -432,11 +436,8 @@ app.get("/convertmulti", function(req, res) {
     res.send(sResult);
 });
 
-app.get("/public/patreftocustommap/:patref", function(req, res) {
-
-    var patref = req.params['patref'];
-    var blocks = JSON.parse(common.importBlocks(patref));
-    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R','u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
+function blockstocustommap(blocks) {
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R', 'u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
 
     function umap(obj) {
         for (var i in obj) {
@@ -449,20 +450,26 @@ app.get("/public/patreftocustommap/:patref", function(req, res) {
         return obj;
     }
 
-    var arr = umap(blocks);
+    var arr = umap(cloneObj(blocks));
+    return arr;
+}
+
+app.get("/public/patreftocustommap/:patref", function(req, res) {
+
+    var patref = req.params['patref'];
+    var blocks = JSON.parse(common.importBlocks(patref));
+
+    var arr = blockstocustommap(blocks);
     var ret = {
         unmapped: arr
     };
     res.send(ret);
 });
 
-app.get("/public/custommaptopatref/:cmap", function(req, res) {
-    var cmapParam = req.params['cmap'];
-    cmapParam = sanitize.trimString(cmapParam);
-    cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
-    var arr = JSON.parse(req.params['cmap']);
 
-    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R','u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
+function custommaptoblocks(arr) {
+
+    var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R', 'u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
 
     function rmap(obj) {
         for (var i in obj) {
@@ -474,9 +481,72 @@ app.get("/public/custommaptopatref/:cmap", function(req, res) {
         }
         return obj;
     }
-    arr = rmap(arr);
+    arr = rmap(cloneObj(arr));
+    return arr;
+}
+app.get("/public/custommaptopatref/:cmap", function(req, res) {
+    var cmapParam = req.params['cmap'];
+    cmapParam = sanitize.trimString(cmapParam);
+    cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
+    //var arr = JSON.parse(req.params['cmap']);
+    var arr = JSON.parse(cmapParam);
+
+    arr = custommaptoblocks(arr);
     var ret = {
         mapped: arr,
+        patref: common.exportBlocks(arr)
+    };
+    res.send(ret);
+});
+
+
+function blockstoinvert(blocks) {
+
+    var regmappings = ['l', 'L', 'r', 'R', 'u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
+    var invmappings = ['r', 'R', 'l', 'L', 'i', 'I', 'u', 'U', 'O', 'o', 'Y', 'y'];
+
+    function imap(obj) {
+        for (var i in obj) {
+            if (Array.isArray(obj[i])) {
+                obj[i] = imap(obj[i]);
+            } else {
+                if (regmappings.indexOf(obj[i]) >= 0) {
+                    obj[i] = invmappings[regmappings.indexOf(obj[i])];
+                }
+            }
+        }
+        return obj;
+    }
+
+    var arr = imap(cloneObj(blocks));
+    return arr;
+}
+
+app.get("/public/custom/invert/cmap/:cmap", function(req, res) {
+
+    var cmapParam = req.params['cmap'];
+    cmapParam = sanitize.trimString(cmapParam);
+    cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
+    //var arr = JSON.parse(req.params['cmap']);
+    var arr = JSON.parse(cmapParam);
+    arr = custommaptoblocks(arr);
+    arr = blockstoinvert(arr);
+    var ret = {
+        inverted: arr,
+        mapped: blockstocustommap(arr),
+        patref: common.exportBlocks(arr)
+    };
+    res.send(ret);
+});
+
+app.get("/public/custom/invert/patref/:patref", function(req, res) {
+
+    var patref = req.params['patref'];
+    var blocks = JSON.parse(common.importBlocks(patref));
+    var arr = blockstoinvert(blocks);
+    var ret = {
+        inverted: arr,
+        mapped: blockstocustommap(arr),
         patref: common.exportBlocks(arr)
     };
     res.send(ret);

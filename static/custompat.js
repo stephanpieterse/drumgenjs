@@ -273,6 +273,14 @@ function generateSoundSelector() {
     return items;
 }
 
+function invertPattern(){
+    $.get('/public/custom/invert/cmap/' + JSON.stringify(makePatternUnsane(thisEditor.arr))).then(function(d){
+        
+        thisEditor.arr = d.mapped;
+        init();
+    });
+}
+
 function init() {
     syncLayerSizes();
     var sigSect = "";
