@@ -63,4 +63,84 @@ describe('Misc Util', function(){
         assert.notEqual(util.lpad(500, 10), "009", "Padding doesn't work!");
 
     });
+
+describe('Util tests - stats', function(){
+  it("Should report accurate stats", function(){
+    var statpat;
+    var retstat;
+    statpat = ['L','l'];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 2);
+    assert.equal(retstat.Rmappings, 0);
+    assert.equal(retstat.totalNotes, 2);
+    assert.equal(retstat.totalAccents, 1);
+    assert.equal(retstat.longestConsecutiveL, 2);
+
+    statpat = ['L','-'];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 1);
+    assert.equal(retstat.Rmappings, 0);
+    assert.equal(retstat.totalNotes, 1);
+    assert.equal(retstat.totalAccents, 1);
+    assert.equal(retstat.longestConsecutiveL, 1);
+
+    statpat = ['R','l', ['i', 'Y']];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 1);
+    assert.equal(retstat.Rmappings, 3);
+    assert.equal(retstat.totalNotes, 4);
+    assert.equal(retstat.totalAccents, 1);
+    assert.equal(retstat.deepestTuples, 1);
+    assert.equal(retstat.totalTuples, 1);
+
+    statpat = [['r','r'],'R', ['i', 'Y']];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 0);
+    assert.equal(retstat.Rmappings, 5);
+    assert.equal(retstat.totalNotes, 5);
+    assert.equal(retstat.totalAccents, 1);
+    assert.equal(retstat.deepestTuples, 1);
+    assert.equal(retstat.totalTuples, 2);
+    assert.equal(retstat.longestConsecutiveR, 5);
+    assert.equal(retstat.longestConsecutiveRepeat, 2);
+
+    statpat = [['r','r'],'R', ['i', 'Y'],[['Y',['Y'],'r','L']]];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 1);
+    assert.equal(retstat.Rmappings, 8);
+    assert.equal(retstat.totalNotes, 9);
+    assert.equal(retstat.totalAccents, 2);
+    assert.equal(retstat.deepestTuples, 3);
+    assert.equal(retstat.totalTuples, 5);
+    assert.equal(retstat.longestConsecutiveR, 8);
+    assert.equal(retstat.longestConsecutiveL, 1);
+    assert.equal(retstat.longestConsecutiveRepeat, 3);
+
+    statpat = [['r','r'],'R', ['U', 'Y'],[['Y',['Y'],'r','L']],'l','-'];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 3);
+    assert.equal(retstat.Rmappings, 7);
+    assert.equal(retstat.totalNotes, 10);
+    assert.equal(retstat.totalAccents, 3);
+    assert.equal(retstat.deepestTuples, 3);
+    assert.equal(retstat.totalTuples, 5);
+    assert.equal(retstat.longestConsecutiveR, 4);
+    assert.equal(retstat.longestConsecutiveL, 2);
+    assert.equal(retstat.longestConsecutiveRepeat, 3);
+    assert.equal(retstat.totalRests, 1);
+
+    statpat = [['-','-'],'l','-'];
+    retstat = util.patternStats(statpat);
+    assert.equal(retstat.Lmappings, 1);
+    assert.equal(retstat.Rmappings, 0);
+    assert.equal(retstat.totalNotes, 1);
+    assert.equal(retstat.totalAccents, 0);
+    assert.equal(retstat.deepestTuples, 1);
+    assert.equal(retstat.totalTuples, 1);
+    assert.equal(retstat.longestConsecutiveR, 0);
+    assert.equal(retstat.longestConsecutiveL, 1);
+    assert.equal(retstat.longestConsecutiveRepeat, 2);
+    assert.equal(retstat.totalRests, 3);
+  });
+});
 });

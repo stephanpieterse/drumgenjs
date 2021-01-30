@@ -87,9 +87,11 @@ function syncLayerSizes() {
 function cycleTotalLayers() {
     var maxLayers = 2;
     thisEditor.layers = thisEditor.layers % maxLayers + 1;
-    $('.stave-counter').html("Layers: " + thisEditor.layers);
+    $('.stave-counter').attr("value", "Layers: " + thisEditor.layers);
     init();
 }
+
+$('.stave-counter').on('click', cycleTotalLayers);
 
 function gotoMain() {
     LS.set("editidpattern", thisEditor.arr);
@@ -262,24 +264,28 @@ function updateCurrentSound(sid) {
     var soundMap = cmo.map;
     thisEditor.soundMap[sid] = soundMap;
     var soundText = cmo.text;
-    $(".soundSelector-" + sid).html(soundText);
+    $(".soundSelector-" + sid).attr('value', soundText);
 }
 
 function generateSoundSelector() {
     var items = "";
     for (var i in thisEditor.arr) {
-        items += '<span class="buttonLike soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')"> ' + soundValuesMap[thisEditor.soundMapIndex[i]].text + ' </span><br/>';
+        //items += '<span class="buttonLike soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')"> ' + soundValuesMap[thisEditor.soundMapIndex[i]].text + ' </span><br/>';
+        items += '<input type="button" class="buttonLike soundSelector-' + i + '" onclick="cycleSelectedSound(' + i + ')" value="' + soundValuesMap[thisEditor.soundMapIndex[i]].text + '" /><br/>';
     }
     return items;
 }
 
 function invertPattern(){
     $.get('/public/custom/invert/cmap/' + JSON.stringify(makePatternUnsane(thisEditor.arr))).then(function(d){
-        
+        for (var m in d.mapped){
+          d.mapped[m] = makePatternSane(d.mapped[m]);
+        }
         thisEditor.arr = d.mapped;
         init();
     });
 }
+$('.invert_pat').on("click", invertPattern);
 
 function init() {
     syncLayerSizes();

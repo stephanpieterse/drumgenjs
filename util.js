@@ -106,12 +106,110 @@ function regexEscape(str) {
     return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
+function patternStats(blocks) {
+
+    var stats = {
+        Lmappings: 0,
+        Rmappings: 0,
+        totalAccents: 0,
+        totalNotes: 0,
+        totalRests: 0,
+        totalTuples: 0,
+        deepestTuples: 0,
+        counts: {},
+        longestConsecutiveL: 0,
+        longestConsecutiveR: 0,
+        longestConsecutiveRepeat: 0,
+    };
+
+    function nestedStats(blocks, stats, runstat) {
+
+        for (var b = 0; b < blocks.length; b++) {
+            if (Array.isArray(blocks[b])) {
+                runstat.curLevel += 1;
+                stats.totalTuples += 1;
+                stats = nestedStats(blocks[b], stats, runstat);
+                runstat.curLevel -= 1;
+            } else {
+                stats = singleStats(blocks[b], stats, runstat);
+                if (blocks[b] !== runstat.prevNote) {
+                    runstat.curNoteStreak = 1;
+                } else {
+                    runstat.curNoteStreak += 1;
+                }
+                stats.longestConsecutiveRepeat = Math.max(stats.longestConsecutiveRepeat, runstat.curNoteStreak);
+                runstat.prevNote = blocks[b];
+            }
+        }
+
+        stats.deepestTuples = Math.max(stats.deepestTuples, runstat.curLevel);
+        return stats;
+
+    }
+
+    function singleStats(blockb, stats, runstat) {
+
+        var Lmappings = ['y', 'o', 'U', 'u', 'L', 'l'];
+        var Rmappings = ['Y', 'O', 'I', 'i', 'r', 'R'];
+        var AccentMappings = ['I', 'U', 'L', 'R', 'X'];
+        var curLimb = '-';
+
+        stats.counts[blockb] = (stats.counts[blockb] || 0) + 1;
+        if (blockb === '-') {
+            stats.totalRests += 1;
+        } else {
+            stats.totalNotes += 1;
+        }
+        if (Lmappings.includes(blockb)) {
+            stats.Lmappings += 1;
+            curLimb = 'l';
+        }
+        if (Rmappings.includes(blockb)) {
+            stats.Rmappings += 1;
+            curLimb = 'r';
+        }
+        if (AccentMappings.includes(blockb)) {
+            stats.totalAccents += 1;
+        }
+
+        if (curLimb === runstat.prevLimb) {
+            runstat.curLimbStreak += 1;
+
+
+        } else {
+            runstat.prevLimb = curLimb;
+            runstat.curLimbStreak = 1;
+        }
+        switch (curLimb) {
+            case 'r':
+                stats.longestConsecutiveR = Math.max(stats.longestConsecutiveR, runstat.curLimbStreak);
+                break;
+            case 'l':
+                stats.longestConsecutiveL = Math.max(stats.longestConsecutiveL, runstat.curLimbStreak);
+                break;
+        }
+
+        return stats;
+    }
+
+    stats = nestedStats(blocks, stats, {
+        curLevel: 0,
+        prevNote: '',
+        curNoteStreak: 1,
+        prevLimb: '',
+        curLimbStreak: 1
+    });
+
+    return stats;
+
+}
 
 module.exports = {
 
     getOTP: totpObj.getOTP,
     cache: cache,
     lpad: lpad,
-    regexEscape: regexEscape
+    regexEscape: regexEscape,
+    patternStats: patternStats
 
 };

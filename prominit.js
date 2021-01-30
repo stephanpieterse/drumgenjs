@@ -12,6 +12,7 @@ prommetrics.createCounter('drumgen_errors_qtimeout', "Queue timeout errors", ["a
 prommetrics.createCounter('app_pattern_patlen', "Pattern lengths", ["patlen", "appid"]);
 prommetrics.createCounter('app_pattern_layers', "Pattern layers", ["layers", "appid"]);
 prommetrics.createCounter('app_pattern_tuples', "Pattern tuples", ["tuples", "appid"]);
+prommetrics.createCounter('app_pattern_interesting', "Pattern passes interest test", ["state", "appid"]);
 prommetrics.createHistogram('app_pattern_tempos', "Tempo ranges", ["appid"], [50, 80, 120, 180, 250, 360 ]);
 prommetrics.createHistogram('http_requests_timings', "Timings for http requests", ["path", "appid"], [50, 100, 250, 500, 1000, 2500, 5000]);
 prommetrics.createHistogram('analytics_user_pagetime', "How long the page was open for", ["path", "appid"], [5000, 30000, 120000, 300000]);

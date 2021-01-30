@@ -41,8 +41,8 @@ cleanup.start(function() {
     Log.debug("Callback for cleanup script ran");
 });
 
-function cloneObj(ob){
-  return JSON.parse(JSON.stringify(ob));
+function cloneObj(ob) {
+    return JSON.parse(JSON.stringify(ob));
 }
 
 app.use(function timingTracker(req, res, next) {
@@ -157,48 +157,21 @@ var getOptsFromReq = function(req) {
         patlen: isNaN(parseInt(req.query["patlen"])) ? 8 : parseInt(req.query["patlen"]),
         nested: (req.query["nested"] === 'true'),
         tempo: isNaN(parseInt(req.query["tempo"])) ? null : parseInt(req.query["tempo"]),
+        layers: isNaN(parseInt(req.query["layers"])) ? 1 : parseInt(req.query["layers"]),
+        tupmap: sanitize.tuples(req.query['tuples']),
         map: mapArr
     };
 };
 
-function publicGetPat(req, res) {
 
-    var pat;
-    if (req.query['patref']) {
-        var ref = req.query['patref'];
-        ref = sanitize.trimString(ref);
-        pat = JSON.parse(common.importBlocks(ref));
-        res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
-        return pat;
-    }
+function generateNewPattern(opts) {
 
-    var seed = req.query['seed'] || "public";
-    seed = sanitize.trimString(seed);
-
-    //req.query["nometro"] = 'true';
-    req.query["noname"] = 'true';
-    //req.query["map"] = "sn";
-    var queryOpts = getOptsFromReq(req);
+    var layers = opts.layers;
+    var queryOpts = opts.queryOpts;
+    var tupmap = opts.tupmap;
+    var seed = opts.seed;
     var patlen = queryOpts.patlen || 8;
-
-    var tupmap = sanitize.tuples(req.query['tuples']);
-    var layers = parseInt(req.query['layers']) || 1;
-
-    prommetrics.hobs('app_pattern_tempos', parseInt(req.query['tempo'] || 120), {
-        "appid": appId
-    });
-    prommetrics.cadd('app_pattern_patlen', 1, {
-        "patlen": patlen,
-        "appid": appId
-    });
-    prommetrics.cadd('app_pattern_layers', 1, {
-        "layers": layers,
-        "appid": appId
-    });
-    prommetrics.cadd('app_pattern_tuples', 1, {
-        "tuples": tupmap.join('-'),
-        "appid": appId
-    });
+    var pat;
 
     var globpat = [];
     //start layer loop
@@ -263,13 +236,86 @@ function publicGetPat(req, res) {
     Log.debug({
         newpat: globpat
     });
+    return globpat;
 
-    res.setHeader('x-drumgen-patref', common.exportBlocks(globpat));
+}
+
+function isPatternInteresting(pat) {
+
+    var stats = util.patternStats(pat);
+    var interesting = true;
+
+    if (stats.longestConsecutiveL > 3 || stats.longestConsecutiveR > 3) {
+        interesting = false;
+    }
+
+    if (stats.longestConsecutiveRepeat > 4) {
+        interesting = false;
+    }
+
+    prommetrics.cadd('app_pattern_interesting', 1, {
+        "state": "" + interesting,
+        "appid": appId
+    });
+    return interesting;
+}
+
+
+function publicGetPat(req) {
+
+    var pat;
+    if (req.query['patref']) {
+        var ref = req.query['patref'];
+        ref = sanitize.trimString(ref);
+        pat = JSON.parse(common.importBlocks(ref));
+        //res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
+        return pat;
+    }
+
+    var seed = req.query['seed'] || "public";
+    seed = sanitize.trimString(seed);
+
+    //req.query["nometro"] = 'true';
+    req.query["noname"] = 'true';
+    //req.query["map"] = "sn";
+    var queryOpts = getOptsFromReq(req);
+    var patlen = queryOpts.patlen || 8;
+    var layers = queryOpts.layers;
+    var tupmap = queryOpts.tupmap;
+
+    prommetrics.hobs('app_pattern_tempos', parseInt(req.query['tempo'] || 120), {
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_patlen', 1, {
+        "patlen": patlen,
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_layers', 1, {
+        "layers": layers,
+        "appid": appId
+    });
+    prommetrics.cadd('app_pattern_tuples', 1, {
+        "tuples": tupmap.join('-'),
+        "appid": appId
+    });
+
+    var globpat = generateNewPattern({
+        queryOpts: queryOpts,
+        tupmap: tupmap,
+        layers: layers,
+        seed: seed
+    });
+    //var isPatInt = isPatternInteresting(globpat);
+    //res.setHeader('x-drumgen-patref', common.exportBlocks(globpat));
+    //res.setHeader('x-drumgen-interesting', isPatInt);
     return globpat;
 }
 
 app.get("/public/pattern", function(req, res) {
     var ppat = publicGetPat(req, res);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
     res.send({
         "patref": common.exportBlocks(ppat)
     });
@@ -326,7 +372,10 @@ app.get("/public/audio", function(req, res) {
     req.query["noname"] = 'true';
     //req.query["map"] = "sn";
 
-    var ppat = publicGetPat(req, res);
+    var ppat = publicGetPat(req);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
     var opts = getOptsFromReq(req);
     var execFunc = function(cb) {
         musxml.getAudio(ppat, opts, function(err, auData) {
@@ -356,7 +405,10 @@ app.get("/public/image", function(req, res) {
     req.query["noname"] = 'true';
     //req.query["map"] = "sn";
 
-    var ppat = publicGetPat(req, res);
+    var ppat = publicGetPat(req);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
     var queryOpts = getOptsFromReq(req);
     Log.debug({
         pat: ppat
@@ -391,7 +443,10 @@ app.get("/public/image/ref/:patref", function(req, res) {
     // uses same code as image, can we make this common?
 
     req.query['patref'] = req.params['patref'];
-    var ppat = publicGetPat(req, res);
+    var ppat = publicGetPat(req);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
     var queryOpts = getOptsFromReq(req);
     Log.debug({
         pat: ppat
