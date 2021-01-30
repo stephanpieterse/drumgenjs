@@ -268,7 +268,6 @@ function publicGetPat(req) {
         var ref = req.query['patref'];
         ref = sanitize.trimString(ref);
         pat = JSON.parse(common.importBlocks(ref));
-        //res.setHeader('x-drumgen-patref', common.exportBlocks(pat));
         return pat;
     }
 
@@ -305,15 +304,27 @@ function publicGetPat(req) {
         layers: layers,
         seed: seed
     });
-    //var isPatInt = isPatternInteresting(globpat);
-    //res.setHeader('x-drumgen-patref', common.exportBlocks(globpat));
-    //res.setHeader('x-drumgen-interesting', isPatInt);
     return globpat;
 }
 
 app.get("/public/pattern", function(req, res) {
-    var ppat = publicGetPat(req, res);
+  
+
+    var ppat = publicGetPat(req);
     var isPatInt = isPatternInteresting(ppat);
+    var needInterest = req.query['interest'];
+
+    if (needInterest){
+      var reseed = 0;
+      var startseed = req.query.seed;
+      while(isPatInt === false){
+        req.query.seed = startseed + reseed;
+        ppat = publicGetPat(req);
+        isPatInt = isPatternInteresting(ppat);
+        reseed += 2;
+      }
+    }
+
     res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
     res.setHeader('x-drumgen-interesting', isPatInt);
     res.send({
@@ -399,6 +410,41 @@ app.get("/public/audio", function(req, res) {
     q.push(execFunc);
 });
 
+app.get("/public/rawfile", function(req, res) {
+
+    //req.query["nometro"] = true;
+    req.query["noname"] = 'true';
+    //req.query["map"] = "sn";
+
+    var ppat = publicGetPat(req);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
+    var queryOpts = getOptsFromReq(req);
+    var execFunc = function(cb) {
+        musxml.getRawFile(ppat, queryOpts, function(err, fileData) {
+            Log.debug({
+                pat: ppat
+            }, 'received raw request');
+            if (err) {
+                Log.error("getRawFile returned an error");
+                res.status(500);
+                res.send("Raw file retrieval error: " + err);
+                cb();
+                return;
+            }
+
+            res.writeHead(200, {
+                'Content-Type': 'text/plain'
+            });
+            res.end(fileData);
+            cb();
+        });
+    };
+    execFunc.timeout = 1000;
+    q.push(execFunc);
+
+});
 app.get("/public/image", function(req, res) {
 
     //req.query["nometro"] = true;

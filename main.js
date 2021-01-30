@@ -53,10 +53,10 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
     var file = "";
     switch (blockb) {
         case "Y":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"R"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"lR"-\\omit\\pp' + space;
             break;
         case "y":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"rL"-\\omit\\pp' + space;
             break;
         case "O":
             //var tremtime = noteBase >= 8 ? noteBase*2 : 8;
@@ -69,16 +69,16 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
             file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
             break;
         case "I":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + repnote + (noteBase) + '^>-"R"-\\omit\\fff' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '^>-"lR"-\\omit\\fff' + space;
             break;
         case "i":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"l" ' + repnote + (noteBase) + '-"R"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '-"lR"-\\omit\\pp' + space;
             break;
         case "U":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + repnote + (noteBase) + '^>-"L"-\\omit\\fff' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '^>-"rL"-\\omit\\fff' + space;
             break;
         case "u":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"r" ' + repnote + (noteBase) + '-"L"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '-"rL"-\\omit\\pp' + space;
             break;
         case "L":
             file += repnote + (noteBase) + '^>-"L"-\\omit\\fff' + space;
@@ -204,6 +204,11 @@ var genMusicBlockSection = function(blocks, options) {
         file += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 " + 'instrumentName = #"' + staffnames[block] + '"' + " }" + nl;
         file += " { " + nl;
         file += "\\override Stem.direction = #UP" + nl;
+        file += "\\override TextScript.staff-padding = #3.5" + nl;
+        file += "\\override TextScript.self-alignment-X = #1" + nl;
+        file += "\\override TextScript.parent-alignment-X = #1" + nl;
+        //file += "\\override Slur.stencil = ##f" + nl;
+        file += "\\override Slur.height-limit = #0.3" + nl;
         file += "\\omit Score.MetronomeMark" + nl;
         file += "\\time " + patlen + "/4" + nl;
         file += "\\set DrumStaff.drumStyleTable = #(alist->hash-table mydrums)" + nl;
