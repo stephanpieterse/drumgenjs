@@ -18,7 +18,7 @@ var nl = "\n";
 // if we stream the tags, the browser actually renders the
 // page, and images pop up as they get rendered, which
 // is a much smoother experience
-var getAll8Stream = function(stream, opts) {
+var getAll8StreamPaged = function(stream, opts) {
 
     var patlen = opts.patlen;
     var pagenum = opts.pagenum;
@@ -75,6 +75,7 @@ var getAll8Stream = function(stream, opts) {
 
     //var pageHost = config.server.fullhost;
     var pageHost = "";
+    var pagePath = "/worksheet/";
 
     var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
     var pageStart = pageSplits[0];
@@ -82,16 +83,16 @@ var getAll8Stream = function(stream, opts) {
 
     var patLenLinks = "";
     for (var i = 2; i < maxpatlen; i++) {
-        patLenLinks += '<a href="/worksheet/' + i + '"> ' + i + ' </a>';
+        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
     }
-    var prevPageLink = pageHost + "/worksheet/" + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
-    var nextPageLink = pageHost + "/worksheet/" + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
-    var randomPageLink = pageHost + "/worksheet/" + patlen + "?page=" + randomPageNum + pageLinkAdd;
+    var prevPageLink = pageHost + pagePath + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
+    var nextPageLink = pageHost + pagePath + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
+    var randomPageLink = pageHost + pagePath + patlen + "?page=" + randomPageNum + pageLinkAdd;
     var footerData = "Page " + pagenum + " of " + maxPages;
 
-    var toggleStickingLink = pageHost + "/worksheet/" + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
+    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
     toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
-    var toggleRestsLink = pageHost + "/worksheet/" + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
+    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
     toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
 
     pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
@@ -125,9 +126,244 @@ var getAll8Stream = function(stream, opts) {
             stream.push(null);
             clearInterval(bufferWriteInterval);
         }
-    }, 75);
+    }, 100);
+};
+
+var getAll8StreamContin = function(stream, opts, filter) {
+
+    if (!filter) {
+        filter = function() {
+            return true;
+        };
+    }
+
+    var patlen = opts.patlen;
+    var pagenum = opts.pagenum;
+    var frompage = opts.frompage;
+    var maxpatlen = 8 + 1;
+    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
+    pagenum = Math.abs(pagenum);
+    patlen = isNaN(patlen) ? 4 : patlen;
+    patlen = Math.abs(patlen % maxpatlen);
+    var barlen = patlen;
+
+    var pagebody = fs.readFileSync('static/permutationsheet_filter.html', 'utf8');
+    var pageLinkAdd = "";
+    var mappings = ['r', 'R', 'l', 'L'];
+    if (opts.toggles.sticking === true) {
+        opts.nosticking = !opts.nosticking;
+    }
+    if (opts.nosticking !== false) {
+        mappings = ['x', 'X'];
+        pageLinkAdd += "&nosticking=true";
+    } else {
+        pageLinkAdd += "&nosticking=false";
+    }
+    if (opts.blanks) {
+        mappings = mappings.concat(['x', 'X']);
+        pageLinkAdd += "&blanks=true";
+    }
+    if (opts.toggles.rests === true) {
+        opts.rests = !opts.rests;
+    }
+    if (opts.rests === true) {
+        mappings.push("-");
+        pageLinkAdd += "&rests=true";
+    } else {
+        pageLinkAdd += "&rests=false";
+    }
+
+    var pattern = [];
+    var sipattern = [];
+    pattern[0] = common.makeCleanBlock(8);
+    sipattern[0] = common.makeCleanBlock(8);
+
+    var notetypes = mappings.length;
+
+    var pageHost = "";
+    var pagePath = "/worksheetfilter/";
+
+    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
+    var pageStart = pageSplits[0];
+    var pageEnd = pageSplits[1];
+
+    var patLenLinks = "";
+    for (var i = 2; i < maxpatlen; i++) {
+        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
+    }
+    var prevPageLink = pageHost + pagePath + patlen + "?page=" + frompage;
+    var footerData = "Patterns from " + pagenum;
+
+    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
+    toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
+    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
+    toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
+
+    stream.push(pageStart);
+    var written = pagenum;
+    var mxpat = config.worksheet.pageItems;
+    var onPage = 0;
+    var maxPatterns = Math.pow(notetypes, barlen);
+
+    Log.debug('Start of intervalled stream');
+    var bufferWriteInterval = setInterval(function() {
+        if (written < maxPatterns && onPage < mxpat) {
+
+            var isPatInt = false;
+            var mx;
+            var cpat;
+            while (isPatInt === false && written <= maxPatterns) {
+                mx = written;
+                cpat = (mx).toString(notetypes);
+                cpat = util.lpad(cpat, barlen);
+                pattern[mx] = cpat.split("");
+                for (var px in pattern[mx]) {
+                    pattern[mx][px] = mappings[pattern[mx][px]];
+                }
+                sipattern[0] = pattern[mx];
+                isPatInt = filter(sipattern);
+                written += 1;
+            }
+            onPage += 1;
+            var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + common.exportBlocks(sipattern) + "' alt='Pattern " + common.exportBlocks(sipattern) + "' /></div>" + nl;
+            stream.push(writable);
+        } else {
+            Log.debug('End of intervalled stream');
+            if(written + 1 > maxPatterns){
+              written = 1;
+            }
+            var nextPageLink = pageHost + pagePath + patlen + "?frompage=" + pagenum + "&page=" + (written + 1) + pageLinkAdd;
+            pageEnd = pageEnd.replace("{{PREVPAGE}}", prevPageLink);
+            pageEnd = pageEnd.replace("{{NEXTPAGE}}", nextPageLink);
+            pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
+            stream.push(pageEnd);
+            stream.push(null);
+            clearInterval(bufferWriteInterval);
+        }
+    }, 100);
+};
+
+var getAll8StreamContinMap = function(stream, opts, filter) {
+
+    if (!filter) {
+        filter = function() {
+            return true;
+        };
+    }
+
+    var patlen = opts.patlen;
+    var pagenum = opts.pagenum;
+    var maxpatlen = 8 + 1;
+    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
+    pagenum = Math.abs(pagenum);
+    patlen = isNaN(patlen) ? 4 : patlen;
+    patlen = Math.abs(patlen % maxpatlen);
+    var barlen = patlen;
+
+    var pagebody = fs.readFileSync('static/permutationsheet_filter_map.html', 'utf8');
+    var pageLinkAdd = "";
+    var mappings = ['r', 'R', 'l', 'L'];
+    if (opts.toggles.sticking === true) {
+        opts.nosticking = !opts.nosticking;
+    }
+    if (opts.nosticking !== false) {
+        mappings = ['x', 'X'];
+        pageLinkAdd += "&nosticking=true";
+    } else {
+        pageLinkAdd += "&nosticking=false";
+    }
+    if (opts.blanks) {
+        mappings = mappings.concat(['x', 'X']);
+        pageLinkAdd += "&blanks=true";
+    }
+    if (opts.toggles.rests === true) {
+        opts.rests = !opts.rests;
+    }
+    if (opts.rests === true) {
+        mappings.push("-");
+        pageLinkAdd += "&rests=true";
+    } else {
+        pageLinkAdd += "&rests=false";
+    }
+
+    var pattern = [];
+    var sipattern = [];
+    pattern[0] = common.makeCleanBlock(8);
+    sipattern[0] = common.makeCleanBlock(8);
+
+    var notetypes = mappings.length;
+
+    var pageHost = "";
+    var pagePath = "/worksheetmap/";
+    var sheetPath = "/worksheetfilter/";
+
+    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
+    var pageStart = pageSplits[0];
+    var pageEnd = pageSplits[1];
+
+    var patLenLinks = "";
+    for (var i = 2; i < maxpatlen; i++) {
+        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
+    }
+
+    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
+    toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
+    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
+    toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
+
+    stream.push(pageStart);
+    var written = 1;
+    var mxpat = config.worksheet.pageItems;
+    var maxPatterns = Math.pow(notetypes, barlen);
+
+    Log.debug('Start of intervalled stream');
+    var bufferWriteInterval = setInterval(function() {
+        if (written < maxPatterns) {
+            var isPatInt = false;
+            var mx;
+            var cpat;
+            var patsOnPage = 0;
+            var writable = '<br/><a href="' + pageHost + sheetPath + patlen + '?page=' + written + pageLinkAdd + '">From ' + written + '</a>';
+            stream.push(writable);
+
+            while(patsOnPage < mxpat){
+              isPatInt = false;
+              while (isPatInt === false && written <= maxPatterns) {
+                mx = written;
+                cpat = (mx).toString(notetypes);
+                cpat = util.lpad(cpat, barlen);
+                pattern[mx] = cpat.split("");
+                for (var px in pattern[mx]) {
+                    pattern[mx][px] = mappings[pattern[mx][px]];
+                }
+                sipattern[0] = pattern[mx];
+                isPatInt = filter(sipattern);
+                written += 1;
+              }
+              patsOnPage += 1;
+            }
+
+        } else {
+            Log.debug('End of intervalled stream');
+            if(written + 1 > maxPatterns){
+              written = 1;
+            }
+            pageEnd = pageEnd.replace("{{PAGENUM}}", "");
+            stream.push(pageEnd);
+            stream.push(null);
+            clearInterval(bufferWriteInterval);
+        }
+    }, 100);
 };
 
 module.exports = {
-    getAll8Stream: getAll8Stream
+    getAll8Stream: getAll8StreamPaged,
+    getAll8StreamFilter: getAll8StreamContin,
+    getAll8StreamFilterMap: getAll8StreamContinMap
 };

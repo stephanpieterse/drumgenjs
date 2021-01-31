@@ -245,11 +245,11 @@ function isPatternInteresting(pat) {
     var stats = util.patternStats(pat);
     var interesting = true;
 
-    if (stats.longestConsecutiveL > 3 || stats.longestConsecutiveR > 3) {
+    if (stats.longestConsecutiveL > 2 || stats.longestConsecutiveR > 2) {
         interesting = false;
     }
 
-    if (stats.longestConsecutiveRepeat > 4) {
+    if (stats.longestConsecutiveRepeat > 3) {
         interesting = false;
     }
 
@@ -315,13 +315,16 @@ app.get("/public/pattern", function(req, res) {
     var needInterest = req.query['interest'];
 
     if (needInterest){
+      var maxRetry = 1000;
+      var curRetry = 0;
       var reseed = 0;
       var startseed = req.query.seed;
-      while(isPatInt === false){
+      while(isPatInt === false && maxRetry > curRetry){
         req.query.seed = startseed + reseed;
         ppat = publicGetPat(req);
         isPatInt = isPatternInteresting(ppat);
         reseed += 2;
+        curRetry += 1;
       }
     }
 
@@ -675,6 +678,60 @@ app.get("/worksheet/:patlen", function(req, res) {
     rs._read = function() {};
     rs.pipe(res);
     staticpages.getAll8Stream(rs, opts);
+});
+
+app.get("/worksheetfilter/:patlen", function(req, res) {
+    var opts = {};
+    opts.patlen = parseInt(req.params['patlen']) || 4;
+    opts.pagenum = parseInt(req.query['page']) || 1;
+    opts.frompage = parseInt(req.query['frompage']) || 1;
+    opts.blanks = req.query['blanks'];
+    opts.rests = req.query['rests'] === "true" ? true : false;
+    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
+    opts.toggles = {};
+    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
+    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
+
+    res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'Transfer-Encoding'
+    });
+
+    var Readable = require('stream').Readable;
+    var rs = new Readable();
+    rs._read = function() {};
+    rs.pipe(res);
+    staticpages.getAll8StreamFilter(rs, opts, function(ppat){
+      return isPatternInteresting(ppat);
+    });
+});
+
+app.get("/worksheetmap/:patlen", function(req, res) {
+    var opts = {};
+    opts.patlen = parseInt(req.params['patlen']) || 4;
+    opts.pagenum = parseInt(req.query['page']) || 1;
+    opts.frompage = parseInt(req.query['frompage']) || 1;
+    opts.blanks = req.query['blanks'];
+    opts.rests = req.query['rests'] === "true" ? true : false;
+    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
+    opts.toggles = {};
+    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
+    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
+
+    res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'Transfer-Encoding'
+    });
+
+    var Readable = require('stream').Readable;
+    var rs = new Readable();
+    rs._read = function() {};
+    rs.pipe(res);
+    staticpages.getAll8StreamFilterMap(rs, opts, function(ppat){
+      return isPatternInteresting(ppat);
+    });
 });
 
 app.use("/favicon.ico", function(req, res) {

@@ -2,10 +2,16 @@
  #navHolder {
    display : none;
  } 
+ .navHolder {
+   display : none;
+ } 
  #mainHolder div {
     width: 256px;
  }
  #mainHolder div img {
     width: 240px;
+ }
+ .title-image {
+   width: 54px;
  }
 }

@@ -6,11 +6,11 @@ module.exports = {
     },
     tmpdir: "/opt/app/tmpgen/",
     tmpCleanupInterval: ( 5 * 60 * 1000 ), // 5 minutes
-    tmpMaxAge: (24 * 60 * 60), // 24 hour
+    tmpMaxAge: (48 * 60 * 60), // 48 hour
     tmpSizeOverMaxAge: (120), // 120 seconds
-    tmpSizeLimit: (100 * 1024 ), // 100mb 
+    tmpSizeLimit: (300 * 1024 ), // 300mb 
     worksheet: {
-        pageItems: 20
+        pageItems: 10
     },
     queue: {
         timeout: 1000 * 10,

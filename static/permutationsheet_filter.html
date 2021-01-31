@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <title>Accents Companion Permutation Sheet</title>
+    <meta name="keywords" content="Drumming, Exercise, Sheet-music, Random permutation, Worksheet, Rudiments, Accent, Patterns" />
+    <meta name="description" content="All the permutations in one place" />
+    <style>
+      .navHolder { text-align: center; }
+      #footHolder { text-align: center; }
+      #mainHolder { text-align: center; }
+      #mainHolder div { padding: 1px; margin: 70px 15px 15px 15px; display: inline-block; }
+      #mainHolder div img { width: 45%; }
+    </style>
+    <link rel="stylesheet" href="/static/page.css" type="text/css" />
+    <link rel="stylesheet" href="/static/print.css" type="text/css" />
+    </head>
+  <body>
+    <a href="/"><img class="title-image" alt="logo" style="position: fixed" src="/static/icon.png" /></a>
+    <div id="navHolder" class="navHolder">
+      <span>Time Signatures /4</span>
+      <br/>
+      {{PATLENLINKS}}
+      <br/>
+      <span>Options</span>
+      <br/>
+      {{TOGGLELINKS}}
+      <br/>
+    </div>
+    <div id='mainHolder'>
+     {{MAINHOLDER_DATA}}
+    </div>
+    <div id="footHolder">{{PAGENUM}}</div>
+    <div id="footNavHolder" class="navHolder">
+      <span>Paging</span>
+      <br/>
+      <a href="{{PREVPAGE}}"> PREVIOUS </a>
+      <a href="{{NEXTPAGE}}"> NEXT </a>
+    </div>
+    <script type="text/javascript" src="/static/analytics.js"></script>
+    </body>
+</html>
