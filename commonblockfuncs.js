@@ -108,6 +108,8 @@ var exportBlocks = function(blocks) {
     enc = enc.replace(/"O"/g, 'O');
     enc = enc.replace(/"y"/g, 'y');
     enc = enc.replace(/"Y"/g, 'Y');
+    enc = enc.replace(/"g"/g, 'g');
+    enc = enc.replace(/"G"/g, 'G');
 
     var regex;
     for (var m in impExpMap) {
@@ -148,6 +150,8 @@ var importBlocks = function(patid) {
     pat = pat.replace(/O/g, '"O"');
     pat = pat.replace(/y/g, '"y"');
     pat = pat.replace(/Y/g, '"Y"');
+    pat = pat.replace(/g/g, '"g"');
+    pat = pat.replace(/G/g, '"G"');
 
     Log.trace(pat);
     return pat;

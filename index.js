@@ -45,6 +45,44 @@ function cloneObj(ob) {
     return JSON.parse(JSON.stringify(ob));
 }
 
+function cacheResponseBody() {
+    var resCache = {};
+    return function(req, res, next) {
+
+				var cachePath = req.originalUrl + JSON.stringify(req.query);
+        if (resCache[cachePath]) {
+            res.send(resCache[cachePath]);
+            return;
+        }
+
+        var origWrite = res.write;
+        var origEnd = res.end;
+
+        var chunks = [];
+
+        res.write = function(chunk) {
+            chunks.push(chunk);
+            return origWrite.apply(res, arguments);
+        };
+
+        res.end = function(chunk) {
+            if (chunk) {
+                if (typeof chunk === 'string') {
+                    chunk = Buffer.from(chunk);
+                }
+                chunks.push(chunk);
+            }
+            var body = Buffer.concat(chunks).toString('utf8');
+            resCache[cachePath] = body;
+            origEnd.apply(res, arguments);
+        };
+
+        next();
+    };
+}
+
+
+
 app.use(function timingTracker(req, res, next) {
     timers.start(req.route ? req.route.path : req.path);
     req._dgtimingstart = Date.now();
@@ -308,24 +346,24 @@ function publicGetPat(req) {
 }
 
 app.get("/public/pattern", function(req, res) {
-  
+
 
     var ppat = publicGetPat(req);
     var isPatInt = isPatternInteresting(ppat);
     var needInterest = req.query['interest'];
 
-    if (needInterest){
-      var maxRetry = 1000;
-      var curRetry = 0;
-      var reseed = 0;
-      var startseed = req.query.seed;
-      while(isPatInt === false && maxRetry > curRetry){
-        req.query.seed = startseed + reseed;
-        ppat = publicGetPat(req);
-        isPatInt = isPatternInteresting(ppat);
-        reseed += 2;
-        curRetry += 1;
-      }
+    if (needInterest) {
+        var maxRetry = 1000;
+        var curRetry = 0;
+        var reseed = 0;
+        var startseed = req.query.seed;
+        while (isPatInt === false && maxRetry > curRetry) {
+            req.query.seed = startseed + reseed;
+            ppat = publicGetPat(req);
+            isPatInt = isPatternInteresting(ppat);
+            reseed += 2;
+            curRetry += 1;
+        }
     }
 
     res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
@@ -677,7 +715,7 @@ app.get("/worksheet/:patlen", function(req, res) {
     var rs = new Readable();
     rs._read = function() {};
     rs.pipe(res);
-    staticpages.getAll8Stream(rs, opts);
+    staticpages.getAll8StreamFilter(rs, opts);
 });
 
 app.get("/worksheetfilter/:patlen", function(req, res) {
@@ -687,10 +725,12 @@ app.get("/worksheetfilter/:patlen", function(req, res) {
     opts.frompage = parseInt(req.query['frompage']) || 1;
     opts.blanks = req.query['blanks'];
     opts.rests = req.query['rests'] === "true" ? true : false;
+    opts.kick = req.query['kick'] === "true" ? true : false;
     opts.nosticking = req.query['nosticking'] === "true" ? true : false;
     opts.toggles = {};
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
+    opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -702,22 +742,24 @@ app.get("/worksheetfilter/:patlen", function(req, res) {
     var rs = new Readable();
     rs._read = function() {};
     rs.pipe(res);
-    staticpages.getAll8StreamFilter(rs, opts, function(ppat){
-      return isPatternInteresting(ppat);
+    staticpages.getAll8StreamFilter(rs, opts, function(ppat) {
+        return isPatternInteresting(ppat);
     });
 });
 
-app.get("/worksheetmap/:patlen", function(req, res) {
+app.get("/worksheetmap/:patlen", cacheResponseBody(), function(req, res) {
     var opts = {};
     opts.patlen = parseInt(req.params['patlen']) || 4;
     opts.pagenum = parseInt(req.query['page']) || 1;
     opts.frompage = parseInt(req.query['frompage']) || 1;
     opts.blanks = req.query['blanks'];
     opts.rests = req.query['rests'] === "true" ? true : false;
+    opts.kick = req.query['kick'] === "true" ? true : false;
     opts.nosticking = req.query['nosticking'] === "true" ? true : false;
     opts.toggles = {};
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
+    opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -729,8 +771,8 @@ app.get("/worksheetmap/:patlen", function(req, res) {
     var rs = new Readable();
     rs._read = function() {};
     rs.pipe(res);
-    staticpages.getAll8StreamFilterMap(rs, opts, function(ppat){
-      return isPatternInteresting(ppat);
+    staticpages.getAll8StreamFilterMap(rs, opts, function(ppat) {
+        return isPatternInteresting(ppat);
     });
 });
 

@@ -18,116 +18,116 @@ var nl = "\n";
 // if we stream the tags, the browser actually renders the
 // page, and images pop up as they get rendered, which
 // is a much smoother experience
-var getAll8StreamPaged = function(stream, opts) {
-
-    var patlen = opts.patlen;
-    var pagenum = opts.pagenum;
-    var maxpatlen = 16 + 1;
-    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
-    pagenum = Math.abs(pagenum);
-    patlen = isNaN(patlen) ? 4 : patlen;
-    patlen = Math.abs(patlen % maxpatlen);
-    var barlen = patlen;
-
-    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
-    var pageLinkAdd = "";
-    var mappings = ['r', 'R', 'l', 'L'];
-    if (opts.toggles.sticking === true) {
-        opts.nosticking = !opts.nosticking;
-    }
-    if (opts.nosticking !== false) {
-        mappings = ['x', 'X'];
-        pageLinkAdd += "&nosticking=true";
-    } else {
-        pageLinkAdd += "&nosticking=false";
-    }
-    if (opts.blanks) {
-        mappings = mappings.concat(['x', 'X']);
-        pageLinkAdd += "&blanks=true";
-    }
-    if (opts.toggles.rests === true) {
-        opts.rests = !opts.rests;
-    }
-    if (opts.rests === true) {
-        mappings.push("-");
-        pageLinkAdd += "&rests=true";
-    } else {
-        pageLinkAdd += "&rests=false";
-    }
-
-    var pattern = [];
-    var sipattern = [];
-    pattern[0] = common.makeCleanBlock(8);
-    sipattern[0] = common.makeCleanBlock(8);
-
-    var notetypes = mappings.length;
-    var maxPatterns = Math.pow(notetypes, barlen);
-    var maxPages = Math.ceil(Math.pow(notetypes, barlen) / config.worksheet.pageItems);
-    if (pagenum > maxPages) {
-        pagenum = 1;
-    }
-    var mxpat = pagenum * config.worksheet.pageItems;
-    if (mxpat > maxPatterns) {
-        mxpat = maxPatterns;
-    }
-
-    var randomPageNum = Math.round((Math.random() * maxPages) + 1);
-
-    //var pageHost = config.server.fullhost;
-    var pageHost = "";
-    var pagePath = "/worksheet/";
-
-    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
-    var pageStart = pageSplits[0];
-    var pageEnd = pageSplits[1];
-
-    var patLenLinks = "";
-    for (var i = 2; i < maxpatlen; i++) {
-        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
-    }
-    var prevPageLink = pageHost + pagePath + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
-    var nextPageLink = pageHost + pagePath + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
-    var randomPageLink = pageHost + pagePath + patlen + "?page=" + randomPageNum + pageLinkAdd;
-    var footerData = "Page " + pagenum + " of " + maxPages;
-
-    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
-    toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
-    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
-    toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
-
-    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
-
-    pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
-    pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
-    pageStart = pageStart.replace("{{RANDOMPAGE}}", randomPageLink);
-    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
-    pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
-
-    stream.push(pageStart);
-    var written = (pagenum - 1) * config.worksheet.pageItems;
-
-    Log.debug('Start of intervalled stream');
-    var bufferWriteInterval = setInterval(function() {
-        if (written < mxpat) {
-            var mx = written;
-            var cpat = (mx).toString(notetypes);
-            cpat = util.lpad(cpat, barlen);
-            pattern[mx] = cpat.split("");
-            for (var px in pattern[mx]) {
-                pattern[mx][px] = mappings[pattern[mx][px]];
-            }
-            sipattern[0] = pattern[mx];
-            var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + common.exportBlocks(sipattern) + "' alt='Pattern " + common.exportBlocks(sipattern) + "' /></div>" + nl;
-            stream.push(writable);
-            written += 1;
-        } else {
-            Log.debug('End of intervalled stream');
-            stream.push(pageEnd);
-            stream.push(null);
-            clearInterval(bufferWriteInterval);
-        }
-    }, 100);
-};
+//var getAll8StreamPaged = function(stream, opts) {
+//
+//    var patlen = opts.patlen;
+//    var pagenum = opts.pagenum;
+//    var maxpatlen = 16 + 1;
+//    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
+//    pagenum = Math.abs(pagenum);
+//    patlen = isNaN(patlen) ? 4 : patlen;
+//    patlen = Math.abs(patlen % maxpatlen);
+//    var barlen = patlen;
+//
+//    var pagebody = fs.readFileSync('static/permutationsheet.html', 'utf8');
+//    var pageLinkAdd = "";
+//    var mappings = ['r', 'R', 'l', 'L'];
+//    if (opts.toggles.sticking === true) {
+//        opts.nosticking = !opts.nosticking;
+//    }
+//    if (opts.nosticking !== false) {
+//        mappings = ['x', 'X'];
+//        pageLinkAdd += "&nosticking=true";
+//    } else {
+//        pageLinkAdd += "&nosticking=false";
+//    }
+//    if (opts.blanks) {
+//        mappings = mappings.concat(['x', 'X']);
+//        pageLinkAdd += "&blanks=true";
+//    }
+//    if (opts.toggles.rests === true) {
+//        opts.rests = !opts.rests;
+//    }
+//    if (opts.rests === true) {
+//        mappings.push("-");
+//        pageLinkAdd += "&rests=true";
+//    } else {
+//        pageLinkAdd += "&rests=false";
+//    }
+//
+//    var pattern = [];
+//    var sipattern = [];
+//    pattern[0] = common.makeCleanBlock(8);
+//    sipattern[0] = common.makeCleanBlock(8);
+//
+//    var notetypes = mappings.length;
+//    var maxPatterns = Math.pow(notetypes, barlen);
+//    var maxPages = Math.ceil(Math.pow(notetypes, barlen) / config.worksheet.pageItems);
+//    if (pagenum > maxPages) {
+//        pagenum = 1;
+//    }
+//    var mxpat = pagenum * config.worksheet.pageItems;
+//    if (mxpat > maxPatterns) {
+//        mxpat = maxPatterns;
+//    }
+//
+//    var randomPageNum = Math.round((Math.random() * maxPages) + 1);
+//
+//    //var pageHost = config.server.fullhost;
+//    var pageHost = "";
+//    var pagePath = "/worksheet/";
+//
+//    var pageSplits = pagebody.split("{{MAINHOLDER_DATA}}");
+//    var pageStart = pageSplits[0];
+//    var pageEnd = pageSplits[1];
+//
+//    var patLenLinks = "";
+//    for (var i = 2; i < maxpatlen; i++) {
+//        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
+//    }
+//    var prevPageLink = pageHost + pagePath + patlen + "?page=" + ((pagenum - 1) > 0 ? pagenum - 1 : 1) + pageLinkAdd;
+//    var nextPageLink = pageHost + pagePath + patlen + "?page=" + (pagenum + 1) + pageLinkAdd;
+//    var randomPageLink = pageHost + pagePath + patlen + "?page=" + randomPageNum + pageLinkAdd;
+//    var footerData = "Page " + pagenum + " of " + maxPages;
+//
+//    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglesticking=true";
+//    toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
+//    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
+//    toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+//
+//    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+//
+//    pageStart = pageStart.replace("{{PREVPAGE}}", prevPageLink);
+//    pageStart = pageStart.replace("{{NEXTPAGE}}", nextPageLink);
+//    pageStart = pageStart.replace("{{RANDOMPAGE}}", randomPageLink);
+//    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
+//    pageEnd = pageEnd.replace("{{PAGENUM}}", footerData);
+//
+//    stream.push(pageStart);
+//    var written = (pagenum - 1) * config.worksheet.pageItems;
+//
+//    Log.debug('Start of intervalled stream');
+//    var bufferWriteInterval = setInterval(function() {
+//        if (written < mxpat) {
+//            var mx = written;
+//            var cpat = (mx).toString(notetypes);
+//            cpat = util.lpad(cpat, barlen);
+//            pattern[mx] = cpat.split("");
+//            for (var px in pattern[mx]) {
+//                pattern[mx][px] = mappings[pattern[mx][px]];
+//            }
+//            sipattern[0] = pattern[mx];
+//            var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + common.exportBlocks(sipattern) + "' alt='Pattern " + common.exportBlocks(sipattern) + "' /></div>" + nl;
+//            stream.push(writable);
+//            written += 1;
+//        } else {
+//            Log.debug('End of intervalled stream');
+//            stream.push(pageEnd);
+//            stream.push(null);
+//            clearInterval(bufferWriteInterval);
+//        }
+//    }, 100);
+//};
 
 var getAll8StreamContin = function(stream, opts, filter) {
 
@@ -150,6 +150,16 @@ var getAll8StreamContin = function(stream, opts, filter) {
     var pagebody = fs.readFileSync('static/permutationsheet_filter.html', 'utf8');
     var pageLinkAdd = "";
     var mappings = ['r', 'R', 'l', 'L'];
+
+    if (opts.toggles.kick === true) {
+        opts.kick = !opts.kick;
+    }
+    if (opts.kick === true) {
+        mappings =  mappings.concat(['g', 'G']);
+        pageLinkAdd += "&kick=true";
+    } else {
+        pageLinkAdd += "&kick=false";
+    }
     if (opts.toggles.sticking === true) {
         opts.nosticking = !opts.nosticking;
     }
@@ -198,8 +208,10 @@ var getAll8StreamContin = function(stream, opts, filter) {
     toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
     var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
     toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+    var toggleKickLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglekick=true";
+    toggleKickLink = '<a href="' + toggleKickLink + '">Toggle Kick</a>';
 
-    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink + " " + toggleKickLink);
     pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
 
     stream.push(pageStart);
@@ -227,9 +239,12 @@ var getAll8StreamContin = function(stream, opts, filter) {
                 isPatInt = filter(sipattern);
                 written += 1;
             }
-            onPage += 1;
-            var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + common.exportBlocks(sipattern) + "' alt='Pattern " + common.exportBlocks(sipattern) + "' /></div>" + nl;
-            stream.push(writable);
+						// catch for 2nd condition loop exit
+            if(isPatInt === true){
+                onPage += 1;
+                var writable = "<div><img src='" + pageHost + "/public/image?noname=true&nometro=true&patref=" + common.exportBlocks(sipattern) + "' alt='Pattern " + common.exportBlocks(sipattern) + "' /></div>" + nl;
+                stream.push(writable);
+            }
         } else {
             Log.debug('End of intervalled stream');
             if(written + 1 > maxPatterns){
@@ -266,6 +281,16 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
     var pagebody = fs.readFileSync('static/permutationsheet_filter_map.html', 'utf8');
     var pageLinkAdd = "";
     var mappings = ['r', 'R', 'l', 'L'];
+
+    if (opts.toggles.kick === true) {
+        opts.kick = !opts.kick;
+    }
+    if (opts.kick === true) {
+        mappings = mappings.concat(['g', 'G']);
+        pageLinkAdd += "&kick=true";
+    } else {
+        pageLinkAdd += "&kick=false";
+    }
     if (opts.toggles.sticking === true) {
         opts.nosticking = !opts.nosticking;
     }
@@ -313,8 +338,10 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
     toggleStickingLink = '<a href="' + toggleStickingLink + '">Toggle Sticking</a>';
     var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglerests=true";
     toggleRestsLink = '<a href="' + toggleRestsLink + '">Toggle Rests</a>';
+    var toggleKickLink = pageHost + pagePath + patlen + "?page=1" + pageLinkAdd + "&togglekick=true";
+    toggleKickLink = '<a href="' + toggleKickLink + '">Toggle Kick</a>';
 
-    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink);
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink + " " + toggleKickLink);
     pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
 
     stream.push(pageStart);
@@ -322,7 +349,6 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
     var mxpat = config.worksheet.pageItems;
     var maxPatterns = Math.pow(notetypes, barlen);
 
-    Log.debug('Start of intervalled stream');
     var bufferWriteInterval = setInterval(function() {
         if (written < maxPatterns) {
             var isPatInt = false;
@@ -363,7 +389,7 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
 };
 
 module.exports = {
-    getAll8Stream: getAll8StreamPaged,
+  //  getAll8Stream: getAll8StreamPaged,
     getAll8StreamFilter: getAll8StreamContin,
     getAll8StreamFilterMap: getAll8StreamContinMap
 };

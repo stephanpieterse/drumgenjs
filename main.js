@@ -80,6 +80,12 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
         case "u":
             file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '-"rL"-\\omit\\pp' + space;
             break;
+        case "G":
+            file += repnote + (noteBase) + '^>-"K"-\\omit\\fff' + space;
+            break;
+        case "g":
+            file += repnote + (noteBase) + '-"K"-\\omit\\pp' + space;
+            break;
         case "L":
             file += repnote + (noteBase) + '^>-"L"-\\omit\\fff' + space;
             break;
