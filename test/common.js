@@ -16,26 +16,6 @@ describe("Common Exported Tests", function() {
         this.skip();
     });
 
-    it("Regression check - ConvertNumSimple should work", function() {
-
-        // default length
-        assert.equal(main.convertNumSimple(101), main.convertNumSimple(101, 8));
-        assert.equal(main.convertNumSimple(951), main.convertNumSimple(951, 8));
-        assert.equal(main.convertNumSimple(123456789), main.convertNumSimple(123456789, 8));
-
-        // positives
-        assert.equal("sbbbbb6cb3e", main.convertNumSimple(101, 8));
-        assert.equal("sb3e", main.convertNumSimple(101, 2));
-        assert.equal("sb4cml", main.convertNumSimple(5010, 3));
-        assert.equal("sbbbbbbbb3c6c5cb3c3cbml", main.convertNumSimple(150150, 16));
-        assert.equal("sb4cb6cbb3cbb4c4c3c5c6c4c4e", main.convertNumSimple(123456789101112, 16));
-        assert.equal("s5c4c4e", main.convertNumSimple(12345678910111213, 3));
-
-        // negatives
-        assert.notEqual("sbbbbb6cb3e", main.convertNumSimple(01, 9));
-        assert.notEqual(main.convertNumSimple(101, 8), main.convertNumSimple(101, 9));
-    });
-
     it("Regression check - getMappedTuple should work", function() {
 
         assert.deepEqual(main.getMappedTuple([], 2), ['-', 'R']);

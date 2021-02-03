@@ -94,7 +94,7 @@ describe("Server tests", function() {
         this.timeout(3000);
         this.slow(2000);
         chai.request(server)
-            .get('/worksheet/2')
+            .get('/worksheetfilter/2')
             .end(function(err, res) {
                 expect(res).to.have.property('status');
                 res.should.have.status(200);

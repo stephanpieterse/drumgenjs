@@ -16,7 +16,7 @@ const should = chai.should();
 const expect = require('chai').expect;
 const assert = require('assert');
 
-Browser.localhost('drumgen-dev.apollolms.co.za', config.server.port);
+Browser.localhost('dg.apollolms.co.za', config.server.port);
 
 describe('User visits app page', function() {
 

@@ -102,8 +102,8 @@ app.use(function timingTracker(req, res, next) {
 });
 
 app.use(function(req, res, next) {
-    res.setTimeout(30000, function() {
-        Log.error("Client request returned we couldn't return it in time?");
+    res.setTimeout(60 * 1000, function() {
+        Log.error("Client request returned with 503, we couldn't return it in time.");
         var err = new Error('Request timeout');
         err.status = 503;
         next(err);
@@ -611,16 +611,6 @@ app.get("/public/image/ref/:patref", function(req, res) {
 
 });
 
-app.get("/convertnum", function(req, res) {
-    // we need to pass this a single opts obj
-    var sResult = common.convertNum(req.query['num'], req.query['patlen'], req.query['tuples']);
-    res.send(sResult);
-});
-
-app.get("/convertmulti", function(req, res) {
-    var sResult = common.convertMulti(req.query['nums'], req.query['patlen']);
-    res.send(sResult);
-});
 
 function blockstocustommap(blocks) {
     var mappings = ['-', 'x', 'X', 'l', 'L', 'r', 'R', 'u', 'U', 'i', 'I', 'o', 'O', 'y', 'Y'];
@@ -738,32 +728,9 @@ app.get("/public/custom/invert/patref/:patref", function(req, res) {
     res.send(ret);
 });
 
-//app.get("/worksheet/:patlen", function(req, res) {
-//    var opts = {};
-//    opts.patlen = parseInt(req.params['patlen']) || 4;
-//    opts.pagenum = parseInt(req.query['page']) || 1;
-//    opts.blanks = req.query['blanks'];
-//    opts.rests = req.query['rests'] === "true" ? true : false;
-//    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
-//    opts.toggles = {};
-//    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
-//    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
-//    opts.itemsPerPage = config.worksheet.pageItems;
-//
-//    res.writeHead(200, {
-//        'Content-Type': 'text/html; charset=utf-8',
-//        'Transfer-Encoding': 'chunked',
-//        'Connection': 'Transfer-Encoding'
-//    });
-//
-//    var Readable = require('stream').Readable;
-//    var rs = new Readable();
-//    rs._read = function() {};
-//    rs.pipe(res);
-//    staticpages.getAll8StreamFilter(rs, opts);
-//});
+var responseCacher = cacheResponseBody();
 
-app.get("/worksheetfilter/:patlen", function(req, res) {
+app.get("/worksheetfilter/:patlen", responseCacher, function(req, res) {
     var opts = {};
     opts.patlen = parseInt(req.params['patlen']) || 4;
     opts.pagenum = parseInt(req.query['page']) || 1;
@@ -793,7 +760,7 @@ app.get("/worksheetfilter/:patlen", function(req, res) {
     });
 });
 
-app.get("/worksheetmap/:patlen", cacheResponseBody(), function(req, res) {
+app.get("/worksheetmap/:patlen", responseCacher, function(req, res) {
     var opts = {};
     opts.patlen = parseInt(req.params['patlen']) || 4;
     opts.pagenum = parseInt(req.query['page']) || 1;

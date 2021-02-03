@@ -59,13 +59,9 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
             file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"rL"-\\omit\\pp' + space;
             break;
         case "O":
-            //var tremtime = noteBase >= 8 ? noteBase*2 : 8;
-            //file += repnote + (noteBase) + ':' + tremtime +'-"R"-\\omit\\pp' + space;
             file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"R"-\\omit\\pp' + space;
             break;
         case "o":
-            //var tremtime = noteBase > 8 ? noteBase*2 : 8;
-            //file += repnote + (noteBase) + ':' + tremtime +'-"L"-\\omit\\pp' + space;
             file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
             break;
         case "I":
@@ -213,7 +209,6 @@ var genMusicBlockSection = function(blocks, options) {
         file += "\\override TextScript.staff-padding = #3.5" + nl;
         file += "\\override TextScript.self-alignment-X = #1" + nl;
         file += "\\override TextScript.parent-alignment-X = #1" + nl;
-        //file += "\\override Slur.stencil = ##f" + nl;
         file += "\\override Slur.height-limit = #0.3" + nl;
         file += "\\omit Score.MetronomeMark" + nl;
         file += "\\time " + patlen + "/4" + nl;

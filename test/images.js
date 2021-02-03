@@ -42,7 +42,7 @@ describe("Media tests", function() {
     it("Image should contain flams", function(done) {
         this.timeout(3000);
         this.slow(1000);
-        var imgid = 's5c6c7c8e';
+        var imgid = 'cyJSZHVkSWRJIlM=';
         chai.request(server)
             .get('/public/image/ref/' + imgid)
             .end(function(err, res) {
@@ -59,7 +59,7 @@ describe("Media tests", function() {
     it("Image should contain tremolos", function(done) {
         this.timeout(5000);
         this.slow(2000);
-        var imgid = 'socOc7c8e';
+        var imgid = 'cyJvZExkT2RvIlM=';
         chai.request(server)
             .get('/public/image/ref/' + imgid)
             .end(function(err, res) {

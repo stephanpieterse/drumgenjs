@@ -45,7 +45,7 @@ describe("Audio spectrogram tests", function() {
     it("Sound should contain flams", function(done) {
         this.timeout(5000);
         this.slow(3000);
-        var imgid = 'sic7cb8e';
+        var imgid = 'cyJSZHVkSWRJIlM=';
         chai.request(server)
             .get('/public/refresh/audio')
             .query('?nometro=true&patref=' + imgid)

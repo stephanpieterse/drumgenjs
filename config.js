@@ -6,15 +6,15 @@ module.exports = {
     },
     tmpdir: "/opt/app/tmpgen/",
     tmpCleanupInterval: ( 5 * 60 * 1000 ), // 5 minutes
-    tmpMaxAge: (48 * 60 * 60), // 48 hour
+    tmpMaxAge: (72 * 60 * 60), // 72 hour
     tmpSizeOverMaxAge: (120), // 120 seconds
     tmpSizeLimit: (300 * 1024 ), // 300mb 
     worksheet: {
         pageItems: 10
     },
     queue: {
-        timeout: 1000 * 10,
-        concurrency: 2
+        timeout: 1000 * 5,
+        concurrency: 1
     },
     loader: 'lilypond'
 };
