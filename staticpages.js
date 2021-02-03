@@ -216,13 +216,12 @@ var getAll8StreamContin = function(stream, opts, filter) {
 
     stream.push(pageStart);
     var written = pagenum;
-    var mxpat = config.worksheet.pageItems;
     var onPage = 0;
     var maxPatterns = Math.pow(notetypes, barlen);
 
     Log.debug('Start of intervalled stream');
     var bufferWriteInterval = setInterval(function() {
-        if (written < maxPatterns && onPage < mxpat) {
+        if (written < maxPatterns && onPage < opts.itemsPerPage) {
 
             var isPatInt = false;
             var mx;
@@ -346,7 +345,6 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
 
     stream.push(pageStart);
     var written = 1;
-    var mxpat = config.worksheet.pageItems;
     var maxPatterns = Math.pow(notetypes, barlen);
 
     var bufferWriteInterval = setInterval(function() {
@@ -358,7 +356,7 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
             var writable = '<br/><a href="' + pageHost + sheetPath + patlen + '?page=' + written + pageLinkAdd + '">From ' + written + '</a>';
             stream.push(writable);
 
-            while(patsOnPage < mxpat){
+            while(patsOnPage < opts.itemsPerPage){
               isPatInt = false;
               while (isPatInt === false && written <= maxPatterns) {
                 mx = written;

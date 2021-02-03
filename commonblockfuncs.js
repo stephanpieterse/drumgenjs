@@ -4,7 +4,7 @@
 var Log = require('./logger.js');
 var util = require('./util.js');
 
-var impExpMap = {
+var impExpMap_bak = {
     "[[": "s",
     "[1": "N",
     "[0": "n",
@@ -20,6 +20,14 @@ var impExpMap = {
     "]": "l",
     "[": "k",
     ",": "c"
+};
+
+var impExpMap = {
+  '[[':'s',
+  ']]':'S',
+  '","':'d',
+  '"]':'f',
+  '["':'F'
 };
 
 var makeCleanBlock = function(blocks) {
@@ -86,7 +94,7 @@ var convertMulti = function(num, patlen) {
     return ret;
 };
 
-var exportBlocks = function(blocks) {
+var exportBlocks_bak = function(blocks) {
     var pat = JSON.stringify(blocks);
     Log.trace(pat);
     var enc = new Buffer(pat);
@@ -121,8 +129,29 @@ var exportBlocks = function(blocks) {
     enc = enc.toString();
     return enc;
 };
+var exportBlocks = function(blocks) {
+    var enc = JSON.stringify(blocks);
+    var regex;
+    for (var m in impExpMap) {
+        regex = new RegExp(util.regexEscape(m), "g");
+        enc = enc.replace(regex, impExpMap[m]);
+    }
+    var enc = new Buffer(enc);
+    enc = enc.toString('base64');
+    return enc;
+};
 
 var importBlocks = function(patid) {
+    var pat = new Buffer(patid, 'base64');
+    pat = pat.toString('UTF-8');
+    var regex;
+    for (var m in impExpMap) {
+        regex = new RegExp(util.regexEscape(impExpMap[m]), "g");
+        pat = pat.replace(regex, m);
+    }
+    return pat;
+};
+var importBlocks_bak = function(patid) {
 
     var pat = new Buffer(patid);
     pat = pat.toString('UTF-8');

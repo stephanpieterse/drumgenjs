@@ -1,4 +1,4 @@
-/* global require, module, __dirname, process */
+/* global require, module, __dirname, process, Buffer */
 /* jslint strict:false */
 
 var express = require("express");
@@ -14,8 +14,8 @@ var prominit = require('./prominit.js');
 prominit.init();
 var timers = require('./timers.js');
 var cleanup = require('./cleanup.js');
-
 var sanitize = require('./sanitize.js');
+var crypto = require('crypto');
 
 var Log = require('./logger.js');
 var util = require('./util.js');
@@ -49,7 +49,7 @@ function cacheResponseBody() {
     var resCache = {};
     return function(req, res, next) {
 
-				var cachePath = req.originalUrl + JSON.stringify(req.query);
+        var cachePath = req.originalUrl + JSON.stringify(req.query);
         if (resCache[cachePath]) {
             res.send(resCache[cachePath]);
             return;
@@ -82,7 +82,6 @@ function cacheResponseBody() {
 }
 
 
-
 app.use(function timingTracker(req, res, next) {
     timers.start(req.route ? req.route.path : req.path);
     req._dgtimingstart = Date.now();
@@ -103,10 +102,11 @@ app.use(function timingTracker(req, res, next) {
 });
 
 app.use(function(req, res, next) {
-    res.setTimeout(15000, function() {
-        Log.error("Client request returned with 503, we couldn't return it in time?");
-        res.status(503);
-        res.send();
+    res.setTimeout(30000, function() {
+        Log.error("Client request returned we couldn't return it in time?");
+        var err = new Error('Request timeout');
+        err.status = 503;
+        next(err);
     });
 
     next();
@@ -146,9 +146,6 @@ app.post("/analytics", function(req, res) {
     res.status(201).send();
 });
 
-app.post("/feedback", function(req, res) {
-    res.status(204).send();
-});
 
 app.get("/prometheus", function(req, res) {
     res.send(promclient.register.metrics({
@@ -168,14 +165,6 @@ app.get("/health", function(req, res) {
     res.send("UP");
 });
 
-app.post("/remotelog", function(req, res) {
-    Log.info({
-        data: {},
-        message: "remotelog"
-    });
-    res.status(201);
-    res.send();
-});
 
 var getOptsFromReq = function(req) {
     if (!req.query) {
@@ -202,6 +191,41 @@ var getOptsFromReq = function(req) {
 };
 
 
+// personal reference function
+//function generateSetPatternTest(opts) {
+//
+//    var layers = opts.layers;
+//    var queryOpts = opts.queryOpts;
+//    var tupmap = opts.tupmap;
+//    var num = opts.num;
+//    var tupnum = opts.tupnum;
+//    var tnum = opts.tnum;
+//    var patlen = queryOpts.patlen || 8;
+//    var pat;
+//
+//    var globpat = [];
+//    //start layer loop
+//    for (var layer = 0; layer < layers; layer += 1) {
+//        pat = [];
+//        var mappings = ['r', 'R', 'l', 'L'];
+//
+//        pat = common.convertNumSimple(num, patlen, mappings);
+//        pat = JSON.parse(common.importBlocks(pat));
+//
+//        var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
+//        for (var t in tupset) {
+//            if (tupset[t] !== '1' && tupset[t] !== 1) {
+//                var mt = common.getMappedTuple(tupset[t], tnum, mappings);
+//                pat[0][t] = mt;
+//            }
+//        }
+//        globpat[layer] = pat[0];
+//    }
+//    //   end layer loop
+//    return globpat;
+//
+//}
+
 function generateNewPattern(opts) {
 
     var layers = opts.layers;
@@ -219,13 +243,6 @@ function generateNewPattern(opts) {
         var num = util.getOTP('base' + lseed + seed);
         var tupnum = util.getOTP('tups' + lseed + seed);
 
-        Log.debug({
-            layer: layer,
-            layers: layers,
-            lseed: lseed,
-            num: num,
-            tupnum: tupnum
-        });
 
         var mappings = ['-', 'r', 'R', 'l', 'L'];
         if (queryOpts.noRests) {
@@ -245,10 +262,16 @@ function generateNewPattern(opts) {
         pat = JSON.parse(common.importBlocks(pat));
 
         var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
+
         Log.debug({
-            beforepat: pat,
+            layer: layer,
+            layers: layers,
+            lseed: lseed,
+            num: num,
+            tupnum: tupnum,
             tupset: tupset
         });
+
         for (var t in tupset) {
 
             if (tupset[t] !== '1' && tupset[t] !== 1) {
@@ -271,11 +294,7 @@ function generateNewPattern(opts) {
         globpat[layer] = pat[0];
     }
     //   end layer loop
-    Log.debug({
-        newpat: globpat
-    });
     return globpat;
-
 }
 
 function isPatternInteresting(pat) {
@@ -345,8 +364,34 @@ function publicGetPat(req) {
     return globpat;
 }
 
-app.get("/public/pattern", function(req, res) {
+// personal reference function
+//function privatepublicGetPat(req) {
+//    var queryOpts = getOptsFromReq(req);
+//    //var patlen = queryOpts.patlen || 8;
+//    var layers = queryOpts.layers;
+//    var tupmap = queryOpts.tupmap;
+//
+//
+//    for (var i = 0; i < 10; i++) {
+//        for (var j = 0; j < 10; j++) {
+//            for (var k = 0; k < 10; k++) {
+//
+//                var globpat = generateSetPatternTest({
+//                    queryOpts: queryOpts,
+//                    tupmap: tupmap,
+//                    layers: layers,
+//                    num: i,
+//                    tupnum: j,
+//                    tnum: k, // this needs a seperate group of nested loops, and be passed as an array as each tuple needs a new num
+//                });
+//                Log.info(globpat);
+//            }
+//        }
+//    }
+//}
 
+
+app.get("/public/pattern", function(req, res) {
 
     var ppat = publicGetPat(req);
     var isPatInt = isPatternInteresting(ppat);
@@ -400,16 +445,14 @@ app.get("/public/refresh/audio", function(req, res) {
         musxml.getAudio(ppat, getOptsFromReq(req), function(err, auData) {
             if (err) {
                 Log.error("getAudio returned an error");
-                res.status(500);
-                res.send("Audio generation/retrieval error: " + err);
+                safeSend(res, 500, {}, "Audio generation/retrieval error: " + err);
                 cb();
                 return;
             }
 
-            res.writeHead(200, {
+            safeSend(res, 200, {
                 'Content-Type': auData.contentType
-            });
-            res.end(auData.data);
+            }, auData.data);
             cb();
             return;
         });
@@ -433,16 +476,14 @@ app.get("/public/audio", function(req, res) {
         musxml.getAudio(ppat, opts, function(err, auData) {
             if (err) {
                 Log.error("getAudio returned an error");
-                res.status(500);
-                res.send("audio generation/retrieval error: " + err);
+                safeSend(res, 500, {}, "audio generation/retrieval error: " + err);
                 cb();
                 return;
             }
 
-            res.writeHead(200, {
+            safeSend(res, 200, {
                 'Content-Type': auData.contentType
-            });
-            res.end(auData.data);
+            }, auData.data);
             cb();
             return;
         });
@@ -450,6 +491,18 @@ app.get("/public/audio", function(req, res) {
     execFunc.timeout = 1000;
     q.push(execFunc);
 });
+
+function safeSend(res, rstatus, headers, body) {
+    if (!res.headersSent) {
+        if (!headers['ETag']) {
+            headers['ETag'] = '"' + crypto.createHash('sha1').update(body).digest('hex') + '"';
+        }
+        res.writeHead(rstatus, headers);
+        res.end(body);
+    } else {
+        Log.error('Send was not safe, not attempted');
+    }
+}
 
 app.get("/public/rawfile", function(req, res) {
 
@@ -469,16 +522,14 @@ app.get("/public/rawfile", function(req, res) {
             }, 'received raw request');
             if (err) {
                 Log.error("getRawFile returned an error");
-                res.status(500);
-                res.send("Raw file retrieval error: " + err);
+                safeSend(res, 500, {}, "Raw file retrieval error: " + err);
                 cb();
                 return;
             }
 
-            res.writeHead(200, {
+            safeSend(res, 200, {
                 'Content-Type': 'text/plain'
-            });
-            res.end(fileData);
+            }, fileData);
             cb();
         });
     };
@@ -486,6 +537,7 @@ app.get("/public/rawfile", function(req, res) {
     q.push(execFunc);
 
 });
+
 app.get("/public/image", function(req, res) {
 
     //req.query["nometro"] = true;
@@ -507,16 +559,14 @@ app.get("/public/image", function(req, res) {
             }, 'received image request');
             if (err) {
                 Log.error("getImage returned an error");
-                res.status(500);
-                res.send("Image retrieval error: " + err);
+                safeSend(res, 500, {}, "Image retrieval error: " + err);
                 cb();
                 return;
             }
 
-            res.writeHead(200, {
+            safeSend(res, 200, {
                 'Content-Type': imgData.contentType
-            });
-            res.end(imgData.data);
+            }, imgData.data);
             cb();
         });
     };
@@ -545,16 +595,14 @@ app.get("/public/image/ref/:patref", function(req, res) {
             }, 'received image request');
             if (err) {
                 Log.error("getImage returned an error");
-                res.status(500);
-                res.send("Image retrieval error: " + err);
+                safeSend(res, 500, {}, "Image retrieval error: " + err);
                 cb();
                 return;
             }
 
-            res.writeHead(200, {
+            safeSend(res, 200, {
                 'Content-Type': imgData.contentType
-            });
-            res.end(imgData.data);
+            }, imgData.data);
             cb();
         });
     };
@@ -564,16 +612,12 @@ app.get("/public/image/ref/:patref", function(req, res) {
 });
 
 app.get("/convertnum", function(req, res) {
-    Log.debug("num = " + req.query['num']);
-    Log.debug("len = " + req.query['patlen']);
     // we need to pass this a single opts obj
     var sResult = common.convertNum(req.query['num'], req.query['patlen'], req.query['tuples']);
     res.send(sResult);
 });
 
 app.get("/convertmulti", function(req, res) {
-    Log.debug("num = " + req.query['nums']);
-    Log.debug("len = " + req.query['patlen']);
     var sResult = common.convertMulti(req.query['nums'], req.query['patlen']);
     res.send(sResult);
 });
@@ -694,29 +738,30 @@ app.get("/public/custom/invert/patref/:patref", function(req, res) {
     res.send(ret);
 });
 
-app.get("/worksheet/:patlen", function(req, res) {
-    var opts = {};
-    opts.patlen = parseInt(req.params['patlen']) || 4;
-    opts.pagenum = parseInt(req.query['page']) || 1;
-    opts.blanks = req.query['blanks'];
-    opts.rests = req.query['rests'] === "true" ? true : false;
-    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
-    opts.toggles = {};
-    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
-    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
-
-    res.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'Connection': 'Transfer-Encoding'
-    });
-
-    var Readable = require('stream').Readable;
-    var rs = new Readable();
-    rs._read = function() {};
-    rs.pipe(res);
-    staticpages.getAll8StreamFilter(rs, opts);
-});
+//app.get("/worksheet/:patlen", function(req, res) {
+//    var opts = {};
+//    opts.patlen = parseInt(req.params['patlen']) || 4;
+//    opts.pagenum = parseInt(req.query['page']) || 1;
+//    opts.blanks = req.query['blanks'];
+//    opts.rests = req.query['rests'] === "true" ? true : false;
+//    opts.nosticking = req.query['nosticking'] === "true" ? true : false;
+//    opts.toggles = {};
+//    opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
+//    opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
+//    opts.itemsPerPage = config.worksheet.pageItems;
+//
+//    res.writeHead(200, {
+//        'Content-Type': 'text/html; charset=utf-8',
+//        'Transfer-Encoding': 'chunked',
+//        'Connection': 'Transfer-Encoding'
+//    });
+//
+//    var Readable = require('stream').Readable;
+//    var rs = new Readable();
+//    rs._read = function() {};
+//    rs.pipe(res);
+//    staticpages.getAll8StreamFilter(rs, opts);
+//});
 
 app.get("/worksheetfilter/:patlen", function(req, res) {
     var opts = {};
@@ -731,6 +776,7 @@ app.get("/worksheetfilter/:patlen", function(req, res) {
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
     opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
+    opts.itemsPerPage = isNaN(parseInt(req.query['ipp'])) ? config.worksheet.pageItems : parseInt(req.query['ipp']);
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -760,6 +806,7 @@ app.get("/worksheetmap/:patlen", cacheResponseBody(), function(req, res) {
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
     opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
+    opts.itemsPerPage = config.worksheet.pageItems;
 
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -785,15 +832,13 @@ app.use("/static", express.static("static"));
 app.use(function errorHandler(err, req, res, next) {
 
     Log.error(err);
-
     if (!res.headersSent) {
-
-        res.status(500);
+        res.status(err.status);
         res.send({
-            reason: "An error occured."
+            reason: "An error occured.",
+            err: err
         });
     }
-
     return next(err);
 });
 

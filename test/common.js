@@ -16,7 +16,6 @@ describe("Common Exported Tests", function() {
         this.skip();
     });
 
-
     it("Regression check - ConvertNumSimple should work", function() {
 
         // default length
