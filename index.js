@@ -16,6 +16,7 @@ var timers = require('./timers.js');
 var cleanup = require('./cleanup.js');
 var sanitize = require('./sanitize.js');
 var crypto = require('crypto');
+var fs = require('fs');
 
 var Log = require('./logger.js');
 var util = require('./util.js');
@@ -45,6 +46,41 @@ function cloneObj(ob) {
     return JSON.parse(JSON.stringify(ob));
 }
 
+function fileCacheResponseBody() {
+    var resCache = {};
+    return function(req, res, next) {
+
+        var cachePath = req.originalUrl + JSON.stringify(req.query);
+        var fname = "/tmp/" + Buffer.from(cachePath).toString('base64') + ".cachefile";
+        if (resCache[cachePath]) {
+            res.send(fs.readFileSync(fname, 'utf-8'));
+            return;
+        }
+
+        var origWrite = res.write;
+        var origEnd = res.end;
+
+        fs.writeFileSync(fname, '');
+
+        res.write = function(chunk) {
+            fs.appendFileSync(fname, chunk);
+            return origWrite.apply(res, arguments);
+        };
+
+        res.end = function(chunk) {
+            if (chunk) {
+                if (typeof chunk === 'string') {
+                    chunk = Buffer.from(chunk);
+                }
+                fs.appendFileSync(fname, chunk);
+            }
+            resCache[cachePath] = true;
+            origEnd.apply(res, arguments);
+        };
+
+        next();
+    };
+}
 function cacheResponseBody() {
     var resCache = {};
     return function(req, res, next) {
@@ -81,6 +117,7 @@ function cacheResponseBody() {
     };
 }
 
+var responseCacher = cacheResponseBody();
 
 app.use(function timingTracker(req, res, next) {
     timers.start(req.route ? req.route.path : req.path);
@@ -174,6 +211,12 @@ var getOptsFromReq = function(req) {
     /// ("" + req.opts['a']).toLowerCase() === 'true'
     var mapArr = req.query["map"] || "sn";
     mapArr = mapArr.split(",");
+    var umapArr = req.query["umap"] || [];
+    if (umapArr.length > 0){
+      umapArr = umapArr.split(',');
+    } else {
+      umapArr = undefined;
+    }
     return {
         noNames: (req.query["noname"] !== false || req.query["noname"] !== 'false'),
         noRests: (req.query["norests"] === true || req.query["norests"] === 'true'),
@@ -186,63 +229,58 @@ var getOptsFromReq = function(req) {
         tempo: isNaN(parseInt(req.query["tempo"])) ? null : parseInt(req.query["tempo"]),
         layers: isNaN(parseInt(req.query["layers"])) ? 1 : parseInt(req.query["layers"]),
         tupmap: sanitize.tuples(req.query['tuples']),
-        map: mapArr
+        map: mapArr,
+        umap: umapArr
     };
 };
 
 
 // personal reference function
-//function generateSetPatternTest(opts) {
-//
-//    var layers = opts.layers;
-//    var queryOpts = opts.queryOpts;
-//    var tupmap = opts.tupmap;
-//    var num = opts.num;
-//    var tupnum = opts.tupnum;
-//    var tnum = opts.tnum;
-//    var patlen = queryOpts.patlen || 8;
-//    var pat;
-//
-//    var globpat = [];
-//    //start layer loop
-//    for (var layer = 0; layer < layers; layer += 1) {
-//        pat = [];
-//        var mappings = ['r', 'R', 'l', 'L'];
-//
-//        pat = common.convertNumSimple(num, patlen, mappings);
-//        pat = JSON.parse(common.importBlocks(pat));
-//
-//        var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
-//        for (var t in tupset) {
-//            if (tupset[t] !== '1' && tupset[t] !== 1) {
-//                var mt = common.getMappedTuple(tupset[t], tnum, mappings);
-//                pat[0][t] = mt;
-//            }
-//        }
-//        globpat[layer] = pat[0];
-//    }
-//    //   end layer loop
-//    return globpat;
-//
-//}
-
-function generateNewPattern(opts) {
+function generateSetPatternTest(opts) {
 
     var layers = opts.layers;
     var queryOpts = opts.queryOpts;
     var tupmap = opts.tupmap;
-    var seed = opts.seed;
-    var patlen = queryOpts.patlen || 8;
+    var num = opts.num;
+    var tupnum = opts.tupnum;
+    var tnum = opts.tnum;
+    var patlen = queryOpts.patlen;
+    var mappings = opts.umap;
     var pat;
 
     var globpat = [];
     //start layer loop
     for (var layer = 0; layer < layers; layer += 1) {
         pat = [];
-        var lseed = ((layer + 1) * 4) * (layers * 4);
-        var num = util.getOTP('base' + lseed + seed);
-        var tupnum = util.getOTP('tups' + lseed + seed);
 
+        pat = common.convertNumSimple(num, patlen, mappings);
+        pat = common.importBlocks(pat);
+
+        var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
+        for (var t in tupset) {
+            var mt = common.getMappedTuple(tupset[t], tnum[t], mappings);
+            if (tupset[t] !== '1' && tupset[t] !== 1) {
+                pat[0][t] = mt;
+            } else {
+                pat[0][t] = mt[0];
+            }
+        }
+        globpat[layer] = pat[0];
+    }
+    //   end layer loop
+    Log.trace({
+        opts: opts,
+        result: globpat
+    });
+    return globpat;
+
+}
+
+function mapFromOpts(queryOpts){
+
+        if(queryOpts.umap){
+          return queryOpts.umap;
+        }
 
         var mappings = ['-', 'r', 'R', 'l', 'L'];
         if (queryOpts.noRests) {
@@ -258,8 +296,30 @@ function generateNewPattern(opts) {
             mappings.push('y', 'Y');
         }
 
+        return mappings;
+}
+
+function generateNewPattern(opts) {
+
+    var layers = opts.layers;
+    var queryOpts = opts.queryOpts;
+    var tupmap = opts.tupmap;
+    var seed = opts.seed;
+    var patlen = queryOpts.patlen || 8;
+    var pat;
+
+    var mappings = mapFromOpts(queryOpts);
+
+    var globpat = [];
+    //start layer loop
+    for (var layer = 0; layer < layers; layer += 1) {
+        pat = [];
+        var lseed = ((layer + 1) * 4) * (layers * 4);
+        var num = util.getOTP('base' + lseed + seed);
+        var tupnum = util.getOTP('tups' + lseed + seed);
+
         pat = common.convertNumSimple(num, patlen, mappings);
-        pat = JSON.parse(common.importBlocks(pat));
+        pat = common.importBlocks(pat);
 
         var tupset = common.convertNumToTuple(tupnum, patlen, tupmap);
 
@@ -275,7 +335,6 @@ function generateNewPattern(opts) {
         for (var t in tupset) {
 
             if (tupset[t] !== '1' && tupset[t] !== 1) {
-
                 var tnum = util.getOTP('tup' + t + lseed + seed);
                 var mt = common.getMappedTuple(tupset[t], tnum, mappings);
                 Log.debug({
@@ -306,7 +365,7 @@ function isPatternInteresting(pat) {
         interesting = false;
     }
 
-    if (stats.longestConsecutiveRepeat > 3) {
+    if (stats.longestConsecutiveRepeat > 2) {
         interesting = false;
     }
 
@@ -324,7 +383,7 @@ function publicGetPat(req) {
     if (req.query['patref']) {
         var ref = req.query['patref'];
         ref = sanitize.trimString(ref);
-        pat = JSON.parse(common.importBlocks(ref));
+        pat = common.importBlocks(ref);
         return pat;
     }
 
@@ -364,32 +423,130 @@ function publicGetPat(req) {
     return globpat;
 }
 
-// personal reference function
-//function privatepublicGetPat(req) {
-//    var queryOpts = getOptsFromReq(req);
-//    //var patlen = queryOpts.patlen || 8;
-//    var layers = queryOpts.layers;
-//    var tupmap = queryOpts.tupmap;
-//
-//
-//    for (var i = 0; i < 10; i++) {
-//        for (var j = 0; j < 10; j++) {
-//            for (var k = 0; k < 10; k++) {
-//
-//                var globpat = generateSetPatternTest({
-//                    queryOpts: queryOpts,
-//                    tupmap: tupmap,
-//                    layers: layers,
-//                    num: i,
-//                    tupnum: j,
-//                    tnum: k, // this needs a seperate group of nested loops, and be passed as an array as each tuple needs a new num
-//                });
-//                Log.info(globpat);
-//            }
-//        }
-//    }
-//}
+function nloopas(base, mfunc, curloop, state, cb, z) {
+    Log.trace("nloop as " + JSON.stringify(arguments));
+    var maxmod = Math.pow(mfunc, base[curloop]);
+    if (z >= maxmod) {
+        return;
+    }
 
+    var lstate = cloneObj(state);
+    lstate[curloop] = z;
+    var p;
+    var loopdelay = (Math.random() * 1500) + 500;
+    if (curloop + 1 === base.length) {
+        p = new Promise(function(resolve, reject) {
+            setTimeout(function() {
+                cb(lstate);
+                resolve();
+            }, loopdelay);
+        });
+    } else {
+        p = new Promise(function(resolve, reject) {
+            setTimeout(function() {
+                nloopas(base, mfunc, curloop + 1, lstate, cb, 0);
+                resolve();
+            }, loopdelay);
+        });
+    }
+    p.then(function() {
+        nloopas(base, mfunc, curloop, lstate, cb, z + 1);
+    }).catch(function(e) {
+        Log.error(e);
+    });
+}
+
+function nloop(base, mfunc, curloop, state, cb) {
+    var maxmod = Math.pow(mfunc, base[curloop]);
+    for (var z = 0; z < maxmod; z++) {
+        state[curloop] = z;
+        if (curloop + 1 === base.length) {
+            cb(state);
+        } else {
+            nloop(base, mfunc, curloop + 1, state, cb);
+        }
+    }
+}
+
+// personal reference function
+function privatepublicGetPat(req, rs, cb) {
+    //var finalList = [];
+
+    var queryOpts = getOptsFromReq(req);
+    queryOpts.umap = req.query['umap'].split(',');
+    var mfunc = queryOpts.umap.length;
+    var recentSend = 0;
+    var lastSend = -1;
+
+    //var imax = Math.pow(mfunc, queryOpts.patlen);
+    //    for (var i = 0; i < imax; i++) {
+    var jmax = Math.pow(queryOpts.tupmap.length, queryOpts.patlen);
+    for (var j = 0; j < jmax; j++) {
+        (function(ji) {
+            var initstate = new Array(queryOpts.patlen + 1).join('0').split('').map(parseFloat);
+            var tupset = common.convertNumToTuple(ji, queryOpts.patlen, queryOpts.tupmap);
+
+            Log.trace('pushed j ' + ji);
+
+            nloopas(tupset, mfunc, 0, initstate, function(tarr) {
+
+                var globpat = generateSetPatternTest({
+                    queryOpts: queryOpts,
+                    umap: queryOpts.umap,
+                    tupmap: queryOpts.tupmap,
+                    layers: queryOpts.layers,
+                    num: 1, //i,
+                    tupnum: ji,
+                    tnum: tarr
+                });
+
+                try {
+                    recentSend += 1;
+                    if (isPatternInteresting(globpat)) {
+                        //finalList.push(globpat);
+                        rs.push("\n");
+                        rs.push(common.exportBlocks(globpat));
+                        rs.push("\n");
+                    } else {
+                        rs.push(" ");
+                    }
+                } catch (e) {
+                    Log.error(e);
+                }
+            }, 0);
+        })(j);
+
+    }
+
+    var finalInterval = setInterval(function() {
+        if (lastSend === recentSend) {
+            clearInterval(finalInterval);
+            cb();
+        } else {
+            lastSend = recentSend;
+        }
+
+    }, 10 * 1000);
+    //   }
+    //cb(finalList);
+}
+
+app.get("/public/ppgp", fileCacheResponseBody(), function(req, res) {
+
+    res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'Transfer-Encoding'
+    });
+    var Readable = require('stream').Readable;
+    var rs = new Readable();
+    rs._read = function() {};
+    rs.pipe(res);
+
+    privatepublicGetPat(req, rs, function() {
+        rs.push(null);
+    });
+});
 
 app.get("/public/pattern", function(req, res) {
 
@@ -428,7 +585,7 @@ app.get("/public/refresh/audio", function(req, res) {
         var patref = req.headers['x-drumgen-patref'] || req.query['patref'];
         if (patref) {
             Log.debug("going to import for refresh :: " + patref);
-            ppat = JSON.parse(common.importBlocks(patref));
+            ppat = common.importBlocks(patref);
         } else {
             throw "No pattern!";
         }
@@ -633,7 +790,7 @@ function blockstocustommap(blocks) {
 app.get("/public/patreftocustommap/:patref", function(req, res) {
 
     var patref = req.params['patref'];
-    var blocks = JSON.parse(common.importBlocks(patref));
+    var blocks = common.importBlocks(patref);
 
     var arr = blockstocustommap(blocks);
     var ret = {
@@ -718,7 +875,7 @@ app.get("/public/custom/invert/cmap/:cmap", function(req, res) {
 app.get("/public/custom/invert/patref/:patref", function(req, res) {
 
     var patref = req.params['patref'];
-    var blocks = JSON.parse(common.importBlocks(patref));
+    var blocks = common.importBlocks(patref);
     var arr = blockstoinvert(blocks);
     var ret = {
         inverted: arr,
@@ -728,7 +885,6 @@ app.get("/public/custom/invert/patref/:patref", function(req, res) {
     res.send(ret);
 });
 
-var responseCacher = cacheResponseBody();
 
 app.get("/worksheetfilter/:patlen", responseCacher, function(req, res) {
     var opts = {};
@@ -800,7 +956,9 @@ app.use(function errorHandler(err, req, res, next) {
 
     Log.error(err);
     if (!res.headersSent) {
-        res.status(err.status);
+        if (err.status) {
+            res.status(err.status);
+        }
         res.send({
             reason: "An error occured.",
             err: err

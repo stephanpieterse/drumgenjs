@@ -120,6 +120,10 @@ function patternStats(blocks) {
         longestConsecutiveL: 0,
         longestConsecutiveR: 0,
         longestConsecutiveRepeat: 0,
+        longestConsecutiveBlank: 0,
+        contains: [],
+        startsWith: '',
+        endsWith: ''
     };
 
     function nestedStats(blocks, stats, runstat) {
@@ -148,10 +152,18 @@ function patternStats(blocks) {
     }
 
     function singleStats(blockb, stats, runstat) {
+        if (stats.contains.indexOf(blockb) === -1){
+          stats.contains.push(blockb);
+        }
+        if (stats.startsWith === ''){
+          stats.startsWith = blockb;
+        }
+        stats.endsWith = blockb;
 
         var Lmappings = ['y', 'o', 'U', 'u', 'L', 'l'];
         var Rmappings = ['Y', 'O', 'I', 'i', 'r', 'R'];
         var AccentMappings = ['I', 'U', 'L', 'R', 'X'];
+        var blankMappings = ['x', 'X'];
         var curLimb = '-';
 
         stats.counts[blockb] = (stats.counts[blockb] || 0) + 1;
@@ -168,14 +180,15 @@ function patternStats(blocks) {
             stats.Rmappings += 1;
             curLimb = 'r';
         }
+        if (blankMappings.includes(blockb)) {
+            curLimb = 'x';
+        }
         if (AccentMappings.includes(blockb)) {
             stats.totalAccents += 1;
         }
 
         if (curLimb === runstat.prevLimb) {
             runstat.curLimbStreak += 1;
-
-
         } else {
             runstat.prevLimb = curLimb;
             runstat.curLimbStreak = 1;
@@ -186,6 +199,9 @@ function patternStats(blocks) {
                 break;
             case 'l':
                 stats.longestConsecutiveL = Math.max(stats.longestConsecutiveL, runstat.curLimbStreak);
+                break;
+            case 'x':
+                stats.longestConsecutiveBlank = Math.max(stats.longestConsecutiveBlank, runstat.curLimbStreak);
                 break;
         }
 

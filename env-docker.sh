@@ -3,3 +3,4 @@
 #export DOCKEROPTSFLAGS="--cpu-shares=1384 --memory=448mb --memory-swap=448mb --init -e TZ=UTC "
 export DOCKEROPTSFLAGS="--memory=426mb --memory-swap=426mb --init -e TZ=UTC "
 export DOCKERIMAGENAME="drumgen"
+export DOCKER_BUILDKIT=1

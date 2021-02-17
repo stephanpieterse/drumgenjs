@@ -25,8 +25,8 @@ describe("Media tests", function() {
     });
 
     it("Straight public/image should be a valid image", function(done) {
-        this.timeout(3000);
-        this.slow(1000);
+        this.timeout(5000);
+        this.slow(3000);
         chai.request(server)
             .get('/public/image')
             .end(function(err, res) {
@@ -34,14 +34,14 @@ describe("Media tests", function() {
                 res.should.have.status(200);
                 terminalImage.buffer(res.body).then(function(s) {
                     console.log(s);
-                    done();
                 });
+                done();
             });
     });
 
     it("Image should contain flams", function(done) {
-        this.timeout(3000);
-        this.slow(1000);
+        this.timeout(5000);
+        this.slow(3000);
         var imgid = 'cyJSZHVkSWRJIlM=';
         chai.request(server)
             .get('/public/image/ref/' + imgid)
@@ -51,14 +51,14 @@ describe("Media tests", function() {
                 assert.equal(res.headers['x-drumgen-patref'], imgid);
                 terminalImage.buffer(res.body).then(function(s) {
                     console.log(s);
-                    done();
                 });
+                done();
             });
     });
 
     it("Image should contain tremolos", function(done) {
         this.timeout(5000);
-        this.slow(2000);
+        this.slow(3000);
         var imgid = 'cyJvZExkT2RvIlM=';
         chai.request(server)
             .get('/public/image/ref/' + imgid)
@@ -68,8 +68,8 @@ describe("Media tests", function() {
                 assert.equal(res.headers['x-drumgen-patref'], imgid);
                 terminalImage.buffer(res.body).then(function(s) {
                     console.log(s);
-                    done();
                 });
+                done();
             });
     });
 

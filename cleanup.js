@@ -158,7 +158,7 @@ function reportCachedItems() {
     }
 }
 
-reportInterval = setInterval(reportCachedItems, 30000);
+reportInterval = setInterval(reportCachedItems, 60000);
 
 function stopReport() {
     clearInterval(reportInterval);

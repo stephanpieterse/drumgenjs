@@ -17,6 +17,11 @@ var Log = require('./logger.js');
 
 var dir_prefix = config.tmpdir;
 
+try {
+  fs.mkdirSync(dir_prefix, '0777');
+} catch (e){
+
+}
 
 var nl = "\n";
 var space = " ";
@@ -102,6 +107,43 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
             break;
         case "-":
             file += "r" + noteBase + space;
+            break;
+        // proto
+        case "1":
+            file += 'sn' + (noteBase) + '-"1"-\\omit\\pp' + space;
+            break;
+        case "2":
+            file += 'sn' + (noteBase) + '-"2"-\\omit\\pp' + space;
+            break;
+        case "3":
+            file += 'sn' + (noteBase) + '-"3"-\\omit\\pp' + space;
+            break;
+        case "4":
+            file += 'sn' + (noteBase) + '-"4"-\\omit\\pp' + space;
+            break;
+        case "5":
+            file += 'sn' + (noteBase) + '-"5"-\\omit\\pp' + space;
+            break;
+        case "6":
+            file += 'sn' + (noteBase) + '-"6"-\\omit\\pp' + space;
+            break;
+        case "7":
+            file += 'sn' + (noteBase) + '-"7"-\\omit\\pp' + space;
+            break;
+        case "8":
+            file += 'sn' + (noteBase) + '-"8"-\\omit\\pp' + space;
+            break;
+        case "9":
+            file += 'sn' + (noteBase) + '-"9"-\\omit\\pp' + space;
+            break;
+        case "10":
+            file += 'sn' + (noteBase) + '-"10"-\\omit\\pp' + space;
+            break;
+        case "11":
+            file += 'sn' + (noteBase) + '-"11"-\\omit\\pp' + space;
+            break;
+        case "12":
+            file += 'sn' + (noteBase) + '-"12"-\\omit\\pp' + space;
             break;
     }
 
@@ -206,6 +248,7 @@ var genMusicBlockSection = function(blocks, options) {
         file += "\\with { drumStyleTable = #percussion-style \\override StaffSymbol.line-count = #1 " + 'instrumentName = #"' + staffnames[block] + '"' + " }" + nl;
         file += " { " + nl;
         file += "\\override Stem.direction = #UP" + nl;
+        file += "\\override TextScript.font-family = #'sans" + nl;
         file += "\\override TextScript.staff-padding = #3.5" + nl;
         file += "\\override TextScript.self-alignment-X = #1" + nl;
         file += "\\override TextScript.parent-alignment-X = #1" + nl;
@@ -257,6 +300,7 @@ var patternToLilypond = function(blocks, options) {
     file += "% gendate:" + parseInt(Date.now() / 1000) + nl;
     file += "% filename:" + options._fullname + nl;
     file += "\\score {" + nl;
+
 
     options._isMidiSection = false;
     file += genMusicBlockSection(blocks, options);
@@ -348,6 +392,7 @@ var generatePNG = function(filename) {
                     resolve();
                 });
             });
+            genchild.on('error', function(){});
         } catch (e) {
             reject(e);
         }

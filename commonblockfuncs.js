@@ -4,11 +4,11 @@
 var util = require('./util.js');
 
 var impExpMap = {
-  '[[':'s',
-  ']]':'S',
-  '","':'d',
-  '"]':'f',
-  '["':'F'
+    '[[': 's',
+    ']]': 'S',
+    '","': 'd',
+    '"]': 'f',
+    '["': 'F'
 };
 
 var makeCleanBlock = function(blocks) {
@@ -39,20 +39,20 @@ var exportBlocks = function(blocks) {
         regex = new RegExp(util.regexEscape(m), "g");
         enc = enc.replace(regex, impExpMap[m]);
     }
-    enc = new Buffer(enc);
+    enc = new Buffer.from(enc);
     enc = enc.toString('base64');
     return enc;
 };
 
 var importBlocks = function(patid) {
-    var pat = new Buffer(patid, 'base64');
+    var pat = new Buffer.from(patid, 'base64');
     pat = pat.toString('UTF-8');
     var regex;
     for (var m in impExpMap) {
         regex = new RegExp(util.regexEscape(impExpMap[m]), "g");
         pat = pat.replace(regex, m);
     }
-    return pat;
+    return JSON.parse(pat);
 };
 
 var convertNumToTuple = function(num, patlen, mappings) {
@@ -94,8 +94,6 @@ var genericMapper = function(num, patlen, mappings) {
     cpat = util.lpad(cpat, barlen);
     pattern[0] = cpat.split("");
     for (var px in pattern[0]) {
-        // pattern[0][px] = mappings[pattern[0][px]];
-        //pattern[0][px] = mappings[(pattern[0][px]).toString(10)];
         pattern[0][px] = mappings[parseInt(pattern[0][px], notetypes)];
     }
 

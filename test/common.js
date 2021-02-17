@@ -8,7 +8,7 @@ describe("Common Exported Tests", function() {
 
     it("Should import and export blocks nicely", function() {
         var blockset1 = ["l", "L", "r"];
-        var outputBlocks = JSON.parse(main.importBlocks(main.exportBlocks(blockset1)));
+        var outputBlocks = main.importBlocks(main.exportBlocks(blockset1));
         assert.deepEqual(blockset1, outputBlocks, "Input and output should match!");
     });
 

@@ -39,7 +39,7 @@ function changeMidiTempo(newtempo, infile, outfile) {
         }
 
         var output = writeMidi(parsed);
-        var outputBuffer = new Buffer(output);
+        var outputBuffer = new Buffer.from(output);
 
         fs.writeFileSync(outfile, outputBuffer);
         return true;

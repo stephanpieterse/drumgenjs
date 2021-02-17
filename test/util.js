@@ -83,6 +83,8 @@ describe('Misc Util', function() {
             assert.equal(retstat.totalNotes, 1);
             assert.equal(retstat.totalAccents, 1);
             assert.equal(retstat.longestConsecutiveL, 1);
+            assert.equal(retstat.startsWith, 'L');
+            assert.equal(retstat.endsWith, '-');
 
             statpat = ['R', 'l', ['i', 'Y']];
             retstat = util.patternStats(statpat);
@@ -92,6 +94,7 @@ describe('Misc Util', function() {
             assert.equal(retstat.totalAccents, 1);
             assert.equal(retstat.deepestTuples, 1);
             assert.equal(retstat.totalTuples, 1);
+            assert.deepEqual(retstat.contains, ['R','l','i','Y']);
 
             statpat = [
                 ['r', 'r'], 'R', ['i', 'Y']
@@ -122,6 +125,8 @@ describe('Misc Util', function() {
             assert.equal(retstat.longestConsecutiveR, 8);
             assert.equal(retstat.longestConsecutiveL, 1);
             assert.equal(retstat.longestConsecutiveRepeat, 3);
+            assert.equal(retstat.startsWith, 'r');
+            assert.equal(retstat.endsWith, 'L');
 
             statpat = [
                 ['r', 'r'], 'R', ['U', 'Y'],
@@ -140,6 +145,8 @@ describe('Misc Util', function() {
             assert.equal(retstat.longestConsecutiveL, 2);
             assert.equal(retstat.longestConsecutiveRepeat, 3);
             assert.equal(retstat.totalRests, 1);
+            assert.equal(retstat.startsWith, 'r');
+            assert.equal(retstat.endsWith, '-');
 
             statpat = [
                 ['-', '-'], 'l', '-'
@@ -155,6 +162,13 @@ describe('Misc Util', function() {
             assert.equal(retstat.longestConsecutiveL, 1);
             assert.equal(retstat.longestConsecutiveRepeat, 2);
             assert.equal(retstat.totalRests, 3);
+            assert.deepEqual(retstat.contains, ['-','l']);
+
+            statpat = ['x','X','-','x'];
+            retstat = util.patternStats(statpat);
+            assert.equal(retstat.longestConsecutiveRepeat, 1);
+            assert.equal(retstat.longestConsecutiveBlank, 2);
+            assert.deepEqual(retstat.contains, ['x','X','-']);
         });
     });
 });
