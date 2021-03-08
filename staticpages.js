@@ -34,6 +34,7 @@ var parseOpts = function(opts) {
     } else {
         pageLinkAdd += "&kick=false";
     }
+
     if (opts.toggles.sticking === true) {
         opts.nosticking = !opts.nosticking;
     }
@@ -43,10 +44,12 @@ var parseOpts = function(opts) {
     } else {
         pageLinkAdd += "&nosticking=false";
     }
+
     if (opts.blanks) {
         mappings = mappings.concat(['x', 'X']);
         pageLinkAdd += "&blanks=true";
     }
+
     if (opts.toggles.rests === true) {
         opts.rests = !opts.rests;
     }
@@ -56,12 +59,21 @@ var parseOpts = function(opts) {
     } else {
         pageLinkAdd += "&rests=false";
     }
+
     opts.pageLinkAdd = pageLinkAdd;
     opts.mappings = mappings;
     return opts;
 };
 
-var getAll8StreamContin = function(stream, opts, filter) {
+var getPatLenLinks = function(path, min, max){
+    var patLenLinks = "";
+    for (var i = min; i < max; i++) {
+        patLenLinks += '<a href="' + path + i + '"> ' + i + ' </a>';
+    }
+    return patLenLinks;
+};
+
+var getAllStreamContin = function(stream, opts, filter) {
 
     if (!filter) {
         filter = function() {
@@ -73,8 +85,7 @@ var getAll8StreamContin = function(stream, opts, filter) {
     var pagenum = opts.pagenum;
     var frompage = opts.frompage;
     var maxpatlen = 8 + 1;
-    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
-    pagenum = Math.abs(pagenum);
+    pagenum = isNaN(parseInt(pagenum)) ? 1 : Math.abs(parseInt(pagenum));
     patlen = isNaN(patlen) ? 4 : patlen;
     patlen = Math.abs(patlen % maxpatlen);
 
@@ -94,22 +105,20 @@ var getAll8StreamContin = function(stream, opts, filter) {
     var pageStart = pageSplits[0];
     var pageEnd = pageSplits[1];
 
-    var patLenLinks = "";
-    for (var i = 2; i < maxpatlen; i++) {
-        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
-    }
     var prevPageLink = pageHost + pagePath + patlen + "?page=" + frompage;
     var footerData = "Patterns from " + pagenum;
 
-    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglesticking=true";
-    toggleStickingLink = '<a class="toggle-sticking" href="' + toggleStickingLink + '">Toggle Sticking</a>';
-    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglerests=true";
-    toggleRestsLink = '<a class="toggle-rests" href="' + toggleRestsLink + '">Toggle Rests</a>';
-    var toggleKickLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglekick=true";
-    toggleKickLink = '<a class="toggle-kick" href="' + toggleKickLink + '">Toggle Kick</a>';
+    var toggleLinks = [];
+    var toggleLinkBase = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd;
+    var toggleStickingLink = toggleLinkBase + "&togglesticking=true";
+    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking</a>'.replace('{{L}}', toggleStickingLink));
+    var toggleRestsLink = toggleLinkBase + "&togglerests=true";
+    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests</a>'.replace('{{L}}', toggleRestsLink));
+    var toggleKickLink = toggleLinkBase + "&togglekick=true";
+    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick</a>'.replace('{{L}}', toggleKickLink));
 
-    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink + " " + toggleKickLink);
-    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleLinks.join(" "));
+    pageStart = pageStart.replace("{{PATLENLINKS}}", getPatLenLinks(pagePath, 2, maxpatlen));
 
     stream.push(pageStart);
     var written = pagenum;
@@ -157,7 +166,7 @@ var getAll8StreamContin = function(stream, opts, filter) {
     }, 100);
 };
 
-var getAll8StreamContinMap = function(stream, opts, filter) {
+var getAllStreamContinMap = function(stream, opts, filter) {
 
     if (!filter) {
         filter = function() {
@@ -168,8 +177,7 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
     var patlen = opts.patlen;
     var pagenum = opts.pagenum;
     var maxpatlen = 8 + 1;
-    pagenum = isNaN(parseInt(pagenum)) ? 1 : parseInt(pagenum);
-    pagenum = Math.abs(pagenum);
+    pagenum = isNaN(parseInt(pagenum)) ? 1 : Math.abs(parseInt(pagenum));
     patlen = isNaN(patlen) ? 4 : patlen;
     patlen = Math.abs(patlen % maxpatlen);
 
@@ -190,20 +198,17 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
     var pageStart = pageSplits[0];
     var pageEnd = pageSplits[1];
 
-    var patLenLinks = "";
-    for (var i = 2; i < maxpatlen; i++) {
-        patLenLinks += '<a href="' + pagePath + i + '"> ' + i + ' </a>';
-    }
+    var toggleLinks = [];
+    var toggleLinkBase = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd;
+    var toggleStickingLink = toggleLinkBase + "&togglesticking=true";
+    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking</a>'.replace('{{L}}', toggleStickingLink));
+    var toggleRestsLink = toggleLinkBase + "&togglerests=true";
+    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests</a>'.replace('{{L}}', toggleRestsLink));
+    var toggleKickLink = toggleLinkBase + "&togglekick=true";
+    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick</a>'.replace('{{L}}', toggleKickLink));
 
-    var toggleStickingLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglesticking=true";
-    toggleStickingLink = '<a class="toggle-sticking" href="' + toggleStickingLink + '">Toggle Sticking</a>';
-    var toggleRestsLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglerests=true";
-    toggleRestsLink = '<a class="toggle-rests" href="' + toggleRestsLink + '">Toggle Rests</a>';
-    var toggleKickLink = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd + "&togglekick=true";
-    toggleKickLink = '<a class="toggle-kick" href="' + toggleKickLink + '">Toggle Kick</a>';
-
-    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleStickingLink + " " + toggleRestsLink + " " + toggleKickLink);
-    pageStart = pageStart.replace("{{PATLENLINKS}}", patLenLinks);
+    pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleLinks.join(" "));
+    pageStart = pageStart.replace("{{PATLENLINKS}}", getPatLenLinks(pagePath, 2, maxpatlen));
 
     stream.push(pageStart);
     var written = 1;
@@ -249,6 +254,6 @@ var getAll8StreamContinMap = function(stream, opts, filter) {
 };
 
 module.exports = {
-    getAll8StreamFilter: getAll8StreamContin,
-    getAll8StreamFilterMap: getAll8StreamContinMap
+    getAllStreamFilter: getAllStreamContin,
+    getAllStreamFilterMap: getAllStreamContinMap
 };

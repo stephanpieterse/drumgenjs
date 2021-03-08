@@ -211,6 +211,10 @@ var getOptsFromReq = function(req) {
     /// ("" + req.opts['a']).toLowerCase() === 'true'
     var mapArr = req.query["map"] || "sn";
     mapArr = mapArr.split(",");
+    mapArr = sanitize.soundMap(mapArr);
+    if (mapArr.length === 0){
+      mapArr.push("sn");
+    }
     var umapArr = req.query["umap"] || [];
     if (umapArr.length > 0){
       umapArr = umapArr.split(',');
@@ -470,7 +474,6 @@ function nloop(base, mfunc, curloop, state, cb) {
 
 // personal reference function
 function privatepublicGetPat(req, rs, cb) {
-    //var finalList = [];
 
     var queryOpts = getOptsFromReq(req);
     queryOpts.umap = req.query['umap'].split(',');
@@ -478,8 +481,6 @@ function privatepublicGetPat(req, rs, cb) {
     var recentSend = 0;
     var lastSend = -1;
 
-    //var imax = Math.pow(mfunc, queryOpts.patlen);
-    //    for (var i = 0; i < imax; i++) {
     var jmax = Math.pow(queryOpts.tupmap.length, queryOpts.patlen);
     for (var j = 0; j < jmax; j++) {
         (function(ji) {
@@ -503,7 +504,6 @@ function privatepublicGetPat(req, rs, cb) {
                 try {
                     recentSend += 1;
                     if (isPatternInteresting(globpat)) {
-                        //finalList.push(globpat);
                         rs.push("\n");
                         rs.push(common.exportBlocks(globpat));
                         rs.push("\n");
@@ -527,8 +527,6 @@ function privatepublicGetPat(req, rs, cb) {
         }
 
     }, 10 * 1000);
-    //   }
-    //cb(finalList);
 }
 
 app.get("/public/ppgp", fileCacheResponseBody(), function(req, res) {
@@ -821,7 +819,6 @@ app.get("/public/custommaptopatref/:cmap", function(req, res) {
     var cmapParam = req.params['cmap'];
     cmapParam = sanitize.trimString(cmapParam);
     cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
-    //var arr = JSON.parse(req.params['cmap']);
     var arr = JSON.parse(cmapParam);
 
     arr = custommaptoblocks(arr);
@@ -860,7 +857,6 @@ app.get("/public/custom/invert/cmap/:cmap", function(req, res) {
     var cmapParam = req.params['cmap'];
     cmapParam = sanitize.trimString(cmapParam);
     cmapParam = cmapParam.replace(/[^\[\],0-9]/g, '');
-    //var arr = JSON.parse(req.params['cmap']);
     var arr = JSON.parse(cmapParam);
     arr = custommaptoblocks(arr);
     arr = blockstoinvert(arr);
@@ -911,7 +907,7 @@ app.get("/worksheetfilter/:patlen", responseCacher, function(req, res) {
     var rs = new Readable();
     rs._read = function() {};
     rs.pipe(res);
-    staticpages.getAll8StreamFilter(rs, opts, function(ppat) {
+    staticpages.getAllStreamFilter(rs, opts, function(ppat) {
         return isPatternInteresting(ppat);
     });
 });
@@ -941,7 +937,7 @@ app.get("/worksheetmap/:patlen", responseCacher, function(req, res) {
     var rs = new Readable();
     rs._read = function() {};
     rs.pipe(res);
-    staticpages.getAll8StreamFilterMap(rs, opts, function(ppat) {
+    staticpages.getAllStreamFilterMap(rs, opts, function(ppat) {
         return isPatternInteresting(ppat);
     });
 });

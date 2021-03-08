@@ -43,5 +43,22 @@ describe("Sanitization tests", function() {
 
         assert.equal(goodString, sanitize.cleanNonAlphaNum(badString));
     });
+    
+    it("Should substitute bad sound values", function(){
 
+        var fixedarr = ['sn', 'sn'];
+        var badarr = ['lol','sn'];
+
+        assert.deepEqual(sanitize.soundMap(badarr), fixedarr);
+
+    });
+
+    it("Should not have a bigger than 4 soundmap", function(){
+
+        var fixedarr = ['sn', 'sn', 'bd', 'hh'];
+        var badarr = ['sn', 'sn', 'bd', 'hh', 'not', 'not', 'not'];
+
+        assert.deepEqual(sanitize.soundMap(badarr), fixedarr);
+
+    });
 });

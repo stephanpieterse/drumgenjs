@@ -42,9 +42,23 @@ function cleanNonAlphaNum(tstring) {
     return cleanString(tstring, /[^a-z0-9 ]/gi);
 }
 
+function soundMap(darr){
+  var safeValues = ["sn","bd","hh","ss","wbl","boh"];
+  darr = darr.slice(0, 4);
+  darr = darr.map(function(i){
+    if (safeValues.indexOf(i) >= 0){
+      return i;
+    } else {
+      return 'sn';
+    }
+  });
+  return darr;
+}
+
 module.exports = {
     tuples: sanitizeTuples,
     trimString: trimString,
     cleanString: cleanString,
-    cleanNonAlphaNum: cleanNonAlphaNum
+    cleanNonAlphaNum: cleanNonAlphaNum,
+    soundMap: soundMap
 };

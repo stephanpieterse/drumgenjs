@@ -58,32 +58,6 @@ funcs.getSeed = function() {
 };
 
 
-funcs.getShareUrl = function(){
-  var host = window.location.protocol + "//" + window.location.host;
-  var shareUrl = host + "/public/image/ref/{{PATREF}}";
-  shareUrl = shareUrl.replace('{{PATREF}}', settings.pattern_ref);
-  return shareUrl;
-};
-
-funcs.getShareLinks = function(){
-  var url = funcs.getShareUrl();
-  var links = {};
-  var appPage =  window.location.protocol + "//" + window.location.host + '/static/page.html';
-  //links.Pinterest = "https://pinterest.com/pin/create/button/?url=" + encodeURI(appPage) + "&media="+encodeURI(url)+"&description=";
-  //links.facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURI(url);
-  //links.twitter = "https://twitter.com/intent/tweet?text=" + encodeURI(url);
-  return links;
-};
-
-funcs.updateShareLinks = function(){
-  var links = funcs.getShareLinks();
-  var body = "";
-  for (var sl in links){
-    body += '<a href="'+ links[sl]+'" target="_blank">Share on ' + sl + '</a>';
-  }
-  $('.sharelinks').html(body);
-};
-
 var LS = {
     get: function(a) {
         try {
@@ -388,7 +362,6 @@ var init = function() {
         $('.editbtn').attr("href", buildTemplateUrl(editpatext));
 
         doHealthCheck();
-        funcs.updateShareLinks();
     }).catch(function(e) {
         console.log("whoopseedoodle");
         console.log(e);

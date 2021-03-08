@@ -109,6 +109,9 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
             file += "r" + noteBase + space;
             break;
         // proto
+        case "0":
+            file += 'sn' + (noteBase) + '-"0"-\\omit\\pp' + space;
+            break;
         case "1":
             file += 'sn' + (noteBase) + '-"1"-\\omit\\pp' + space;
             break;
