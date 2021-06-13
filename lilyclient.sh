@@ -12,9 +12,9 @@ do
 done
 opts="$opts)"
 
-# echo $opts
+echo $opts >> /tmp/lilypondserver.log
 
-echo "$opts" | nc 127.0.0.1 12321
+echo "$opts" | nc 127.0.0.1 12321 2>&1 >> /tmp/lilypondserver.log
 if (($? == 1)); then
   echo "Could not find lilypond server on port 12321"
   exit 1

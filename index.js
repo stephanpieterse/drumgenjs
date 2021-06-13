@@ -659,6 +659,38 @@ function safeSend(res, rstatus, headers, body) {
     }
 }
 
+app.get("/public/midifile", function(req, res) {
+    //req.query["nometro"] = true;
+    req.query["noname"] = 'true';
+    //req.query["map"] = "sn";
+
+    var ppat = publicGetPat(req);
+    var isPatInt = isPatternInteresting(ppat);
+    res.setHeader('x-drumgen-patref', common.exportBlocks(ppat));
+    res.setHeader('x-drumgen-interesting', isPatInt);
+    var queryOpts = getOptsFromReq(req);
+    var execFunc = function(cb) {
+        musxml.getMidi(ppat, queryOpts, function(err, fileData) {
+            Log.debug({
+                pat: ppat
+            }, 'received midi request');
+            if (err) {
+                Log.error("getMidi returned an error");
+                safeSend(res, 500, {}, "Midi file retrieval error: " + err);
+                cb();
+                return;
+            }
+
+            safeSend(res, 200, {
+                'Content-Type': 'text/plain'
+            }, fileData);
+            cb();
+        });
+    };
+    execFunc.timeout = 1000;
+    q.push(execFunc);
+});
+
 app.get("/public/rawfile", function(req, res) {
 
     //req.query["nometro"] = true;
@@ -725,7 +757,7 @@ app.get("/public/image", function(req, res) {
             cb();
         });
     };
-    execFunc.timeout = 3000;
+    //execFunc.timeout = 3000;
     q.push(execFunc);
 
 });
@@ -973,11 +1005,14 @@ var healthStatus = {};
 var this_server = app.listen(serverPort, function() {
     Log.info("Started on " + serverPort);
 
-    healthInterval.lily = setInterval(function() {
-        musxml.healthCheck(function(health) {
-            healthStatus.lily = health;
-        });
-    }, 2 * 60 * 1000);
+    function musxmlCheck(){
+      musxml.healthCheck(function(health){
+        healthStatus.lily = health;
+        healthInterval.lily = setTimeout(musxmlCheck, 10 * 60 * 1000);
+      });
+    }
+
+    healthInterval.lily = setTimeout(musxmlCheck, 10 * 60 * 1000);
 
     healthInterval.main = setInterval(function() {
         for (var h in healthStatus) {
@@ -989,9 +1024,19 @@ var this_server = app.listen(serverPort, function() {
                 }
             }
         }
-    }, 1 * 60 * 1000);
+    }, 5 * 60 * 1000);
 
 });
+
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p);
+  })
+  .on('uncaughtException', err => {
+    console.error(err, 'Uncaught Exception thrown');
+    process.exit(1);
+  });
+
 
 this_server.on('close', function() {
     Log.info('Shutdown section');

@@ -1,30 +1,43 @@
 \version "2.19.37"
 
 #(begin
-  (display (format "\nLilypond server starting...\n"))
+  (display (format "\nLilypond server starting!..\n"))
   (use-modules (ice-9 rdelim) (ice-9 getopt-long) (ice-9 regex))
   (define (lys:start-server port)
     (let ((server-socket (lys:open-socket-for-listening port)))
       (display (format "\nListening on port ~a\n" port))
       (while #t
         (let ((connection (accept server-socket)))
-          (lys:fork-worker (lambda () (lys:client-handler (car connection))))))))
-         ; (lys:client-handler (car connection))))))
+          (lys:fork-worker (lambda () (lys:client-handler (car connection))))
+        )
+      )
+    )
+  )
   (define (lys:open-socket-for-listening port) (let (
     (s (socket PF_INET SOCK_STREAM 0)))
     (setsockopt s SOL_SOCKET SO_REUSEADDR 1)
     (bind s AF_INET INADDR_ANY port)
-    (listen s 5) ; Queue size of 5
+    (listen s 6) ; Queue size
     s))
-  (define (lys:fork-worker proc) (let* ((child (primitive-fork)))
-    (if (zero? child) (begin
-      (set! child (primitive-fork))
-      (if (zero? child) (proc))
-        (primitive-_exit)
-      ; wait for child to spawn grand-child
-     )(waitpid child))))
-
-      
+  
+  (define (lys:fork-worker proc) 
+    (let* ((child (primitive-fork)))
+      (if (zero? child) 
+        (begin
+        (proc)
+        ;  (set! child (primitive-fork))
+       ;   (if (zero? child) (proc))
+        ;  (if (zero? child) (proc)(waitpid child))
+       ;   ; wait for child to spawn grand-child
+      ;    (waitpid child)
+        ;(waitpid WAIT_ANY WNOHANG)
+        ) 
+        ;(waitpid child)
+        (waitpid WAIT_ANY WNOHANG)
+      )
+    )
+  )
+     
   (define lys:socket #f)
   (define lys:persist #f)
   (define (lys:client-handler socket) (begin
@@ -34,6 +47,7 @@
     (redirect-port socket (current-error-port))
     (display (format "GNU LilyPond Server ~a" (lilypond-version)))
     (while #t (let* ((expr (read-line socket 'trim)))
+      (display (format expr))
       (if (not (eof-object? expr)) (lys:eval expr) (break))))))
       
   (define (lys:eval expr)
@@ -54,6 +68,7 @@
       (display (format "Elapsed: ~as\n" (lys:elapsed t1 (get-internal-real-time))))
       (if (not (option-ref opts 'persist #f)) (shutdown lys:socket 1))
     ))
+
   ; add "lyc" to head of opts list, and translate advanced opts e.g. -dbackend
   ; into --dbackend, so getopt-long will be able to deal with them...
   (define (lys:translate-compile-options opts)
@@ -85,7 +100,12 @@
       (set! ly:output-formats (lambda () lys:output-formats)))))
   
   (define (lys:compile-file fn)
-    (if (not (eq? fn '())) (ly:parse-file fn)))
+    (if (not (eq? fn '())) (begin
+    (display (format fn))
+    (ly:parse-file fn)
+    ))
+  )
+
   (define lys:advanced-compile-options '(
     (anti-alias-factor . eval)            (aux-files . eval)
     (backend . string->symbol)            (check-internal-types . eval)
@@ -132,6 +152,7 @@
                   (ps                               (value #f))
                   (persist                          (value #f))))
   (define lys:compile-options-spec
+    ;;(append lys:standard-compile-options-spec lys:advanced-compile-options-spec))
     (append lys:standard-compile-options-spec lys:advanced-compile-options-spec))
             
   (define (lys:elapsed t1 t2) (/ (- t2 t1) (* 1.0 internal-time-units-per-second)))

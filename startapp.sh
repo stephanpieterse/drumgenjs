@@ -2,8 +2,8 @@
 set -xe
 cd /opt/app/
 
-# lilypond lilypondserver.ly &
 bash startlilyserverhealth.sh &
+sleep 1s;
 
 # a long silence audio file to mix in later
 # to ensure items are the correct length

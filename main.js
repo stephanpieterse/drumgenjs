@@ -18,8 +18,8 @@ var Log = require('./logger.js');
 var dir_prefix = config.tmpdir;
 
 try {
-  fs.mkdirSync(dir_prefix, '0777');
-} catch (e){
+    fs.mkdirSync(dir_prefix, '0777');
+} catch (e) {
 
 }
 
@@ -58,28 +58,28 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
     var file = "";
     switch (blockb) {
         case "Y":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"lR"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase) * 2) + '-"lR"-\\omit\\pp' + space;
             break;
         case "y":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"rL"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase) * 2) + '-"rL"-\\omit\\pp' + space;
             break;
         case "O":
-            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"R"-\\omit\\pp' + space;
+            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase) * 2) + '-"R"-\\omit\\pp' + space;
             break;
         case "o":
-            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase)*2) + '-"L"-\\omit\\pp' + space;
+            file += '\\repeat tremolo 2 ' + repnote + (parseInt(noteBase) * 2) + '-"L"-\\omit\\pp' + space;
             break;
         case "I":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '^>-"lR"-\\omit\\fff' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + repnote + (noteBase) + '^>-"lR"-\\omit\\fff' + space;
             break;
         case "i":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '-"lR"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + repnote + (noteBase) + '-"lR"-\\omit\\pp' + space;
             break;
         case "U":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '^>-"rL"-\\omit\\fff' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + repnote + (noteBase) + '^>-"rL"-\\omit\\fff' + space;
             break;
         case "u":
-            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase)*2) + '-"" ' + repnote + (noteBase) + '-"rL"-\\omit\\pp' + space;
+            file += '\\acciaccatura  ' + repnote + (parseInt(noteBase) * 2) + '-"" ' + repnote + (noteBase) + '-"rL"-\\omit\\pp' + space;
             break;
         case "G":
             file += repnote + (noteBase) + '^>-"K"-\\omit\\fff' + space;
@@ -108,7 +108,7 @@ var genLilySingleMapper = function(blockb, repnote, noteBase) {
         case "-":
             file += "r" + noteBase + space;
             break;
-        // proto
+            // proto
         case "0":
             file += 'sn' + (noteBase) + '-"0"-\\omit\\pp' + space;
             break;
@@ -214,7 +214,7 @@ var getLilypondHeader = function() {
         " oddFooterMarkup = \"\"" + nl +
         " evenFooterMarkup = \"\"" + nl +
         "}";
-    head += "\\version \"2.18.2\" " + nl;
+    head += "\\version \"2.19.2\" " + nl;
     head += "#(ly:set-option 'resolution '1000)" + nl;
     head += "#(ly:set-option 'pixmap-format 'pngmono)" + nl;
     head += "#(ly:set-option 'backend 'eps)" + nl;
@@ -362,8 +362,62 @@ var generateLilypond = function(pattern, eopts) {
     });
 };
 
-
 var generatePNG = function(filename) {
+    var net = require('net');
+
+    var HOST = '127.0.0.1';
+    var PORT = 12321;
+
+    return new Promise(function(resolve, reject) {
+
+        if (fs.existsSync(filename + ".png")) {
+            resolve();
+            return;
+        }
+
+        timers.start("gen-png");
+        prommetrics.cadd('drumgen_generated_images', 1, {
+            "appid": prommetrics.appid
+        });
+        var client = new net.Socket();
+				var cdata = "";
+        client.connect(PORT, HOST, function() {
+            Log.debug('CONNECTED TO: ' + HOST + ':' + PORT);
+            // Write a message to the socket as soon as the client is connected, the server will receive it as message from the client
+            //client.write('I am Chuck Norris!');
+            client.write('(lys:compile "' + dir_prefix + '" "--png" "' + filename + '.ly")\n');
+        });
+
+        // Add a 'data' event handler for the client socket
+        // data is what the server sent to this socket
+        client.on('data', function(data) {
+            //console.log('DATA: ' + data);
+						cdata += data;
+            // Close the client socket completely
+            //client.destroy();
+        });
+
+				client.on('end', function(){
+            Log.debug('DATA: ' + cdata);
+            mediautil.tagPNG(filename).then(function() {
+                resolve();
+            }).catch(function() {
+                resolve();
+            });
+				});
+
+        // Add a 'close' event handler for the client socket
+        client.on('close', function() {
+            Log.debug('Image socket connection closed');
+            timers.end("gen-png");
+        });
+        client.on('error', function(e) {
+            reject(e);
+        });
+    });
+};
+
+var generatePNG_bak = function(filename) {
 
     return new Promise(function(resolve, reject) {
 
@@ -395,7 +449,15 @@ var generatePNG = function(filename) {
                     resolve();
                 });
             });
-            genchild.on('error', function(){});
+            genchild.on('error', function(e) {
+                reject(e);
+            });
+            genchild.on('exit', function(code, signal) {
+                if (code !== 0) {
+                    Log.error('Lilypond exited with code ' + code + ' signal ' + signal);
+                    reject();
+                }
+            });
         } catch (e) {
             reject(e);
         }
@@ -418,7 +480,7 @@ var generateOGG = function(filename, endtime) {
         var audiochild;
         try {
             audiochild = exec("timidity --preserve-silence -EFreverb=0 -A120 -OwM1 " + filename + ".midi &&  sox --combine mix /tmp/silence.wav " + filename + ".wav " + filename + ".ogg trim 0 " + endtime + " ", {
-                timeout: 3000
+                timeout: 5000
             }, function(error, stdout, stderr) {
                 timers.end("gen-ogg");
                 Log.debug('stdout: ' + stdout);
@@ -596,6 +658,24 @@ var getImageData = function(pattern, eopts, cb) {
     return;
 };
 
+var getMidi = function(pattern, eopts, cb) {
+    eopts = getDefaultOptions(eopts);
+    eopts = generateFilename(pattern, eopts);
+    getOrMakeFile(pattern, eopts, function(makeErr) {
+        if (makeErr) {
+            Log.error(makeErr);
+            cb(makeErr);
+            return;
+        }
+        miditools.changeMidiTempo(eopts.tempo, eopts._fullname_notempo + ".midi", eopts._fullname + ".midi");
+        fs.readFile(eopts._fullname + ".midi", function(err, buf) {
+            cb(err, buf);
+        });
+
+    });
+
+};
+
 var getLilypond = function(pattern, eopts, cb) {
     eopts = getDefaultOptions(eopts);
     eopts = generateFilename(pattern, eopts);
@@ -618,7 +698,7 @@ var healthyLilypondCheck = function(cb) {
     try {
         Log.debug('Running healthcheck...');
         genchild = exec("cd " + dir_prefix + " && bash /opt/app/lilyclient.sh --png /tmp/healthtest.ly", {
-            timeout: 5000
+            timeout: 10000
         }, function(error, stdout, stderr) {
             Log.debug('stdout: ' + stdout);
             Log.debug('stderr: ' + stderr);
@@ -642,6 +722,7 @@ var healthyLilypondCheck = function(cb) {
 module.exports = {
     getImage: getImage,
     getAudio: getAudio,
+    getMidi: getMidi,
     getRawFile: getLilypond,
     healthCheck: healthyLilypondCheck,
 };

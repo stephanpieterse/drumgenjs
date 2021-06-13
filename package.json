@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "start": "node --max_old_space_size=380 index.js"
+    "start": "node --max_old_space_size=256 index.js"
   },
   "author": "stephan@apollolms.co.za",
   "license": "Apache-2.0 OR MIT",

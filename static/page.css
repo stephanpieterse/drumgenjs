@@ -39,6 +39,10 @@ body {
   width: 128px;
 }
 
+.small-title-image {
+  width: 64px;
+}
+
 .loader-image {
   width: 48px;
   margin-left: auto;

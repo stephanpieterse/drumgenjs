@@ -4,5 +4,7 @@ cd /opt/app/
 
 while true;
 do
-  lilypond lilypondserver.ly
+  echo 'Restarted' >> /tmp/lilypondserver.log
+  echo '--------' >> /tmp/lilypondserver.log
+  lilypond lilypondserver.ly 2>&1 >> /tmp/lilypondserver.log
 done
