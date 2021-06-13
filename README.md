@@ -12,6 +12,15 @@ run the `run.sh` script with bash and it will boot everything.
 It was never intended to run outside of a container environment, mainly because you
 have to fiddle with some dependencies to get things working as expected.
 
+API ENDPOINTS
+-------------
+- /public/image
+- /public/audio
+- /public/refresh/audio
+- /public/pattern
+- /public/midifile
+- /public/rawfile
+
 
 TESTS
 ----

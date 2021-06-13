@@ -281,15 +281,6 @@ var genMusicBlockSection = function(blocks, options) {
 var patternToLilypond = function(blocks, options) {
     options = getDefaultOptions(options);
 
-    //var mappings = options.mappings || ["hh", "sn", "bd", "hh"];
-    //var mappings = ["hh", "sn", "bd", "hh"];
-    //if (options.mappings && options.mappings[0]) {
-    //    mappings = options.mappings;
-    //}
-    //// I'm actually a bit confused about this line,
-    //// but for now I think we need it.
-    //options.mappings = mappings;
-
     var staffnames = ["HiHat", "Snare", "Bass Drum", "HH Foot"];
     if (options.noNames) {
         staffnames = ["", "", "", ""];
@@ -383,17 +374,11 @@ var generatePNG = function(filename) {
 				var cdata = "";
         client.connect(PORT, HOST, function() {
             Log.debug('CONNECTED TO: ' + HOST + ':' + PORT);
-            // Write a message to the socket as soon as the client is connected, the server will receive it as message from the client
-            //client.write('I am Chuck Norris!');
             client.write('(lys:compile "' + dir_prefix + '" "--png" "' + filename + '.ly")\n');
         });
 
-        // Add a 'data' event handler for the client socket
-        // data is what the server sent to this socket
         client.on('data', function(data) {
-            //console.log('DATA: ' + data);
 						cdata += data;
-            // Close the client socket completely
             //client.destroy();
         });
 
