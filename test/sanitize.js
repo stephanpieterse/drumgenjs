@@ -9,14 +9,13 @@ describe("Sanitization tests", function() {
 
         var shortString = "12345";
         var longString = "";
-        for (var i = 0; i <= 100; i++) {
+        for (var i = 0; i <= 500; i++) {
             longString = longString + i;
         }
+        longString += longString + longString;
 
-        assert.equal(longString.length > 150, true, "String was too short!");
-
-        assert.equal(shortString.length, sanitize.trimString(shortString).length, "Valid string should not have been shortened!");
-        assert.notEqual(longString.length, sanitize.trimString(longString).length, "Valid string should not have been shortened!");
+        assert.equal(shortString.length, sanitize.trimString(shortString).length, "Short string should not have been shortened!");
+        assert.notEqual(longString.length, sanitize.trimString(longString).length, "Long string should have been shortened!");
 
     });
 

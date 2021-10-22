@@ -8,5 +8,6 @@ docker rm $NAME
    # -v /tmp/tmp.we1pBAVVpK/mount:/opt/app/tmpgen \
 docker run --restart=always \
    $DOCKEROPTSFLAGS -d \
+   -p 0.0.0.0:5061:5061 \
    --user 1000 \
    --name $NAME $NAME

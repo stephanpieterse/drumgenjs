@@ -2,7 +2,7 @@
 /* jshint strict: false */
 
 var config = require('./config.js');
-var MAX_STRING_LENGTH = 150;
+var MAX_STRING_LENGTH = 248; // Filename length comes into play here as that is how we cache items
 var MAX_TUPLE_DIV = 17;
 
 function sanitizeTuples(tupQ) {

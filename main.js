@@ -540,7 +540,6 @@ var getOrMakeFile = function(pattern, eopts, cb) {
     }).catch(function(e) {
         cb(e);
     });
-
 };
 
 var getAudio = function(pattern, eopts, cb) {
