@@ -81,6 +81,7 @@ function fileCacheResponseBody() {
         next();
     };
 }
+
 function cacheResponseBody() {
     var resCache = {};
     return function(req, res, next) {
@@ -922,11 +923,13 @@ app.get("/worksheetfilter/:patlen", responseCacher, function(req, res) {
     opts.blanks = req.query['blanks'];
     opts.rests = req.query['rests'] === "true" ? true : false;
     opts.kick = req.query['kick'] === "true" ? true : false;
+    opts.accents = req.query['accents'] === "true" ? true : false;
     opts.nosticking = req.query['nosticking'] === "true" ? true : false;
     opts.toggles = {};
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
     opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
+    opts.toggles.accents = req.query['toggleaccents'] === "true" ? true : false;
     opts.itemsPerPage = isNaN(parseInt(req.query['ipp'])) ? config.worksheet.pageItems : parseInt(req.query['ipp']);
 
     res.writeHead(200, {
@@ -952,11 +955,13 @@ app.get("/worksheetmap/:patlen", responseCacher, function(req, res) {
     opts.blanks = req.query['blanks'];
     opts.rests = req.query['rests'] === "true" ? true : false;
     opts.kick = req.query['kick'] === "true" ? true : false;
+    opts.accents = req.query['accents'] === "true" ? true : false;
     opts.nosticking = req.query['nosticking'] === "true" ? true : false;
     opts.toggles = {};
     opts.toggles.sticking = req.query['togglesticking'] === "true" ? true : false;
     opts.toggles.rests = req.query['togglerests'] === "true" ? true : false;
     opts.toggles.kick = req.query['togglekick'] === "true" ? true : false;
+    opts.toggles.accents = req.query['toggleaccents'] === "true" ? true : false;
     opts.itemsPerPage = config.worksheet.pageItems;
 
     res.writeHead(200, {

@@ -23,13 +23,25 @@ var nl = "\n";
 
 var parseOpts = function(opts) {
     var pageLinkAdd = "";
-    var mappings = ['r', 'R', 'l', 'L'];
+    //var mappings = ['r', 'R', 'l', 'L'];
+    var mappings = ['r', 'l'];
+
+    if (opts.toggles.accents === true){
+        opts.accents = !opts.accents;
+    }
+    if (opts.accents === true) {
+        mappings = mappings.concat(['R', 'L']);
+    }
+    pageLinkAdd += "&accents=" + (opts.accents ? 'true' : 'false')
 
     if (opts.toggles.kick === true) {
         opts.kick = !opts.kick;
     }
     if (opts.kick === true) {
-        mappings = mappings.concat(['g', 'G']);
+        mappings = mappings.concat(['g']);
+        if (opts.accents === true) {
+            mappings = mappings.concat(['G']);
+        }
         pageLinkAdd += "&kick=true";
     } else {
         pageLinkAdd += "&kick=false";
@@ -39,11 +51,12 @@ var parseOpts = function(opts) {
         opts.nosticking = !opts.nosticking;
     }
     if (opts.nosticking !== false) {
-        mappings = ['x', 'X'];
-        pageLinkAdd += "&nosticking=true";
-    } else {
-        pageLinkAdd += "&nosticking=false";
+        mappings = ['x'];
+        if (opts.accents === true) {
+            mappings = mappings.concat(['X']);
+        }
     }
+    pageLinkAdd += "&nosticking=" + (opts.nosticking ? 'true' : 'false')
 
     if (opts.blanks) {
         mappings = mappings.concat(['x', 'X']);
@@ -54,11 +67,12 @@ var parseOpts = function(opts) {
         opts.rests = !opts.rests;
     }
     if (opts.rests === true) {
-        mappings.push("-");
-        pageLinkAdd += "&rests=true";
+        mappings = mappings.concat(['-']);
+        //pageLinkAdd += "&rests=true";
     } else {
-        pageLinkAdd += "&rests=false";
+        //pageLinkAdd += "&rests=false";
     }
+    pageLinkAdd += "&rests=" + (opts.rests ? 'true' : 'false')
 
     opts.pageLinkAdd = pageLinkAdd;
     opts.mappings = mappings;
@@ -111,11 +125,13 @@ var getAllStreamContin = function(stream, opts, filter) {
     var toggleLinks = [];
     var toggleLinkBase = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd;
     var toggleStickingLink = toggleLinkBase + "&togglesticking=true";
-    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking</a>'.replace('{{L}}', toggleStickingLink));
+    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking {{STATE}}</a>'.replace('{{L}}', toggleStickingLink).replace('{{STATE}}', !opts.nosticking ? 'OFF' : 'ON'));
     var toggleRestsLink = toggleLinkBase + "&togglerests=true";
-    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests</a>'.replace('{{L}}', toggleRestsLink));
+    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests {{STATE}}</a>'.replace('{{L}}', toggleRestsLink).replace('{{STATE}}', opts.rests ? 'OFF' : 'ON'));
     var toggleKickLink = toggleLinkBase + "&togglekick=true";
-    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick</a>'.replace('{{L}}', toggleKickLink));
+    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick {{STATE}}</a>'.replace('{{L}}', toggleKickLink).replace('{{STATE}}', opts.kick ? 'OFF' : 'ON'));
+    var toggleAccentsLink = toggleLinkBase + "&toggleaccents=true";
+    toggleLinks.push('<a class="toggle-accents" href="{{L}}">Toggle Accents {{STATE}}</a>'.replace('{{L}}', toggleAccentsLink).replace('{{STATE}}', opts.accents ? 'OFF' : 'ON'));
 
     pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleLinks.join(" "));
     pageStart = pageStart.replace("{{PATLENLINKS}}", getPatLenLinks(pagePath, 2, maxpatlen));
@@ -201,11 +217,13 @@ var getAllStreamContinMap = function(stream, opts, filter) {
     var toggleLinks = [];
     var toggleLinkBase = pageHost + pagePath + patlen + "?page=1" + opts.pageLinkAdd;
     var toggleStickingLink = toggleLinkBase + "&togglesticking=true";
-    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking</a>'.replace('{{L}}', toggleStickingLink));
+    toggleLinks.push('<a class="toggle-sticking" href="{{L}}">Toggle Sticking {{STATE}}</a>'.replace('{{L}}', toggleStickingLink).replace('{{STATE}}', !opts.nosticking ? 'OFF' : 'ON'));
     var toggleRestsLink = toggleLinkBase + "&togglerests=true";
-    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests</a>'.replace('{{L}}', toggleRestsLink));
+    toggleLinks.push('<a class="toggle-rests" href="{{L}}">Toggle Rests {{STATE}}</a>'.replace('{{L}}', toggleRestsLink).replace('{{STATE}}', opts.rests ? 'OFF' : 'ON'));
     var toggleKickLink = toggleLinkBase + "&togglekick=true";
-    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick</a>'.replace('{{L}}', toggleKickLink));
+    toggleLinks.push('<a class="toggle-kick" href="{{L}}">Toggle Kick {{STATE}}</a>'.replace('{{L}}', toggleKickLink).replace('{{STATE}}', opts.kick ? 'OFF' : 'ON'));
+    var toggleAccentsLink = toggleLinkBase + "&toggleaccents=true";
+    toggleLinks.push('<a class="toggle-accents" href="{{L}}">Toggle Accents {{STATE}}</a>'.replace('{{L}}', toggleAccentsLink).replace('{{STATE}}', opts.accents ? 'OFF' : 'ON'));
 
     pageStart = pageStart.replace("{{TOGGLELINKS}}", toggleLinks.join(" "));
     pageStart = pageStart.replace("{{PATLENLINKS}}", getPatLenLinks(pagePath, 2, maxpatlen));
