@@ -23,7 +23,7 @@
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "loadtest": "^5.1.2",
-    "mocha": "^5.2.0",
+    "mocha": "^10.2.0",
     "terminal-image": "^1.2.1",
     "zombie": "^6.1.4"
   }
